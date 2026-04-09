@@ -4,17 +4,13 @@ namespace App\Filament\Resources\Clientes\Pages;
 
 use App\Filament\Resources\Clientes\ClienteResource;
 use App\Models\User;
-use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CreateCliente extends CreateRecord
 {
     protected static string $resource = ClienteResource::class;
-
-    protected ?string $generatedPassword = null;
 
     /**
      * Cuando el gestor crea un cliente, tambien creamos su usuario de acceso.
@@ -25,14 +21,18 @@ class CreateCliente extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         return DB::transaction(function () use ($data): Model {
-            $this->generatedPassword = Str::password(12);
+            $password = $data['password'];
+
+            // Estos campos pertenecen al usuario de acceso y no deben
+            // terminar guardados en la tabla clientes.
+            unset($data['password'], $data['password_confirmation']);
 
             $user = User::create([
                 // El usuario usa nombre completo para que la parte autenticada
                 // del cliente muestre una identidad coherente desde el principio.
                 'name' => trim("{$data['name']} {$data['last_name']}"),
                 'email' => $data['email'],
-                'password' => $this->generatedPassword,
+                'password' => $password,
                 'role' => User::ROLE_CLIENTE,
             ]);
 
@@ -41,22 +41,6 @@ class CreateCliente extends CreateRecord
 
             return static::getModel()::create($data);
         });
-    }
-
-    protected function afterCreate(): void
-    {
-        if (! $this->generatedPassword) {
-            return;
-        }
-
-        // Mostramos la contrasena temporal una sola vez para que el gestor
-        // pueda entregarsela al cliente mientras no exista flujo de invitacion.
-        Notification::make()
-            ->title('Cliente creado con acceso')
-            ->body("Contrasena temporal del cliente: {$this->generatedPassword}")
-            ->success()
-            ->persistent()
-            ->send();
     }
 
     protected function getRedirectUrl(): string

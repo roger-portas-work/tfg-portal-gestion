@@ -21,13 +21,27 @@ class EditCliente extends EditRecord
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
         return DB::transaction(function () use ($record, $data): Model {
+            $newPassword = $data['new_password'] ?? null;
+
+            // Estos campos solo afectan al usuario autenticado del cliente,
+            // asi que no deben terminar guardados sobre la ficha cliente.
+            unset($data['new_password'], $data['new_password_confirmation']);
+
             $record->update($data);
 
             if ($record->user) {
-                $record->user->update([
+                $userData = [
                     'name' => trim("{$data['name']} {$data['last_name']}"),
                     'email' => $data['email'],
-                ]);
+                ];
+
+                // Si el gestor informa una nueva contrasena, la reemplazamos
+                // para que el cliente pueda acceder con ese nuevo valor.
+                if (filled($newPassword)) {
+                    $userData['password'] = $newPassword;
+                }
+
+                $record->user->update($userData);
             }
 
             return $record;

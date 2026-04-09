@@ -51,6 +51,13 @@ new #[Title('Mis drones')] class extends Component {
         $this->showForm = true;
     }
 
+    public function canDeleteDrones(): bool
+    {
+        // El portal cliente siempre debe conservar al menos un dron base
+        // una vez que el usuario ya ha salido del alta inicial.
+        return $this->drones->count() > 1;
+    }
+
     public function edit(int $dronId): void
     {
         $dron = $this->cliente?->drones()->findOrFail($dronId);
@@ -123,6 +130,10 @@ new #[Title('Mis drones')] class extends Component {
 
     public function delete(int $dronId): void
     {
+        if (! $this->canDeleteDrones()) {
+            return;
+        }
+
         $this->cliente?->drones()->findOrFail($dronId)?->delete();
         $this->resetForm();
         $this->showForm = $this->drones->isEmpty();
@@ -153,15 +164,12 @@ new #[Title('Mis drones')] class extends Component {
 }; ?>
 
 <section class="w-full">
-    <div class="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <x-pages::settings.layout heading="" subheading="">
         <div class="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-6 shadow-sm dark:border-sky-800/60 dark:from-sky-950/30 dark:via-neutral-900 dark:to-cyan-950/30">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <p class="text-sm uppercase tracking-[0.25em] text-sky-700 dark:text-sky-300">Portal cliente</p>
                     <h1 class="mt-3 text-3xl font-semibold text-neutral-900 dark:text-white">Mis drones</h1>
-                    <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
-                        Aqui registras y gestionas los drones del cliente. Si ya hay uno creado, la vista principal sera el listado y no un formulario vacio.
-                    </p>
                 </div>
 
                 @if ($this->drones->isNotEmpty() && ! $showForm)
@@ -173,7 +181,7 @@ new #[Title('Mis drones')] class extends Component {
         </div>
 
         @if ($showForm)
-            <div class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
+            <div class="mt-6 rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">
@@ -191,43 +199,43 @@ new #[Title('Mis drones')] class extends Component {
 
                 <form wire:submit="save" class="mt-6 space-y-6">
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="uas_class" label="Clase d'UAS" type="text" required />
-                        <flux:input wire:model="manufacturer_name" label="Nombre fabricante" type="text" required />
+                        <flux:input wire:model="uas_class" label="Clase de UAS" type="text" required />
+                        <flux:input wire:model="manufacturer_name" label="Nombre del fabricante" type="text" required />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
                         <flux:input wire:model="model" label="Modelo" type="text" required />
-                        <flux:input wire:model="controller_serial_number" label="Numero serie controladora" type="text" required />
+                        <flux:input wire:model="controller_serial_number" label="Número de serie de la controladora" type="text" required />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="registration_number" label="Matricula" type="text" required />
+                        <flux:input wire:model="registration_number" label="Matrícula" type="text" required />
                         <flux:input wire:model="mtom_weight" label="Peso MTOM" type="number" step="0.01" required />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="remote_id_number" label="Num id remoto" type="text" required />
+                        <flux:input wire:model="remote_id_number" label="Número de ID remoto" type="text" required />
                         <flux:input wire:model="class_marking" label="Marcado de clase" type="text" required />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="band_frequency" label="Banda i frequencia" type="text" required />
+                        <flux:input wire:model="band_frequency" label="Banda y frecuencia" type="text" required />
                         <flux:input wire:model="color" label="Color" type="text" required />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="payload" label="Carrega de pagament" type="text" />
+                        <flux:input wire:model="payload" label="Carga de pago" type="text" />
                         <flux:input wire:model="vhf_equipment" label="Equip VHF" type="text" />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="emergency_equipment" label="Equip emergencia" type="text" />
-                        <flux:input wire:model="insurance_policy_number" label="Numero politica seguro" type="text" required />
+                        <flux:input wire:model="emergency_equipment" label="Equipo de emergencia" type="text" />
+                        <flux:input wire:model="insurance_policy_number" label="Número de póliza del seguro" type="text" required />
                     </div>
 
                     <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="insurance_valid_until" label="Fecha validez" type="date" required />
-                        <flux:input wire:model="insurance_company_name" label="Nombre entidad asseguradora" type="text" required />
+                        <flux:input wire:model="insurance_valid_until" label="Fecha de validez" type="date" required />
+                        <flux:input wire:model="insurance_company_name" label="Nombre de la entidad aseguradora" type="text" required />
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -242,7 +250,7 @@ new #[Title('Mis drones')] class extends Component {
                 </form>
             </div>
         @else
-            <div class="grid gap-4">
+            <div class="mt-6 grid gap-4">
                 @foreach ($this->drones as $dron)
                     <div class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
                         <div class="flex flex-wrap items-start justify-between gap-4">
@@ -265,14 +273,16 @@ new #[Title('Mis drones')] class extends Component {
                                 <flux:button variant="ghost" wire:click="edit({{ $dron->id }})">
                                     Editar
                                 </flux:button>
-                                <flux:button variant="danger" wire:click="delete({{ $dron->id }})">
-                                    Borrar
-                                </flux:button>
+                                @if ($this->canDeleteDrones())
+                                    <flux:button variant="danger" wire:click="delete({{ $dron->id }})">
+                                        Borrar
+                                    </flux:button>
+                                @endif
                             </div>
                         </div>
                     </div>
                 @endforeach
             </div>
         @endif
-    </div>
+    </x-pages::settings.layout>
 </section>

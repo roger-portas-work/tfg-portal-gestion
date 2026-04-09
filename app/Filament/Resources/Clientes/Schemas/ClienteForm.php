@@ -59,6 +59,48 @@ class ClienteForm
                                     ->tel()
                                     ->required()
                                     ->maxLength(30),
+
+                                // La contrasena pertenece al usuario de acceso, no a la ficha
+                                // del cliente. La pedimos aqui solo cuando el gestor da el alta
+                                // inicial para que el cliente salga ya con acceso definitivo.
+                                TextInput::make('password')
+                                    ->label('Contrasena de acceso')
+                                    ->password()
+                                    ->revealable()
+                                    ->required(fn (string $operation): bool => $operation === 'create')
+                                    ->visible(fn (string $operation): bool => $operation === 'create')
+                                    ->minLength(8)
+                                    ->maxLength(255),
+
+                                // Confirmamos la contrasena en el alta para evitar errores
+                                // del gestor al crear el acceso del cliente.
+                                TextInput::make('password_confirmation')
+                                    ->label('Confirmar contrasena')
+                                    ->password()
+                                    ->revealable()
+                                    ->required(fn (string $operation): bool => $operation === 'create')
+                                    ->visible(fn (string $operation): bool => $operation === 'create')
+                                    ->same('password')
+                                    ->dehydrated(false)
+                                    ->maxLength(255),
+
+                                TextInput::make('new_password')
+                                    ->label('Nueva contrasena de acceso')
+                                    ->password()
+                                    ->revealable()
+                                    ->visible(fn (string $operation): bool => $operation === 'edit')
+                                    ->dehydrated(fn (?string $state): bool => filled($state))
+                                    ->minLength(8)
+                                    ->maxLength(255),
+
+                                TextInput::make('new_password_confirmation')
+                                    ->label('Confirmar nueva contrasena')
+                                    ->password()
+                                    ->revealable()
+                                    ->visible(fn (string $operation): bool => $operation === 'edit')
+                                    ->same('new_password')
+                                    ->dehydrated(false)
+                                    ->maxLength(255),
                             ]),
                     ]),
             ]);

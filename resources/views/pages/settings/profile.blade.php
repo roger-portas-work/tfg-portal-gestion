@@ -18,6 +18,10 @@ new #[Title('Profile settings')] class extends Component {
     public string $phone = '';
     public string $dni = '';
     public string $address = '';
+    public string $country = '';
+    public string $city = '';
+    public string $province = '';
+    public string $postal_code = '';
     public string $operator_registration_number = '';
     public string $birth_date = '';
     public string $pilot_identification_number = '';
@@ -48,6 +52,10 @@ new #[Title('Profile settings')] class extends Component {
         $this->phone = $this->cliente->phone ?? '';
         $this->dni = $this->cliente->dni ?? '';
         $this->address = $this->cliente->address ?? '';
+        $this->country = $this->cliente->country ?? '';
+        $this->city = $this->cliente->city ?? '';
+        $this->province = $this->cliente->province ?? '';
+        $this->postal_code = $this->cliente->postal_code ?? '';
         $this->operator_registration_number = $this->cliente->operator_registration_number ?? '';
         $this->birth_date = match (true) {
             $this->cliente->birth_date instanceof \DateTimeInterface => $this->cliente->birth_date->format('Y-m-d'),
@@ -196,6 +204,10 @@ new #[Title('Profile settings')] class extends Component {
             'phone' => ['required', 'string', 'max:30'],
             'dni' => ['required', 'string', 'max:50'],
             'address' => ['required', 'string', 'max:255'],
+            'country' => ['required', 'string', 'max:120'],
+            'city' => ['required', 'string', 'max:120'],
+            'province' => ['required', 'string', 'max:120'],
+            'postal_code' => ['required', 'string', 'max:20'],
             'operator_registration_number' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
             'pilot_identification_number' => ['required', 'string', 'max:255'],
@@ -214,41 +226,80 @@ new #[Title('Profile settings')] class extends Component {
 }; ?>
 
 <section class="w-full">
-    @include('partials.settings-heading')
-
-    <flux:heading class="sr-only">{{ __('Profile settings') }}</flux:heading>
+    @unless ($this->isClientePortal())
+        @include('partials.settings-heading')
+        <flux:heading class="sr-only">{{ __('Profile settings') }}</flux:heading>
+    @endunless
 
     <x-pages::settings.layout :heading="$this->profileHeading" :subheading="$this->profileSubheading">
+        @if ($this->isClientePortal())
+            <div class="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-6 shadow-sm dark:border-sky-800/60 dark:from-sky-950/30 dark:via-neutral-900 dark:to-cyan-950/30">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <p class="text-sm uppercase tracking-[0.25em] text-sky-700 dark:text-sky-300">Portal cliente</p>
+                        <h1 class="mt-3 text-3xl font-semibold text-neutral-900 dark:text-white">Mi ficha</h1>
+                        <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
+                            Completa y actualiza los datos base de tu ficha para activar el resto del portal.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             @if ($this->isClientePortal())
-                <div class="grid gap-6 md:grid-cols-2">
-                    <flux:input wire:model="name" label="Nombre" type="text" required />
-                    <flux:input wire:model="last_name" label="Apellido" type="text" required />
-                </div>
+                <div class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
+                    <div class="grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="name" label="Nombre" type="text" required />
+                        <flux:input wire:model="last_name" label="Apellido" type="text" required />
+                    </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <flux:input wire:model="email" label="Email" type="email" required />
-                    <flux:input wire:model="phone" label="Telefono" type="text" required />
-                </div>
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="email" label="Email" type="email" required />
+                        <flux:input wire:model="phone" label="Telefono" type="text" required />
+                    </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <flux:input wire:model="dni" label="DNI" type="text" required />
-                    <flux:input wire:model="address" label="Direccion" type="text" required />
-                </div>
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="dni" label="DNI" type="text" required />
+                        <flux:input wire:model="address" label="Direccion completa" type="text" required />
+                    </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <flux:input wire:model="operator_registration_number" label="Numero de registro operadora" type="text" required />
-                    <flux:input wire:model="birth_date" label="Fecha de nacimiento" type="date" required />
-                </div>
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="country" label="Pais" type="text" required />
+                        <flux:input wire:model="city" label="Ciudad" type="text" required />
+                    </div>
 
-                <div class="grid gap-6 md:grid-cols-2">
-                    <flux:input wire:model="pilot_identification_number" label="Numero identificacion piloto" type="text" required />
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="province" label="Provincia" type="text" required />
+                        <flux:input wire:model="postal_code" label="Codigo postal" type="text" required />
+                    </div>
 
-                    @if ($this->cliente?->client_type === \App\Models\Cliente::TYPE_JURIDICO)
-                        <flux:input wire:model="operator_certification" label="Certificacion operadora" type="text" required />
-                    @else
-                        <flux:input wire:model="pilot_certificate" label="Certificado titulacion de piloto" type="text" required />
-                    @endif
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="operator_registration_number" label="Numero de registro de operadora" type="text" required />
+                        <flux:input wire:model="birth_date" label="Fecha de nacimiento" type="date" required />
+                    </div>
+
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="pilot_identification_number" label="Numero de identificacion de piloto" type="text" required />
+
+                        @if ($this->cliente?->client_type === \App\Models\Cliente::TYPE_JURIDICO)
+                            <flux:input wire:model="operator_certification" label="Certificacion operadora" type="text" required />
+                        @else
+                            <flux:input wire:model="pilot_certificate" label="Certificado de titulacion piloto" type="text" required />
+                        @endif
+                    </div>
+
+                    <div class="mt-6 flex items-center gap-4">
+                        <div class="flex items-center justify-end">
+                            <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
+                                Guardar cambios
+                            </flux:button>
+                        </div>
+
+                        <x-action-message class="me-3" on="profile-updated">
+                            Guardado.
+                        </x-action-message>
+                    </div>
                 </div>
             @else
                 <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
@@ -274,19 +325,18 @@ new #[Title('Profile settings')] class extends Component {
                         </div>
                     @endif
                 </div>
-            @endif
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center justify-end">
+                        <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
+                            {{ __('Save') }}
+                        </flux:button>
+                    </div>
 
-            <div class="flex items-center gap-4">
-                <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
-                        {{ __('Save') }}
-                    </flux:button>
+                    <x-action-message class="me-3" on="profile-updated">
+                        {{ __('Saved.') }}
+                    </x-action-message>
                 </div>
-
-                <x-action-message class="me-3" on="profile-updated">
-                    {{ __('Saved.') }}
-                </x-action-message>
-            </div>
+            @endif
         </form>
 
         @if ($this->showDeleteUser)
