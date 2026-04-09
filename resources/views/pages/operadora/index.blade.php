@@ -236,8 +236,8 @@ new #[Title('Operadora')] class extends Component {
                             @endif
 
                             @if ($requirement->submitted_at)
-                                <p class="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
-                                    Ultima entrega: {{ $requirement->submitted_at->format('d/m/Y H:i') }}
+                                <p class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                                    Ultima entrega: {{ \Illuminate\Support\Carbon::parse($requirement->submitted_at)->format('d/m/Y H:i') }}
                                 </p>
                             @endif
                         </div>

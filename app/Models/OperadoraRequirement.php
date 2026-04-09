@@ -2,28 +2,28 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Casts;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'cliente_id',
-    'name',
-    'input_type',
-    'is_required',
-    'instructions',
-    'status',
-    'text_value',
-    'file_path',
-    'submitted_at',
-])]
-#[Casts([
-    'is_required' => 'boolean',
-    'submitted_at' => 'datetime',
-])]
 class OperadoraRequirement extends Model
 {
+    protected $fillable = [
+        'cliente_id',
+        'name',
+        'input_type',
+        'is_required',
+        'instructions',
+        'status',
+        'text_value',
+        'file_path',
+        'submitted_at',
+    ];
+
+    protected $casts = [
+        'is_required' => 'boolean',
+        'submitted_at' => 'datetime',
+    ];
+
     public const TYPE_PDF = 'pdf';
 
     public const TYPE_TEXT = 'text';
