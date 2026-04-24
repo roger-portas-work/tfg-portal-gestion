@@ -7,12 +7,15 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'name',
     'last_name',
+    'second_last_name',
     'email',
+    'personal_email',
     'phone',
     'client_type',
     'profile_completed',
@@ -80,11 +83,57 @@ class Cliente extends Model
     }
 
     /**
+     * El cliente puede registrar uno o varios pilotos operativos.
+     */
+    public function pilotos(): HasMany
+    {
+        return $this->hasMany(Piloto::class);
+    }
+
+    /**
+     * El cliente puede registrar multiples operaciones.
+     */
+    public function operaciones(): HasMany
+    {
+        return $this->hasMany(Operacion::class);
+    }
+
+    /**
      * Requisitos que el gestor define para el expediente de operadora.
      */
     public function operadoraRequirements(): HasMany
     {
         return $this->hasMany(OperadoraRequirement::class);
+    }
+
+    public function operadoraProfile(): HasOne
+    {
+        return $this->hasOne(OperadoraProfile::class);
+    }
+
+    public function ensureOperadoraProfile(): OperadoraProfile
+    {
+        return $this->operadoraProfile()->firstOrCreate([], []);
+    }
+
+    public function ensureDefaultOperadoraRequirement(): OperadoraRequirement
+    {
+        return $this->operadoraRequirements()->firstOrCreate(
+            ['is_system_default' => true],
+            [
+                'name' => 'CERTIFICADO OPERADOR',
+                'input_type' => OperadoraRequirement::TYPE_PDF,
+                'is_required' => true,
+                'instructions' => 'Sube el PDF del CERTIFICADO OPERADOR.',
+                'status' => OperadoraRequirement::STATUS_PENDING,
+            ]
+        );
+    }
+
+    public function ensureOperadoraSetup(): void
+    {
+        $this->ensureOperadoraProfile();
+        $this->ensureDefaultOperadoraRequirement();
     }
 
     /**
@@ -97,6 +146,7 @@ class Cliente extends Model
         $commonFields = [
             'name',
             'last_name',
+            'personal_email',
             'email',
             'phone',
             'dni',
@@ -105,21 +155,10 @@ class Cliente extends Model
             'city',
             'province',
             'postal_code',
-            'operator_registration_number',
             'birth_date',
-            'pilot_identification_number',
         ];
 
-        return match ($this->client_type) {
-            self::TYPE_JURIDICO => [
-                ...$commonFields,
-                'operator_certification',
-            ],
-            default => [
-                ...$commonFields,
-                'pilot_certificate',
-            ],
-        };
+        return $commonFields;
     }
 
     /**
@@ -148,6 +187,7 @@ class Cliente extends Model
         return trim(implode(' ', array_filter([
             $this->name,
             $this->last_name,
+            $this->second_last_name,
         ])));
     }
 

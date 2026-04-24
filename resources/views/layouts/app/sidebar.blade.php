@@ -8,6 +8,8 @@
             $cliente = auth()->user()?->cliente;
             $isClientePortal = auth()->user()?->role === \App\Models\User::ROLE_CLIENTE;
             $canAccessDrones = $isClientePortal && $cliente?->profile_completed;
+            $canAccessPilotos = $isClientePortal && $cliente?->isUnblocked();
+            $canAccessOperaciones = $isClientePortal && $cliente?->isUnblocked();
             $canAccessOperadora = $isClientePortal && $cliente?->isUnblocked();
         @endphp
 
@@ -30,6 +32,16 @@
                     @if ($canAccessDrones)
                         <flux:sidebar.item icon="paper-airplane" :href="route('drones.index')" :current="request()->routeIs('drones.*')" wire:navigate>
                             Drones
+                        </flux:sidebar.item>
+                    @endif
+                    @if ($canAccessPilotos)
+                        <flux:sidebar.item icon="identification" :href="route('pilotos.index')" :current="request()->routeIs('pilotos.*')" wire:navigate>
+                            Pilotos
+                        </flux:sidebar.item>
+                    @endif
+                    @if ($canAccessOperaciones)
+                        <flux:sidebar.item icon="clipboard-document-list" :href="route('operaciones.index')" :current="request()->routeIs('operaciones.*')" wire:navigate>
+                            Operaciones
                         </flux:sidebar.item>
                     @endif
                     @if ($canAccessOperadora)

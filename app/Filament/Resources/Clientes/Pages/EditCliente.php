@@ -31,7 +31,11 @@ class EditCliente extends EditRecord
 
             if ($record->user) {
                 $userData = [
-                    'name' => trim("{$data['name']} {$data['last_name']}"),
+                    'name' => trim(implode(' ', array_filter([
+                        $data['name'] ?? null,
+                        $data['last_name'] ?? null,
+                        $data['second_last_name'] ?? null,
+                    ]))),
                     'email' => $data['email'],
                 ];
 

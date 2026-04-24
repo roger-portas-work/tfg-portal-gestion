@@ -5,7 +5,10 @@ namespace App\Filament\Resources\Clientes;
 use App\Filament\Resources\Clientes\Pages\CreateCliente;
 use App\Filament\Resources\Clientes\Pages\EditCliente;
 use App\Filament\Resources\Clientes\Pages\ListClientes;
+use App\Filament\Resources\Clientes\RelationManagers\DronesRelationManager;
+use App\Filament\Resources\Clientes\RelationManagers\OperacionesRelationManager;
 use App\Filament\Resources\Clientes\RelationManagers\OperadoraRequirementsRelationManager;
+use App\Filament\Resources\Clientes\RelationManagers\PilotosRelationManager;
 use App\Filament\Resources\Clientes\Schemas\ClienteForm;
 use App\Filament\Resources\Clientes\Tables\ClientesTable;
 use App\Models\Cliente;
@@ -29,6 +32,8 @@ class ClienteResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    protected static ?int $navigationSort = 1;
+
     public static function form(Schema $schema): Schema
     {
         return ClienteForm::configure($schema);
@@ -43,6 +48,9 @@ class ClienteResource extends Resource
     {
         return [
             OperadoraRequirementsRelationManager::class,
+            OperacionesRelationManager::class,
+            PilotosRelationManager::class,
+            DronesRelationManager::class,
         ];
     }
 

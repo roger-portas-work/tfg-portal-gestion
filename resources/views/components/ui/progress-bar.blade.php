@@ -12,23 +12,13 @@
 @endphp
 
 <div
-    style="
-        width: 100%;
-        height: {{ $height }};
-        background: {{ $trackColor }};
-        border-radius: 9999px;
-        overflow: hidden;
-    "
+    class="ui-progress"
+    style="--progress-height: {{ $height }}; --progress-track: {{ $trackColor }};"
 >
     @if ($progressValue > 0)
         <div
-            style="
-                width: {{ rtrim(rtrim(number_format($progressValue, 2, '.', ''), '0'), '.') }}%;
-                height: 100%;
-                background: {{ $fillColor }};
-                border-radius: 9999px;
-                transition: width 0.4s ease;
-            "
+            class="ui-progress__fill"
+            style="--progress-value: {{ rtrim(rtrim(number_format($progressValue, 2, '.', ''), '0'), '.') }}%; --progress-fill: {{ $fillColor }};"
         ></div>
     @endif
 </div>

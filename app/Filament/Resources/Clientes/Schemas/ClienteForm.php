@@ -103,6 +103,52 @@ class ClienteForm
                                     ->maxLength(255),
                             ]),
                     ]),
+
+                Section::make('Ficha cliente')
+                    ->description('Aqui el gestor puede consultar y corregir la informacion real que el cliente ha rellenado en su ficha.')
+                    ->visible(fn (string $operation): bool => $operation === 'edit')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('second_last_name')
+                                    ->label('Segundo apellido')
+                                    ->maxLength(255),
+
+                                TextInput::make('personal_email')
+                                    ->label('Correo personal')
+                                    ->email()
+                                    ->maxLength(255),
+
+                                TextInput::make('dni')
+                                    ->label('DNI / NIE')
+                                    ->maxLength(30),
+
+                                TextInput::make('birth_date')
+                                    ->label('Fecha de nacimiento')
+                                    ->type('date'),
+
+                                TextInput::make('address')
+                                    ->label('Direccion completa')
+                                    ->maxLength(255)
+                                    ->columnSpanFull(),
+
+                                TextInput::make('country')
+                                    ->label('Pais')
+                                    ->maxLength(255),
+
+                                TextInput::make('city')
+                                    ->label('Ciudad')
+                                    ->maxLength(255),
+
+                                TextInput::make('province')
+                                    ->label('Provincia')
+                                    ->maxLength(255),
+
+                                TextInput::make('postal_code')
+                                    ->label('Codigo postal')
+                                    ->maxLength(20),
+                            ]),
+                    ]),
             ]);
     }
 }

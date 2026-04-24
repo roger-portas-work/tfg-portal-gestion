@@ -14,7 +14,9 @@ use Livewire\Component;
 new #[Title('Profile settings')] class extends Component {
     public string $name = '';
     public string $last_name = '';
+    public string $second_last_name = '';
     public string $email = '';
+    public string $personal_email = '';
     public string $phone = '';
     public string $dni = '';
     public string $address = '';
@@ -22,11 +24,7 @@ new #[Title('Profile settings')] class extends Component {
     public string $city = '';
     public string $province = '';
     public string $postal_code = '';
-    public string $operator_registration_number = '';
     public string $birth_date = '';
-    public string $pilot_identification_number = '';
-    public string $pilot_certificate = '';
-    public string $operator_certification = '';
 
     public ?Cliente $cliente = null;
 
@@ -48,7 +46,9 @@ new #[Title('Profile settings')] class extends Component {
 
         $this->name = $this->cliente->name ?? '';
         $this->last_name = $this->cliente->last_name ?? '';
+        $this->second_last_name = $this->cliente->second_last_name ?? '';
         $this->email = $this->cliente->email ?? $user->email;
+        $this->personal_email = $this->cliente->personal_email ?? $this->cliente->email ?? $user->email;
         $this->phone = $this->cliente->phone ?? '';
         $this->dni = $this->cliente->dni ?? '';
         $this->address = $this->cliente->address ?? '';
@@ -56,15 +56,11 @@ new #[Title('Profile settings')] class extends Component {
         $this->city = $this->cliente->city ?? '';
         $this->province = $this->cliente->province ?? '';
         $this->postal_code = $this->cliente->postal_code ?? '';
-        $this->operator_registration_number = $this->cliente->operator_registration_number ?? '';
         $this->birth_date = match (true) {
             $this->cliente->birth_date instanceof \DateTimeInterface => $this->cliente->birth_date->format('Y-m-d'),
             filled($this->cliente->birth_date) => Carbon::parse($this->cliente->birth_date)->format('Y-m-d'),
             default => '',
         };
-        $this->pilot_identification_number = $this->cliente->pilot_identification_number ?? '';
-        $this->pilot_certificate = $this->cliente->pilot_certificate ?? '';
-        $this->operator_certification = $this->cliente->operator_certification ?? '';
     }
 
     public function updateProfileInformation(): void
@@ -103,7 +99,11 @@ new #[Title('Profile settings')] class extends Component {
         $this->cliente->save();
 
         $user->fill([
-            'name' => trim("{$validated['name']} {$validated['last_name']}"),
+            'name' => trim(implode(' ', array_filter([
+                $validated['name'],
+                $validated['last_name'],
+                $validated['second_last_name'] ?? null,
+            ]))),
             'email' => $validated['email'],
         ]);
 
@@ -194,6 +194,7 @@ new #[Title('Profile settings')] class extends Component {
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
+            'second_last_name' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
@@ -201,6 +202,7 @@ new #[Title('Profile settings')] class extends Component {
                 'max:255',
                 Rule::unique(User::class)->ignore($userId),
             ],
+            'personal_email' => ['required', 'string', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
             'dni' => ['required', 'string', 'max:50'],
             'address' => ['required', 'string', 'max:255'],
@@ -208,18 +210,8 @@ new #[Title('Profile settings')] class extends Component {
             'city' => ['required', 'string', 'max:120'],
             'province' => ['required', 'string', 'max:120'],
             'postal_code' => ['required', 'string', 'max:20'],
-            'operator_registration_number' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
-            'pilot_identification_number' => ['required', 'string', 'max:255'],
-            'pilot_certificate' => ['nullable', 'string', 'max:255'],
-            'operator_certification' => ['nullable', 'string', 'max:255'],
         ];
-
-        if ($this->cliente?->client_type === Cliente::TYPE_JURIDICO) {
-            $rules['operator_certification'][0] = 'required';
-        } else {
-            $rules['pilot_certificate'][0] = 'required';
-        }
 
         return $rules;
     }
@@ -251,16 +243,21 @@ new #[Title('Profile settings')] class extends Component {
                 <div class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
                     <div class="grid gap-6 md:grid-cols-2">
                         <flux:input wire:model="name" label="Nombre" type="text" required />
-                        <flux:input wire:model="last_name" label="Apellido" type="text" required />
+                        <flux:input wire:model="last_name" label="Primer apellido" type="text" required />
                     </div>
 
                     <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="email" label="Email" type="email" required />
+                        <flux:input wire:model="second_last_name" label="Segundo apellido" type="text" />
+                        <flux:input wire:model="dni" label="DNI o NIE" type="text" required />
+                    </div>
+
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
+                        <flux:input wire:model="email" label="Correo de acceso" type="email" required />
+                        <flux:input wire:model="personal_email" label="Correo personal" type="email" required />
+                    </div>
+
+                    <div class="mt-6 grid gap-6 md:grid-cols-2">
                         <flux:input wire:model="phone" label="Telefono" type="text" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="dni" label="DNI" type="text" required />
                         <flux:input wire:model="address" label="Direccion completa" type="text" required />
                     </div>
 
@@ -274,19 +271,8 @@ new #[Title('Profile settings')] class extends Component {
                         <flux:input wire:model="postal_code" label="Codigo postal" type="text" required />
                     </div>
 
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="operator_registration_number" label="Numero de registro de operadora" type="text" required />
+                    <div class="mt-6 max-w-md">
                         <flux:input wire:model="birth_date" label="Fecha de nacimiento" type="date" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="pilot_identification_number" label="Numero de identificacion de piloto" type="text" required />
-
-                        @if ($this->cliente?->client_type === \App\Models\Cliente::TYPE_JURIDICO)
-                            <flux:input wire:model="operator_certification" label="Certificacion operadora" type="text" required />
-                        @else
-                            <flux:input wire:model="pilot_certificate" label="Certificado de titulacion piloto" type="text" required />
-                        @endif
                     </div>
 
                     <div class="mt-6 flex items-center gap-4">

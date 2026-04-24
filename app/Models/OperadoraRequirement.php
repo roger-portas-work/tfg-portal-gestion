@@ -12,16 +12,24 @@ class OperadoraRequirement extends Model
         'name',
         'input_type',
         'is_required',
+        'is_system_default',
         'instructions',
         'status',
         'text_value',
         'file_path',
+        'original_file_name',
+        'mime_type',
+        'file_size',
+        'review_notes',
         'submitted_at',
+        'reviewed_at',
     ];
 
     protected $casts = [
         'is_required' => 'boolean',
+        'is_system_default' => 'boolean',
         'submitted_at' => 'datetime',
+        'reviewed_at' => 'datetime',
     ];
 
     public const TYPE_PDF = 'pdf';
@@ -31,6 +39,10 @@ class OperadoraRequirement extends Model
     public const STATUS_PENDING = 'pending_upload';
 
     public const STATUS_IN_REVIEW = 'in_review';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_NEEDS_CHANGES = 'needs_changes';
 
     /**
      * Cada requisito pertenece al expediente de operadora de un cliente.
@@ -63,6 +75,8 @@ class OperadoraRequirement extends Model
         return [
             self::STATUS_PENDING => 'Pendiente de subir',
             self::STATUS_IN_REVIEW => 'En revision',
+            self::STATUS_APPROVED => 'Aprobado',
+            self::STATUS_NEEDS_CHANGES => 'Corregir',
         ];
     }
 

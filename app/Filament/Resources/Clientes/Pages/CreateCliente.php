@@ -39,7 +39,10 @@ class CreateCliente extends CreateRecord
             $data['user_id'] = $user->id;
             $data['profile_completed'] = false;
 
-            return static::getModel()::create($data);
+            $cliente = static::getModel()::create($data);
+            $cliente->ensureOperadoraSetup();
+
+            return $cliente;
         });
     }
 

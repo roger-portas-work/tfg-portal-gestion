@@ -10,6 +10,8 @@
             $profileCompleted = $cliente->profile_completed;
             $hasDrones = $cliente->drones()->exists();
             $isUnblocked = $cliente->isUnblocked();
+            $pilotosCount = $cliente->pilotos()->count();
+            $operacionesCount = $cliente->operaciones()->count();
             $hasOperadoraRequirements = $cliente->operadoraRequirements()->exists();
             $pendingOperadora = $cliente->pendingOperadoraRequirementsCount();
             $completedOperadora = $cliente->completedOperadoraRequirementsCount();
@@ -17,23 +19,23 @@
             $onboardingProgress = (int) (($completedOnboardingSteps / 2) * 100);
         @endphp
 
-        <div class="flex h-full w-full flex-1 flex-col gap-6 rounded-xl">
+        <div class="portal-page">
             @if (! $isUnblocked)
-                <div class="overflow-hidden rounded-3xl border border-red-300 bg-gradient-to-br from-red-50 via-white to-rose-100 shadow-sm dark:border-red-800/70 dark:from-red-950/40 dark:via-neutral-900 dark:to-rose-950/30">
-                    <div class="grid gap-6 p-7 md:grid-cols-[1.6fr_1fr] md:p-10">
-                        <div class="rounded-[2rem] border border-white/70 bg-white/85 p-8 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/45">
+                <div class="portal-hero portal-hero--danger">
+                    <div class="portal-dashboard-split">
+                        <div class="portal-dashboard-main">
                             <div class="flex flex-col gap-8 md:gap-10">
                                 <div class="flex flex-wrap items-center gap-4">
-                                    <span class="rounded-full border border-red-400 bg-red-100 px-4 py-2 text-sm font-semibold text-red-800 dark:border-red-700 dark:bg-red-900/40 dark:text-red-200">
+                                    <span class="portal-chip portal-chip--danger">
                                         Portal bloqueado
                                     </span>
-                                    <span class="rounded-full border border-neutral-200 bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200">
+                                    <span class="portal-chip portal-chip--neutral">
                                         {{ $completedOnboardingSteps }}/2 pasos completados
                                     </span>
                                 </div>
 
                                 <div class="space-y-5">
-                                    <p class="text-sm uppercase tracking-[0.28em] text-red-700 dark:text-red-300">Portal cliente</p>
+                                    <p class="portal-hero__eyebrow text-red-700 dark:text-red-300">Portal cliente</p>
                                     <h1 class="text-4xl font-semibold text-neutral-900 dark:text-white">
                                         Hola, {{ $cliente->fullName() ?: $user->name }}
                                     </h1>
@@ -47,7 +49,7 @@
                                 <div class="mt-3">
                                     <div class="flex items-center justify-between text-sm font-medium text-neutral-700 dark:text-neutral-300">
                                         <span>Progreso de activacion</span>
-                                        <span class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-red-700 shadow-sm dark:bg-neutral-900 dark:text-red-300">
+                                        <span class="portal-chip portal-chip--danger">
                                             {{ $onboardingProgress }}%
                                         </span>
                                     </div>
@@ -72,44 +74,44 @@
                                         {{ $profileCompleted ? 'Registrar mi primer dron' : 'Completar mi ficha' }}
                                     </flux:button>
 
-                                    <span class="rounded-full border border-amber-300 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                                    <span class="portal-chip portal-chip--warning">
                                         {{ $profileCompleted ? 'Siguiente accion: dron' : 'Accion requerida ahora' }}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <div class="rounded-[2rem] border border-red-200/80 bg-white/90 p-6 backdrop-blur dark:border-red-800/70 dark:bg-neutral-950/50">
+                        <div class="portal-dashboard-aside">
+                            <div class="portal-panel portal-panel--soft">
                                 <p class="text-base font-semibold text-neutral-900 dark:text-white">Pasos para activar tu portal</p>
                                 <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
                                     Sigue este orden para desbloquear el resto del portal.
                                 </p>
                             </div>
 
-                            <div class="rounded-[2rem] border {{ $profileCompleted ? 'border-emerald-200 dark:border-emerald-800/70' : 'border-amber-200 dark:border-amber-800/70' }} bg-white/90 p-6 shadow-sm dark:bg-neutral-950/50">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div class="flex items-start gap-4">
-                                        <div class="flex size-12 items-center justify-center rounded-2xl {{ $profileCompleted ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-300/70 dark:bg-emerald-500 dark:text-white' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' }}">
+                            <div class="{{ $profileCompleted ? 'portal-step-card portal-step-card--complete' : 'portal-step-card portal-step-card--pending' }}">
+                                <div class="portal-step-card__row">
+                                    <div class="portal-step-card__lead">
+                                        <div class="portal-step-card__icon {{ $profileCompleted ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-300/70 dark:bg-emerald-500 dark:text-white' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <p class="text-lg font-semibold text-neutral-900 dark:text-white">Completar ficha del cliente</p>
-                                            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-                                                {{ $profileCompleted ? 'Ficha completada correctamente.' : 'Añade tus datos personales y la informacion base para activar el portal.' }}
+                                            <p class="portal-step-card__title">Completar ficha del cliente</p>
+                                            <p class="portal-step-card__text">
+                                                {{ $profileCompleted ? 'Ficha completada correctamente.' : 'Anade tus datos personales y la informacion base para activar el portal.' }}
                                             </p>
                                         </div>
                                     </div>
 
-                                    <span class="rounded-full border {{ $profileCompleted ? 'border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200' : 'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200' }} px-3 py-1 text-xs font-semibold">
+                                    <span class="{{ $profileCompleted ? 'portal-chip portal-chip--success' : 'portal-chip portal-chip--warning' }}">
                                         {{ $profileCompleted ? 'Completada' : 'Pendiente' }}
                                     </span>
                                 </div>
 
                                 @if (! $profileCompleted)
-                                    <div class="mt-5">
+                                    <div class="portal-step-card__footer">
                                         <flux:button as="a" variant="primary" :href="route('profile.edit')" wire:navigate>
                                             Completar ahora
                                         </flux:button>
@@ -117,27 +119,27 @@
                                 @endif
                             </div>
 
-                            <div class="rounded-[2rem] border border-neutral-200 bg-neutral-50/90 p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/40">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div class="flex items-start gap-4">
-                                        <div class="flex size-12 items-center justify-center rounded-2xl {{ $profileCompleted ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' }}">
+                            <div class="portal-step-card portal-step-card--muted">
+                                <div class="portal-step-card__row">
+                                    <div class="portal-step-card__lead">
+                                        <div class="portal-step-card__icon bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <p class="text-lg font-semibold text-neutral-900 dark:text-white">Registrar 1 dron</p>
-                                            <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">Este paso se activara cuando tu ficha del cliente este completada.</p>
+                                            <p class="portal-step-card__title">Registrar 1 dron</p>
+                                            <p class="portal-step-card__text">Este paso se activara cuando tu ficha del cliente este completada.</p>
                                         </div>
                                     </div>
 
-                                    <span class="rounded-full border {{ $profileCompleted ? 'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200' : 'border-red-300 bg-red-100 text-red-800 dark:border-red-700 dark:bg-red-900/40 dark:text-red-200' }} px-3 py-1 text-xs font-semibold">
+                                    <span class="{{ $profileCompleted ? 'portal-chip portal-chip--warning' : 'portal-chip portal-chip--danger' }}">
                                         {{ $profileCompleted ? 'Pendiente' : 'Bloqueado' }}
                                     </span>
                                 </div>
 
                                 @if ($profileCompleted)
-                                    <div class="mt-5">
+                                    <div class="portal-step-card__footer">
                                         <flux:button as="a" variant="primary" :href="route('drones.index')" wire:navigate>
                                             Registrar ahora
                                         </flux:button>
@@ -148,14 +150,14 @@
                     </div>
                 </div>
             @else
-                <div class="overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50 shadow-sm dark:border-emerald-800/70 dark:from-emerald-950/30 dark:via-neutral-900 dark:to-sky-950/30">
-                    <div class="grid gap-6 p-6 md:grid-cols-[1.5fr_1fr] md:p-8">
+                <div class="portal-hero portal-hero--emerald">
+                    <div class="portal-section-split">
                         <div>
-                            <p class="text-sm uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">Portal cliente</p>
-                            <h1 class="mt-3 text-3xl font-semibold text-neutral-900 dark:text-white">
+                            <p class="portal-hero__eyebrow text-emerald-700 dark:text-emerald-300">Portal cliente</p>
+                            <h1 class="portal-hero__title">
                                 Hola, {{ $cliente->fullName() ?: $user->name }}
                             </h1>
-                            <p class="mt-4 max-w-2xl text-sm text-neutral-700 dark:text-neutral-300">
+                            <p class="mt-4 max-w-2xl text-sm leading-7 text-neutral-700 dark:text-neutral-300">
                                 Tu ficha ya esta completada y ya tienes un dron registrado. El onboarding base del portal esta finalizado.
                             </p>
 
@@ -186,15 +188,15 @@
                                     {{ $hasDrones ? 'Ver mis drones' : 'Registrar mi primer dron' }}
                                 </flux:button>
 
-                                <span class="rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                                <span class="portal-badge portal-badge--emerald">
                                     Estado actual: activo
                                 </span>
                             </div>
                         </div>
 
-                        <div class="rounded-2xl border border-cyan-200/80 bg-white/80 p-5 backdrop-blur dark:border-cyan-800/70 dark:bg-neutral-950/50">
+                        <div class="portal-panel portal-panel--soft">
                             <p class="text-sm font-semibold text-neutral-900 dark:text-white">Siguiente bloque disponible</p>
-                            <p class="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
+                            <p class="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
                                 El onboarding base ya esta completado. Ahora puedes empezar a trabajar la documentacion de operadora.
                             </p>
 
@@ -207,19 +209,57 @@
                     </div>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-1">
-                    <div class="rounded-3xl border border-cyan-200 bg-white p-6 shadow-sm dark:border-cyan-800/60 dark:bg-neutral-900">
-                        <p class="text-sm font-semibold text-neutral-900 dark:text-white">Documentacion Operadora</p>
-                        <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+                <div class="portal-support-grid">
+                    <div class="portal-support-card portal-support-card--indigo">
+                        <p class="portal-support-card__title">Pilotos</p>
+                        <p class="portal-support-card__text">
+                            Crea los pilotos que podras asignar despues dentro de cada operacion.
+                        </p>
+
+                        <div class="mt-4">
+                            <span class="portal-badge portal-badge--indigo">
+                                Registrados: {{ $pilotosCount }}
+                            </span>
+                        </div>
+
+                        <div class="portal-support-card__footer">
+                            <flux:button as="a" variant="primary" :href="route('pilotos.index')" wire:navigate>
+                                Ir a Pilotos
+                            </flux:button>
+                        </div>
+                    </div>
+
+                    <div class="portal-support-card portal-support-card--emerald">
+                        <p class="portal-support-card__title">Operaciones</p>
+                        <p class="portal-support-card__text">
+                            Crea y gestiona las operaciones vinculando un piloto y un dron de tu expediente.
+                        </p>
+
+                        <div class="mt-4">
+                            <span class="portal-badge portal-badge--emerald">
+                                Registradas: {{ $operacionesCount }}
+                            </span>
+                        </div>
+
+                        <div class="portal-support-card__footer">
+                            <flux:button as="a" variant="primary" :href="route('operaciones.index')" wire:navigate>
+                                Ir a Operaciones
+                            </flux:button>
+                        </div>
+                    </div>
+
+                    <div class="portal-support-card portal-support-card--sky">
+                        <p class="portal-support-card__title">Documentacion Operadora</p>
+                        <p class="portal-support-card__text">
                             Requisitos definidos por el gestor para la documentacion base de operadora.
                         </p>
 
                         @if ($hasOperadoraRequirements)
-                            <div class="mt-4 flex gap-3 text-sm">
-                                <span class="rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-amber-800 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                            <div class="mt-4 flex flex-wrap gap-3 text-sm">
+                                <span class="portal-badge portal-badge--amber">
                                     Pendientes: {{ $pendingOperadora }}
                                 </span>
-                                <span class="rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                                <span class="portal-badge portal-badge--emerald">
                                     Completados: {{ $completedOperadora }}
                                 </span>
                             </div>
@@ -229,7 +269,7 @@
                             </p>
                         @endif
 
-                        <div class="mt-5">
+                        <div class="portal-support-card__footer">
                             <flux:button as="a" variant="primary" :href="route('operadora.index')" wire:navigate>
                                 Ir a Operadora
                             </flux:button>

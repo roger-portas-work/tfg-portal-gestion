@@ -8,6 +8,8 @@ Route::view('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
     Route::livewire('drones', 'pages::drones.index')->name('drones.index');
+    Route::livewire('pilotos', 'pages::pilotos.index')->name('pilotos.index');
+    Route::livewire('operaciones', 'pages::operaciones.index')->name('operaciones.index');
     Route::livewire('operadora', 'pages::operadora.index')->name('operadora.index');
 });
 
