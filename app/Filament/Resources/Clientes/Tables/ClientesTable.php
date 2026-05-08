@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clientes\Tables;
 
 use App\Models\Cliente;
+use App\Models\Operacion;
 use App\Models\OperadoraRequirement;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -98,7 +99,12 @@ class ClientesTable
             ->modifyQueryUsing(fn (Builder $query) => $query->withCount([
                 'operaciones as operaciones_total_count',
                 'operaciones as operaciones_active_count' => fn (Builder $query) => $query
-                    ->whereDate('operation_date', '>=', $activeOperationsFrom),
+                    ->whereDate('operation_date', '>=', $activeOperationsFrom)
+                    ->where(function (Builder $query): void {
+                        $query
+                            ->whereNull('status')
+                            ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
+                    }),
                 'operadoraRequirements',
                 'operadoraRequirements as operadora_required_count' => fn (Builder $query) => $query
                     ->where('is_required', true),

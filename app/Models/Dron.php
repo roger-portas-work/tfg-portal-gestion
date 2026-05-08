@@ -72,12 +72,15 @@ class Dron extends Model
     public static function classMarkingOptions(): array
     {
         return [
+            'C0' => 'C0',
             'C1' => 'C1',
             'C2' => 'C2',
             'C3' => 'C3',
             'C4' => 'C4',
             'C5' => 'C5',
             'C6' => 'C6',
+            'Legacy' => 'Legacy',
+            'Construccion Privada' => 'Construccion Privada',
         ];
     }
 
@@ -87,6 +90,15 @@ class Dron extends Model
             self::AESA_STATUS_YES => 'Si',
             self::AESA_STATUS_NO => 'No',
             self::AESA_STATUS_MANAGER => 'Gestiona gestor',
+        ];
+    }
+
+    public static function aesaRegistrationDisplayOptions(): array
+    {
+        return [
+            self::AESA_STATUS_YES => 'Registrado',
+            self::AESA_STATUS_NO => 'No registrado',
+            self::AESA_STATUS_MANAGER => 'Pendiente de registrar',
         ];
     }
 
@@ -110,7 +122,16 @@ class Dron extends Model
 
     public function aesaRegistrationLabel(): string
     {
-        return self::aesaRegistrationOptions()[$this->aesa_registration_status] ?? ucfirst((string) $this->aesa_registration_status);
+        return self::aesaRegistrationDisplayOptions()[$this->aesa_registration_status] ?? ucfirst((string) $this->aesa_registration_status);
+    }
+
+    public function aesaRegistrationColor(): string
+    {
+        return match ($this->aesa_registration_status) {
+            self::AESA_STATUS_YES => 'success',
+            self::AESA_STATUS_MANAGER => 'warning',
+            default => 'gray',
+        };
     }
 
     /**

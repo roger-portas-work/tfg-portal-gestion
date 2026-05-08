@@ -10,6 +10,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('drones', 'pages::drones.index')->name('drones.index');
     Route::livewire('pilotos', 'pages::pilotos.index')->name('pilotos.index');
     Route::livewire('operaciones', 'pages::operaciones.index')->name('operaciones.index');
+    Route::livewire('operaciones/{operacion}/tramites-aprobados', 'pages::operaciones.tramites-aprobados')->name('operaciones.tramites-aprobados');
     Route::livewire('operadora', 'pages::operadora.index')->name('operadora.index');
 });
 

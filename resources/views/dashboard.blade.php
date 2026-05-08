@@ -9,11 +9,16 @@
         @php
             $profileCompleted = $cliente->profile_completed;
             $hasDrones = $cliente->drones()->exists();
+            $dronesCount = $cliente->drones()->count();
             $isUnblocked = $cliente->isUnblocked();
             $pilotosCount = $cliente->pilotos()->count();
-            $operacionesCount = $cliente->operaciones()->count();
+            $pendingOperaciones = $cliente->pendingOperacionesCount();
+            $rejectedOperaciones = $cliente->rejectedOperacionesCount();
+            $confirmedOperaciones = $cliente->confirmedOperacionesCount();
             $hasOperadoraRequirements = $cliente->operadoraRequirements()->exists();
             $pendingOperadora = $cliente->pendingOperadoraRequirementsCount();
+            $pendingRequiredOperadora = $cliente->pendingRequiredOperadoraRequirementsCount();
+            $pendingOptionalOperadora = $cliente->pendingOptionalOperadoraRequirementsCount();
             $completedOperadora = $cliente->completedOperadoraRequirementsCount();
             $completedOnboardingSteps = collect([$profileCompleted, $hasDrones])->filter()->count();
             $onboardingProgress = (int) (($completedOnboardingSteps / 2) * 100);
@@ -129,7 +134,11 @@
                                         </div>
                                         <div>
                                             <p class="portal-step-card__title">Registrar 1 dron</p>
-                                            <p class="portal-step-card__text">Este paso se activara cuando tu ficha del cliente este completada.</p>
+                                            <p class="portal-step-card__text">
+                                                {{ $profileCompleted
+                                                    ? 'Ya puedes registrar tu primer dron para desbloquear el resto del portal.'
+                                                    : 'Este paso se activara cuando tu ficha del cliente este completada.' }}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -151,65 +160,65 @@
                 </div>
             @else
                 <div class="portal-hero portal-hero--emerald">
-                    <div class="portal-section-split">
-                        <div>
-                            <p class="portal-hero__eyebrow text-emerald-700 dark:text-emerald-300">Portal cliente</p>
-                            <h1 class="portal-hero__title">
-                                Hola, {{ $cliente->fullName() ?: $user->name }}
-                            </h1>
-                            <p class="mt-4 max-w-2xl text-sm leading-7 text-neutral-700 dark:text-neutral-300">
-                                Tu ficha ya esta completada y ya tienes un dron registrado. El onboarding base del portal esta finalizado.
-                            </p>
+                    <div class="max-w-4xl">
+                        <p class="portal-hero__eyebrow text-emerald-700 dark:text-emerald-300">Portal cliente</p>
+                        <h1 class="portal-hero__title">
+                            Hola, {{ $cliente->fullName() ?: $user->name }}
+                        </h1>
+                        <p class="mt-4 max-w-2xl text-sm leading-7 text-neutral-700 dark:text-neutral-300">
+                            Tu ficha ya esta completada y ya tienes un dron registrado. El onboarding base del portal esta finalizado.
+                        </p>
 
-                            <div class="mt-6">
-                                <div class="flex items-center justify-between gap-4">
-                                    <p class="text-sm font-semibold text-neutral-900 dark:text-white">Progreso del onboarding base</p>
-                                    <span class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                                        100%
-                                    </span>
-                                </div>
-
-                                <div class="mt-3">
-                                    <x-ui.progress-bar
-                                        :value="100"
-                                        height="12px"
-                                        track-color="#d1fae5"
-                                        fill-color="linear-gradient(90deg, #10b981 0%, #06b6d4 100%)"
-                                    />
-                                </div>
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between gap-4">
+                                <p class="text-sm font-semibold text-neutral-900 dark:text-white">Progreso del onboarding base</p>
+                                <span class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                                    100%
+                                </span>
                             </div>
 
-                            <div class="mt-6 flex flex-wrap items-center gap-3">
-                                <flux:button as="a" variant="primary" :href="route('profile.edit')" wire:navigate>
-                                    Ver mi ficha
-                                </flux:button>
-
-                                <flux:button as="a" variant="filled" :href="route('drones.index')" wire:navigate>
-                                    {{ $hasDrones ? 'Ver mis drones' : 'Registrar mi primer dron' }}
-                                </flux:button>
-
-                                <span class="portal-badge portal-badge--emerald">
-                                    Estado actual: activo
-                                </span>
+                            <div class="mt-3">
+                                <x-ui.progress-bar
+                                    :value="100"
+                                    height="12px"
+                                    track-color="#d1fae5"
+                                    fill-color="linear-gradient(90deg, #10b981 0%, #06b6d4 100%)"
+                                />
                             </div>
                         </div>
 
-                        <div class="portal-panel portal-panel--soft">
-                            <p class="text-sm font-semibold text-neutral-900 dark:text-white">Siguiente bloque disponible</p>
-                            <p class="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
-                                El onboarding base ya esta completado. Ahora puedes empezar a trabajar la documentacion de operadora.
-                            </p>
+                        <div class="mt-6 flex flex-wrap items-center gap-3">
+                            <flux:button as="a" variant="primary" :href="route('profile.edit')" wire:navigate>
+                                Ver mi ficha
+                            </flux:button>
 
-                            <div class="mt-5">
-                                <flux:button as="a" variant="primary" :href="route('operadora.index')" wire:navigate>
-                                    Ir a Operadora
-                                </flux:button>
-                            </div>
+                            <span class="portal-badge portal-badge--emerald">
+                                Estado actual: activo
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <div class="portal-support-grid">
+                    <div class="portal-support-card portal-support-card--indigo">
+                        <p class="portal-support-card__title">Drones</p>
+                        <p class="portal-support-card__text">
+                            Consulta y gestiona los drones registrados en tu expediente.
+                        </p>
+
+                        <div class="mt-4">
+                            <span class="portal-badge {{ $dronesCount === 0 ? 'portal-badge--danger' : 'portal-badge--emerald' }}">
+                                Registrados: {{ $dronesCount }}
+                            </span>
+                        </div>
+
+                        <div class="portal-support-card__footer">
+                            <flux:button as="a" variant="primary" :href="route('drones.index')" wire:navigate>
+                                Ir a Drones
+                            </flux:button>
+                        </div>
+                    </div>
+
                     <div class="portal-support-card portal-support-card--indigo">
                         <p class="portal-support-card__title">Pilotos</p>
                         <p class="portal-support-card__text">
@@ -217,7 +226,7 @@
                         </p>
 
                         <div class="mt-4">
-                            <span class="portal-badge portal-badge--indigo">
+                            <span class="portal-badge {{ $pilotosCount === 0 ? 'portal-badge--danger' : 'portal-badge--emerald' }}">
                                 Registrados: {{ $pilotosCount }}
                             </span>
                         </div>
@@ -235,9 +244,15 @@
                             Crea y gestiona las operaciones vinculando un piloto y un dron de tu expediente.
                         </p>
 
-                        <div class="mt-4">
+                        <div class="mt-4 flex flex-col items-start gap-3 text-sm">
+                            <span class="portal-badge portal-badge--danger">
+                                Rechazadas: {{ $rejectedOperaciones }}
+                            </span>
+                            <span class="portal-badge portal-badge--amber">
+                                Pendientes: {{ $pendingOperaciones }}
+                            </span>
                             <span class="portal-badge portal-badge--emerald">
-                                Registradas: {{ $operacionesCount }}
+                                Confirmadas: {{ $confirmedOperaciones }}
                             </span>
                         </div>
 
@@ -255,10 +270,19 @@
                         </p>
 
                         @if ($hasOperadoraRequirements)
-                            <div class="mt-4 flex flex-wrap gap-3 text-sm">
-                                <span class="portal-badge portal-badge--amber">
-                                    Pendientes: {{ $pendingOperadora }}
-                                </span>
+                            <div class="mt-4 flex flex-col items-start gap-3 text-sm">
+                                @if ($pendingOperadora === 0)
+                                    <span class="portal-badge portal-badge--amber">
+                                        Pendientes: 0
+                                    </span>
+                                @else
+                                    <span class="portal-badge portal-badge--danger">
+                                        Obligatorios pendientes: {{ $pendingRequiredOperadora }}
+                                    </span>
+                                    <span class="portal-badge portal-badge--amber">
+                                        Opcionales pendientes: {{ $pendingOptionalOperadora }}
+                                    </span>
+                                @endif
                                 <span class="portal-badge portal-badge--emerald">
                                     Completados: {{ $completedOperadora }}
                                 </span>

@@ -159,7 +159,7 @@ class DronesRelationManager extends RelationManager
                     ->label('AESA')
                     ->state(fn (Dron $record): string => $record->aesaRegistrationLabel())
                     ->badge()
-                    ->color('gray')
+                    ->color(fn (Dron $record): string => $record->aesaRegistrationColor())
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('operaciones_count')

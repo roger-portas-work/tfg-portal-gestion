@@ -159,9 +159,13 @@ new #[Title('Profile settings')] class extends Component {
     #[Computed]
     public function profileSubheading(): string
     {
-        return $this->isClientePortal()
-            ? 'Completa y actualiza los datos de tu ficha de cliente.'
-            : 'Update your name and email address';
+        if (! $this->isClientePortal()) {
+            return 'Update your name and email address';
+        }
+
+        return $this->cliente?->isUnblocked()
+            ? 'Puedes modificar los datos de tu ficha base.'
+            : 'Completa tu ficha para desbloquear el resto del portal.';
     }
 
     public function isClientePortal(): bool
@@ -231,7 +235,9 @@ new #[Title('Profile settings')] class extends Component {
                         <p class="text-sm uppercase tracking-[0.25em] text-sky-700 dark:text-sky-300">Portal cliente</p>
                         <h1 class="mt-3 text-3xl font-semibold text-neutral-900 dark:text-white">Mi ficha</h1>
                         <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
-                            Completa y actualiza los datos base de tu ficha para activar el resto del portal.
+                            {{ $this->cliente?->isUnblocked()
+                                ? 'Puedes modificar los datos de tu ficha base.'
+                                : 'Completa tu ficha para desbloquear el resto del portal.' }}
                         </p>
                     </div>
                 </div>

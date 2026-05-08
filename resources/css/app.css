@@ -713,13 +713,17 @@ select:focus[data-flux-control] {
         @apply mt-6 grid gap-4;
     }
 
+    .portal-record-list--relaxed {
+        @apply gap-18;
+    }
+
     .portal-record-card {
         @apply rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
     }
 
     .portal-record-card--pending {
-        @apply border-red-200 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20;
-        box-shadow: 0 18px 34px -28px rgba(239, 68, 68, 0.2);
+        @apply border-amber-200 bg-amber-50/80 dark:border-amber-800 dark:bg-amber-950/20;
+        box-shadow: 0 18px 34px -28px rgba(245, 158, 11, 0.22);
     }
 
     .portal-record-card--review {
@@ -737,6 +741,16 @@ select:focus[data-flux-control] {
         box-shadow: 0 18px 34px -28px rgba(16, 185, 129, 0.2);
     }
 
+    .portal-record-card--confirmed {
+        @apply border-emerald-200 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-950/20;
+        box-shadow: 0 18px 34px -28px rgba(16, 185, 129, 0.2);
+    }
+
+    .portal-record-card--rejected {
+        @apply border-red-200 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20;
+        box-shadow: 0 18px 34px -28px rgba(239, 68, 68, 0.2);
+    }
+
     .portal-record-card__header {
         @apply flex flex-wrap items-start justify-between gap-4;
     }
@@ -745,8 +759,16 @@ select:focus[data-flux-control] {
         @apply text-xl font-semibold text-neutral-900 dark:text-white;
     }
 
+    .portal-operation-card__title {
+        @apply text-2xl uppercase;
+    }
+
     .portal-record-card__meta {
         @apply mt-2 space-y-1 text-sm text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-record-card__badges {
+        @apply mt-4 flex flex-wrap items-center gap-3;
     }
 
     .portal-record-card__text {
@@ -755,6 +777,127 @@ select:focus[data-flux-control] {
 
     .portal-record-card__actions {
         @apply flex flex-wrap gap-2;
+    }
+
+    .portal-spec-grid {
+        @apply mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .portal-spec-card {
+        @apply rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 dark:border-neutral-700 dark:bg-neutral-950/40;
+    }
+
+    .portal-spec-card--action {
+        @apply flex flex-col justify-between;
+    }
+
+    .portal-spec-card--featured {
+        @apply border-neutral-300 bg-white shadow-sm dark:border-neutral-600 dark:bg-neutral-900;
+    }
+
+    .portal-spec-card--wide {
+        @apply xl:col-span-2;
+    }
+
+    .portal-spec-card__label {
+        @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-spec-card__value {
+        @apply mt-2 text-sm font-medium text-neutral-900 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-spec-actions {
+        @apply mt-3 flex flex-wrap gap-2;
+    }
+
+    .portal-spec-grid--compact {
+        @apply mt-4;
+    }
+
+    .portal-operation-status-panel {
+        @apply mt-6 rounded-2xl border-2 px-5 py-5;
+    }
+
+    .portal-operation-status-panel--pending {
+        @apply border-sky-200 bg-sky-50/80 dark:border-sky-800 dark:bg-sky-950/30;
+    }
+
+    .portal-operation-status-panel--rejected {
+        @apply border-red-200 bg-red-50/80 dark:border-red-800 dark:bg-red-950/30;
+    }
+
+    .portal-operation-status-panel--confirmed {
+        @apply border-emerald-400 bg-white/90 shadow-sm dark:border-emerald-500 dark:bg-neutral-900/70;
+    }
+
+    .portal-operation-status-panel--missing-docs {
+        @apply border-red-200 bg-white/85 dark:border-red-800 dark:bg-neutral-900/70;
+    }
+
+    .portal-operation-status-panel__title {
+        @apply text-xs font-semibold uppercase tracking-[0.18em] text-neutral-900 dark:text-white;
+    }
+
+    .portal-operation-status-panel__text {
+        @apply mt-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-operation-confirmed-summary {
+        @apply mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-operation-confirmed-summary span {
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-docs {
+        @apply mt-4 flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-4;
+    }
+
+    .portal-operation-docs--approved {
+        @apply border-emerald-200/80 bg-emerald-50/80 dark:border-emerald-800/80 dark:bg-emerald-950/30;
+    }
+
+    .portal-operation-docs--missing {
+        @apply border-red-200/80 bg-red-50/80 dark:border-red-800/80 dark:bg-red-950/30;
+    }
+
+    .portal-operation-docs__title {
+        @apply text-sm font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .portal-operation-docs__text {
+        @apply mt-1 text-sm font-semibold leading-6 text-neutral-700 dark:text-neutral-200;
+    }
+
+    .portal-operation-docs__badges {
+        @apply mt-3 flex flex-wrap gap-2;
+    }
+
+    .portal-file-card {
+        @apply flex flex-wrap items-start justify-between gap-4 rounded-[1.35rem] border border-neutral-200 bg-white px-5 py-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
+    }
+
+    .portal-tramite-card--pending {
+        @apply border-sky-200 bg-sky-50/80 dark:border-sky-800 dark:bg-sky-950/20;
+        box-shadow: 0 18px 34px -28px rgba(14, 165, 233, 0.2);
+    }
+
+    .portal-tramite-card--processed {
+        @apply border-amber-200 bg-amber-50/80 dark:border-amber-800 dark:bg-amber-950/20;
+        box-shadow: 0 18px 34px -28px rgba(245, 158, 11, 0.2);
+    }
+
+    .portal-tramite-card--denied {
+        @apply border-red-200 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20;
+        box-shadow: 0 18px 34px -28px rgba(239, 68, 68, 0.2);
+    }
+
+    .portal-tramite-card--approved {
+        @apply border-emerald-200 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-950/20;
+        box-shadow: 0 18px 34px -28px rgba(16, 185, 129, 0.2);
     }
 
     .portal-status-legend {
@@ -766,7 +909,7 @@ select:focus[data-flux-control] {
     }
 
     .portal-badge {
-        @apply inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium;
+        @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium;
     }
 
     .portal-badge--indigo {
@@ -822,7 +965,7 @@ select:focus[data-flux-control] {
     }
 
     .portal-support-grid {
-        @apply grid gap-4 md:grid-cols-3;
+        @apply grid gap-4 md:grid-cols-2 xl:grid-cols-4;
     }
 
     .portal-support-card {
@@ -830,15 +973,15 @@ select:focus[data-flux-control] {
     }
 
     .portal-support-card--indigo {
-        @apply border-indigo-200 dark:border-indigo-800/60;
+        @apply border-neutral-900 dark:border-neutral-100;
     }
 
     .portal-support-card--emerald {
-        @apply border-emerald-200 dark:border-emerald-800/60;
+        @apply border-neutral-900 dark:border-neutral-100;
     }
 
     .portal-support-card--sky {
-        @apply border-cyan-200 dark:border-cyan-800/60;
+        @apply border-neutral-900 dark:border-neutral-100;
     }
 
     .portal-support-card__title {

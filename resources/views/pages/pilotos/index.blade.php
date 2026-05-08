@@ -235,6 +235,8 @@ new #[Title('Mis pilotos')] class extends Component {
             $piloto->update($documentUpdates);
         }
 
+        unset($this->pilotos);
+
         $this->resetForm();
         $this->showForm = false;
         $this->dispatch('piloto-saved');
@@ -366,18 +368,21 @@ new #[Title('Mis pilotos')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
+<section class="portal-page">
     <x-pages::settings.layout heading="" subheading="">
         <div class="portal-hero portal-hero--indigo">
             <div class="portal-hero__row">
                 <div>
                     <p class="portal-hero__eyebrow text-indigo-700 dark:text-indigo-300">Portal cliente</p>
                     <h1 class="portal-hero__title">Mis pilotos</h1>
+                    <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
+                        Puedes revisar y modificar los pilotos registrados en tu expediente.
+                    </p>
                 </div>
 
                 @if ($this->pilotos->isNotEmpty() && ! $showForm)
                     <flux:button variant="primary" wire:click="startCreate">
-                        Crear piloto
+                        Anadir otro piloto
                     </flux:button>
                 @endif
             </div>
@@ -403,10 +408,10 @@ new #[Title('Mis pilotos')] class extends Component {
                 <div class="portal-form-header">
                     <div>
                         <h2 class="portal-form-title">
-                            {{ $editingPilotoId ? 'Editar piloto' : 'Crear piloto' }}
+                            {{ $editingPilotoId ? 'Editar piloto' : 'Registrar piloto' }}
                         </h2>
                         <p class="portal-form-text">
-                            Completa los datos personales y la documentacion base del piloto.
+                            Introduce los datos personales y la documentacion base del piloto para dejar su expediente completo.
                         </p>
                     </div>
 
@@ -417,7 +422,10 @@ new #[Title('Mis pilotos')] class extends Component {
 
                 <form wire:submit="save" class="portal-form-sections">
                     <div class="portal-form-section">
-                        <h3 class="portal-form-section__title">Datos personales</h3>
+                        <h3 class="portal-form-section__title">Datos del piloto</h3>
+                        <p class="portal-form-section__text">
+                            Completa la identificacion personal, los datos de contacto y la referencia oficial del piloto.
+                        </p>
 
                         <div class="mt-6 grid gap-6 md:grid-cols-3">
                             <flux:input wire:model="first_name" label="Nombre" type="text" required />
@@ -436,7 +444,7 @@ new #[Title('Mis pilotos')] class extends Component {
                             <flux:input wire:model="address" label="Direccion completa" type="text" required />
                         </div>
 
-                        <div class="mt-6 grid gap-6 md:grid-cols-3">
+                        <div class="mt-6 grid gap-6 md:grid-cols-4">
                             <flux:input wire:model="country" label="Pais" type="text" required />
                             <flux:input wire:model="city" label="Ciudad" type="text" required />
                             <flux:input wire:model="province" label="Provincia" type="text" required />
@@ -447,20 +455,25 @@ new #[Title('Mis pilotos')] class extends Component {
                     <div class="portal-form-section">
                         <h3 class="portal-form-section__title">Certificado de radiofonista</h3>
                         <p class="portal-form-section__text">
-                            Indica si el piloto dispone de este certificado. Si respondes que si, se habilitara la subida del PDF.
+                            Indica si el piloto dispone de este certificado. Si lo tiene, podras adjuntar el PDF en este mismo bloque.
                         </p>
 
-                        <div class="mt-6 flex flex-wrap gap-6">
-                            <label class="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                                <input type="radio" wire:model.live="has_radiofonista_certificate" value="1">
-                                Si
+                        <div class="portal-choice-grid md:grid-cols-2">
+                            <label class="portal-choice-card">
+                                <div class="portal-choice-card__row">
+                                    <input type="radio" wire:model.live="has_radiofonista_certificate" value="1">
+                                    <span>Si, dispone del certificado</span>
+                                </div>
                             </label>
 
-                            <label class="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-200">
-                                <input type="radio" wire:model.live="has_radiofonista_certificate" value="0">
-                                No
+                            <label class="portal-choice-card">
+                                <div class="portal-choice-card__row">
+                                    <input type="radio" wire:model.live="has_radiofonista_certificate" value="0">
+                                    <span>No, no dispone del certificado</span>
+                                </div>
                             </label>
                         </div>
+                        @error('has_radiofonista_certificate') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
                         @if ($showRadiofonistaUpload)
                             <div class="portal-upload-card">
@@ -477,6 +490,8 @@ new #[Title('Mis pilotos')] class extends Component {
                                     </label>
                                     @if ($selectedRadiofonistaPdf)
                                         <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedRadiofonistaPdf }}</span>
+                                    @elseif ($currentPiloto?->radiofonista_certificate_path)
+                                        <span class="text-sm text-neutral-600 dark:text-neutral-300">Documento actual disponible</span>
                                     @endif
                                 </div>
                                 @error('radiofonista_certificate_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
@@ -493,142 +508,145 @@ new #[Title('Mis pilotos')] class extends Component {
                     </div>
 
                     <div class="portal-form-section">
-                        <h3 class="portal-form-section__title">Certificado de conocimientos teoricos</h3>
+                        <h3 class="portal-form-section__title">Certificaciones y documentos</h3>
                         <p class="portal-form-section__text">
-                            Selecciona el nivel del certificado. Segun tu eleccion, se mostraran los documentos obligatorios.
+                            Selecciona el nivel teorico del piloto y adjunta la documentacion necesaria en formato PDF.
                         </p>
 
-                        <div class="portal-choice-grid">
-                            @foreach (Piloto::theoreticalCertificateOptions() as $value => $label)
-                                <label class="portal-choice-card">
-                                    <div class="portal-choice-card__row">
-                                        <input type="radio" wire:model.live="theoretical_certificate_level" value="{{ $value }}">
-                                        <span>{{ $label }}</span>
-                                    </div>
-                                </label>
-                            @endforeach
+                        <div class="mt-6 grid gap-6 md:grid-cols-2">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-neutral-900 dark:text-white">Nivel de certificado teorico</label>
+                                <select wire:model.live="theoretical_certificate_level" data-flux-control class="block w-full rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white p-3 text-sm text-zinc-700 shadow-xs dark:border-white/10 dark:bg-white/10 dark:text-zinc-300">
+                                    <option value="">Selecciona un nivel</option>
+                                    @foreach (Piloto::theoreticalCertificateOptions() as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('theoretical_certificate_level') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+                            </div>
                         </div>
 
                         @if ($showCertificateDocuments)
-                            <div class="portal-upload-card">
-                                <p class="text-sm font-semibold text-neutral-900 dark:text-white">Documentacion requerida</p>
-                                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-                                    @if ($requiresPracticalCertificate)
-                                        Para STS se pide DNI por delante y por detras, certificado teorico y certificado practico.
-                                    @else
-                                        Para {{ Piloto::theoreticalCertificateOptions()[$theoretical_certificate_level] ?? 'este nivel' }} se pide DNI por delante y por detras y certificado teorico.
-                                    @endif
-                                </p>
-
-                                <div class="mt-6 grid gap-6 md:grid-cols-2">
-                                    <div>
-                                        <label class="block text-sm font-medium text-neutral-900 dark:text-white">DNI por delante en PDF</label>
-                                        @php
-                                            $selectedDniFrontPdf = is_object($dni_front_upload) && method_exists($dni_front_upload, 'getClientOriginalName')
-                                                ? $dni_front_upload->getClientOriginalName()
-                                                : null;
-                                        @endphp
-                                        <input id="piloto-dni-front-pdf" type="file" wire:model="dni_front_upload" accept=".pdf,application/pdf" class="hidden">
-                                        <div class="portal-upload-actions">
-                                            <label for="piloto-dni-front-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
-                                                Seleccionar PDF
-                                            </label>
-                                            @if ($selectedDniFrontPdf)
-                                                <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedDniFrontPdf }}</span>
-                                            @endif
-                                        </div>
-                                        @error('dni_front_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                        @if ($currentPiloto?->dni_front_path)
-                                            <div class="mt-3">
-                                                <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'dni_front_path')">
-                                                    {{ $documentButtons['dni_front_path'] }}
-                                                </flux:button>
-                                            </div>
+                            <div class="mt-6 grid gap-6 md:grid-cols-2">
+                                <div class="portal-upload-card">
+                                    <label class="block text-sm font-medium text-neutral-900 dark:text-white">DNI frontal en PDF</label>
+                                    @php
+                                        $selectedDniFrontPdf = is_object($dni_front_upload) && method_exists($dni_front_upload, 'getClientOriginalName')
+                                            ? $dni_front_upload->getClientOriginalName()
+                                            : null;
+                                    @endphp
+                                    <input id="piloto-dni-front-pdf" type="file" wire:model="dni_front_upload" accept=".pdf,application/pdf" class="hidden">
+                                    <div class="portal-upload-actions">
+                                        <label for="piloto-dni-front-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
+                                            Seleccionar PDF
+                                        </label>
+                                        @if ($selectedDniFrontPdf)
+                                            <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedDniFrontPdf }}</span>
+                                        @elseif ($currentPiloto?->dni_front_path)
+                                            <span class="text-sm text-neutral-600 dark:text-neutral-300">Documento actual disponible</span>
                                         @endif
                                     </div>
+                                    @error('dni_front_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
 
-                                    <div>
-                                        <label class="block text-sm font-medium text-neutral-900 dark:text-white">DNI por detras en PDF</label>
-                                        @php
-                                            $selectedDniBackPdf = is_object($dni_back_upload) && method_exists($dni_back_upload, 'getClientOriginalName')
-                                                ? $dni_back_upload->getClientOriginalName()
-                                                : null;
-                                        @endphp
-                                        <input id="piloto-dni-back-pdf" type="file" wire:model="dni_back_upload" accept=".pdf,application/pdf" class="hidden">
-                                        <div class="portal-upload-actions">
-                                            <label for="piloto-dni-back-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
-                                                Seleccionar PDF
-                                            </label>
-                                            @if ($selectedDniBackPdf)
-                                                <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedDniBackPdf }}</span>
-                                            @endif
-                                        </div>
-                                        @error('dni_back_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                        @if ($currentPiloto?->dni_back_path)
-                                            <div class="mt-3">
-                                                <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'dni_back_path')">
-                                                    {{ $documentButtons['dni_back_path'] }}
-                                                </flux:button>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="mt-6 grid gap-6 {{ $requiresPracticalCertificate ? 'md:grid-cols-2' : 'md:grid-cols-1' }}">
-                                    <div>
-                                        <label class="block text-sm font-medium text-neutral-900 dark:text-white">Certificado de conocimientos teoricos en PDF</label>
-                                        @php
-                                            $selectedTheoryPdf = is_object($theoretical_certificate_upload) && method_exists($theoretical_certificate_upload, 'getClientOriginalName')
-                                                ? $theoretical_certificate_upload->getClientOriginalName()
-                                                : null;
-                                        @endphp
-                                        <input id="piloto-theory-pdf" type="file" wire:model="theoretical_certificate_upload" accept=".pdf,application/pdf" class="hidden">
-                                        <div class="portal-upload-actions">
-                                            <label for="piloto-theory-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
-                                                Seleccionar PDF
-                                            </label>
-                                            @if ($selectedTheoryPdf)
-                                                <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedTheoryPdf }}</span>
-                                            @endif
-                                        </div>
-                                        @error('theoretical_certificate_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                        @if ($currentPiloto?->theoretical_certificate_path)
-                                            <div class="mt-3">
-                                                <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'theoretical_certificate_path')">
-                                                    {{ $documentButtons['theoretical_certificate_path'] }}
-                                                </flux:button>
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    @if ($requiresPracticalCertificate)
-                                        <div>
-                                            <label class="block text-sm font-medium text-neutral-900 dark:text-white">Certificado de conocimientos practicos en PDF</label>
-                                            @php
-                                                $selectedPracticalPdf = is_object($practical_certificate_upload) && method_exists($practical_certificate_upload, 'getClientOriginalName')
-                                                    ? $practical_certificate_upload->getClientOriginalName()
-                                                    : null;
-                                            @endphp
-                                            <input id="piloto-practical-pdf" type="file" wire:model="practical_certificate_upload" accept=".pdf,application/pdf" class="hidden">
-                                            <div class="portal-upload-actions">
-                                                <label for="piloto-practical-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
-                                                    Seleccionar PDF
-                                                </label>
-                                                @if ($selectedPracticalPdf)
-                                                    <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedPracticalPdf }}</span>
-                                                @endif
-                                            </div>
-                                            @error('practical_certificate_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
-                                            @if ($currentPiloto?->practical_certificate_path)
-                                                <div class="mt-3">
-                                                    <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'practical_certificate_path')">
-                                                        {{ $documentButtons['practical_certificate_path'] }}
-                                                    </flux:button>
-                                                </div>
-                                            @endif
+                                    @if ($currentPiloto?->dni_front_path)
+                                        <div class="mt-4">
+                                            <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'dni_front_path')">
+                                                {{ $documentButtons['dni_front_path'] }}
+                                            </flux:button>
                                         </div>
                                     @endif
                                 </div>
+
+                                <div class="portal-upload-card">
+                                    <label class="block text-sm font-medium text-neutral-900 dark:text-white">DNI trasero en PDF</label>
+                                    @php
+                                        $selectedDniBackPdf = is_object($dni_back_upload) && method_exists($dni_back_upload, 'getClientOriginalName')
+                                            ? $dni_back_upload->getClientOriginalName()
+                                            : null;
+                                    @endphp
+                                    <input id="piloto-dni-back-pdf" type="file" wire:model="dni_back_upload" accept=".pdf,application/pdf" class="hidden">
+                                    <div class="portal-upload-actions">
+                                        <label for="piloto-dni-back-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
+                                            Seleccionar PDF
+                                        </label>
+                                        @if ($selectedDniBackPdf)
+                                            <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedDniBackPdf }}</span>
+                                        @elseif ($currentPiloto?->dni_back_path)
+                                            <span class="text-sm text-neutral-600 dark:text-neutral-300">Documento actual disponible</span>
+                                        @endif
+                                    </div>
+                                    @error('dni_back_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+                                    @if ($currentPiloto?->dni_back_path)
+                                        <div class="mt-4">
+                                            <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'dni_back_path')">
+                                                {{ $documentButtons['dni_back_path'] }}
+                                            </flux:button>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="mt-6 grid gap-6 {{ $requiresPracticalCertificate ? 'md:grid-cols-2' : 'md:grid-cols-1' }}">
+                                <div class="portal-upload-card">
+                                    <label class="block text-sm font-medium text-neutral-900 dark:text-white">Certificado teorico en PDF</label>
+                                    @php
+                                        $selectedTheoryPdf = is_object($theoretical_certificate_upload) && method_exists($theoretical_certificate_upload, 'getClientOriginalName')
+                                            ? $theoretical_certificate_upload->getClientOriginalName()
+                                            : null;
+                                    @endphp
+                                    <input id="piloto-theory-pdf" type="file" wire:model="theoretical_certificate_upload" accept=".pdf,application/pdf" class="hidden">
+                                    <div class="portal-upload-actions">
+                                        <label for="piloto-theory-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
+                                            Seleccionar PDF
+                                        </label>
+                                        @if ($selectedTheoryPdf)
+                                            <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedTheoryPdf }}</span>
+                                        @elseif ($currentPiloto?->theoretical_certificate_path)
+                                            <span class="text-sm text-neutral-600 dark:text-neutral-300">Documento actual disponible</span>
+                                        @endif
+                                    </div>
+                                    @error('theoretical_certificate_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+                                    @if ($currentPiloto?->theoretical_certificate_path)
+                                        <div class="mt-4">
+                                            <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'theoretical_certificate_path')">
+                                                {{ $documentButtons['theoretical_certificate_path'] }}
+                                            </flux:button>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                @if ($requiresPracticalCertificate)
+                                    <div class="portal-upload-card">
+                                        <label class="block text-sm font-medium text-neutral-900 dark:text-white">Certificado practico en PDF</label>
+                                        @php
+                                            $selectedPracticalPdf = is_object($practical_certificate_upload) && method_exists($practical_certificate_upload, 'getClientOriginalName')
+                                                ? $practical_certificate_upload->getClientOriginalName()
+                                                : null;
+                                        @endphp
+                                        <input id="piloto-practical-pdf" type="file" wire:model="practical_certificate_upload" accept=".pdf,application/pdf" class="hidden">
+                                        <div class="portal-upload-actions">
+                                            <label for="piloto-practical-pdf" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
+                                                Seleccionar PDF
+                                            </label>
+                                            @if ($selectedPracticalPdf)
+                                                <span class="text-sm text-neutral-600 dark:text-neutral-300">{{ $selectedPracticalPdf }}</span>
+                                            @elseif ($currentPiloto?->practical_certificate_path)
+                                                <span class="text-sm text-neutral-600 dark:text-neutral-300">Documento actual disponible</span>
+                                            @endif
+                                        </div>
+                                        @error('practical_certificate_upload') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
+
+                                        @if ($currentPiloto?->practical_certificate_path)
+                                            <div class="mt-4">
+                                                <flux:button type="button" variant="ghost" wire:click="downloadDocument({{ $currentPiloto->id }}, 'practical_certificate_path')">
+                                                    {{ $documentButtons['practical_certificate_path'] }}
+                                                </flux:button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -645,14 +663,24 @@ new #[Title('Mis pilotos')] class extends Component {
                 </form>
             </div>
         @else
-            @if (false)
             <div class="portal-record-list">
                 @foreach ($this->pilotos as $piloto)
+                    @php
+                        $pilotDocuments = array_filter([
+                            'dni_front_path' => 'DNI frontal',
+                            'dni_back_path' => 'DNI trasero',
+                            'radiofonista_certificate_path' => 'Radiofonista',
+                            'theoretical_certificate_path' => 'Certificado teorico',
+                            'practical_certificate_path' => 'Certificado practico',
+                        ], fn (string $label, string $field): bool => filled($piloto->{$field}), ARRAY_FILTER_USE_BOTH);
+                    @endphp
+
                     <div class="portal-record-card">
                         <div class="portal-record-card__header">
                             <div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h2 class="portal-record-card__title">{{ $piloto->fullName() }}</h2>
+                                <h2 class="portal-record-card__title">{{ $piloto->fullName() }}</h2>
+
+                                <div class="portal-record-card__badges">
                                     <span class="portal-badge portal-badge--indigo">
                                         {{ Piloto::theoreticalCertificateOptions()[$piloto->theoretical_certificate_level] ?? $piloto->theoretical_certificate_level }}
                                     </span>
@@ -661,22 +689,14 @@ new #[Title('Mis pilotos')] class extends Component {
                                             Radiofonista
                                         </span>
                                     @endif
-                                </div>
-
-                                <div class="portal-record-card__meta">
-                                    DNI/NIE: {{ $piloto->dni_nie }} · Identificacion piloto: {{ $piloto->pilot_identification_number }}
-                                </p>
-                                <p>
-                                    Certificacion maxima: {{ $piloto->maximum_pilot_certification }} · Telefono: {{ $piloto->phone }}
-                                </p>
-                                <p>
-                                    {{ $piloto->city }}, {{ $piloto->province }} · {{ $piloto->country }}
-                                </p>
+                                    <span class="portal-badge portal-badge--slate">
+                                        DNI/NIE: {{ $piloto->dni_nie }}
+                                    </span>
                                 </div>
                             </div>
 
                             <div class="portal-record-card__actions">
-                                <flux:button variant="ghost" wire:click="edit({{ $piloto->id }})">
+                                <flux:button variant="primary" wire:click="edit({{ $piloto->id }})">
                                     Editar
                                 </flux:button>
                                 @if (! $piloto->operaciones()->exists())
@@ -686,52 +706,64 @@ new #[Title('Mis pilotos')] class extends Component {
                                 @endif
                             </div>
                         </div>
+
+                        <div class="portal-spec-grid">
+                            <div class="portal-spec-card">
+                                <p class="portal-spec-card__label">Identificacion piloto</p>
+                                <p class="portal-spec-card__value">{{ $piloto->pilot_identification_number ?: 'Sin definir' }}</p>
+                            </div>
+
+                            <div class="portal-spec-card">
+                                <p class="portal-spec-card__label">Telefono</p>
+                                <p class="portal-spec-card__value">{{ $piloto->phone ?: 'Sin definir' }}</p>
+                            </div>
+
+                            <div class="portal-spec-card">
+                                <p class="portal-spec-card__label">Fecha de nacimiento</p>
+                                <p class="portal-spec-card__value">
+                                    {{ $piloto->birth_date instanceof \DateTimeInterface
+                                        ? $piloto->birth_date->format('d/m/Y')
+                                        : (filled($piloto->birth_date) ? \Illuminate\Support\Carbon::parse($piloto->birth_date)->format('d/m/Y') : 'Sin definir') }}
+                                </p>
+                            </div>
+
+                            <div class="portal-spec-card">
+                                <p class="portal-spec-card__label">Radiofonista</p>
+                                <p class="portal-spec-card__value">{{ $piloto->has_radiofonista_certificate ? 'Disponible' : 'No aportado' }}</p>
+                            </div>
+
+                            <div class="portal-spec-card">
+                                <p class="portal-spec-card__label">Ubicacion</p>
+                                <p class="portal-spec-card__value">
+                                    {{ trim(implode(', ', array_filter([$piloto->city, $piloto->province, $piloto->country]))) ?: 'Sin definir' }}
+                                </p>
+                            </div>
+
+                            <div class="portal-spec-card">
+                                <p class="portal-spec-card__label">Direccion</p>
+                                <p class="portal-spec-card__value">
+                                    {{ trim(implode(', ', array_filter([$piloto->address, $piloto->postal_code]))) ?: 'Sin definir' }}
+                                </p>
+                            </div>
+
+                            <div class="portal-spec-card portal-spec-card--action">
+                                <p class="portal-spec-card__label">Documentacion PDF</p>
+                                @if ($pilotDocuments)
+                                    <div class="portal-spec-actions">
+                                        @foreach ($pilotDocuments as $field => $label)
+                                            <flux:button variant="primary" wire:click="downloadDocument({{ $piloto->id }}, '{{ $field }}')">
+                                                {{ $label }}
+                                            </flux:button>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="portal-spec-card__value">No hay documentos adjuntos</p>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 @endforeach
             </div>
-            @else
-                <div class="portal-record-list">
-                    @foreach ($this->pilotos as $piloto)
-                        <div class="portal-record-card">
-                            <div class="portal-record-card__header">
-                                <div>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h2 class="portal-record-card__title">{{ $piloto->fullName() }}</h2>
-                                        <span class="portal-badge portal-badge--indigo">
-                                            {{ Piloto::theoreticalCertificateOptions()[$piloto->theoretical_certificate_level] ?? $piloto->theoretical_certificate_level }}
-                                        </span>
-                                        @if ($piloto->has_radiofonista_certificate)
-                                            <span class="portal-badge portal-badge--sky">
-                                                Radiofonista
-                                            </span>
-                                        @endif
-                                    </div>
-
-                                    <div class="portal-record-card__meta">
-                                        <p>
-                                            DNI/NIE: {{ $piloto->dni_nie }} - Identificacion piloto: {{ $piloto->pilot_identification_number }}
-                                        </p>
-                                        <p>
-                                            Telefono: {{ $piloto->phone }} - {{ $piloto->city }}, {{ $piloto->province }} - {{ $piloto->country }}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div class="portal-record-card__actions">
-                                    <flux:button variant="ghost" wire:click="edit({{ $piloto->id }})">
-                                        Editar
-                                    </flux:button>
-                                    @if (! $piloto->operaciones()->exists())
-                                        <flux:button variant="danger" wire:click="delete({{ $piloto->id }})">
-                                            Borrar
-                                        </flux:button>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
         @endif
     </x-pages::settings.layout>
 </section>

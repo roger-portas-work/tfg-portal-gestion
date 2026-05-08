@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Operaciones;
 use App\Filament\Resources\Clientes\ClienteResource;
 use App\Filament\Resources\Operaciones\Pages\ListOperaciones;
 use App\Filament\Resources\Operaciones\Pages\ViewOperacion;
+use App\Filament\Resources\Operaciones\RelationManagers\OperacionTramitesRelationManager;
 use App\Models\Cliente;
 use App\Models\Dron;
 use App\Models\Operacion;
@@ -36,6 +37,8 @@ class OperacionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'reference';
 
+    protected static ?string $slug = 'operaciones';
+
     protected static ?int $navigationSort = 2;
 
     protected static function activeOperationsFrom(): string
@@ -43,28 +46,31 @@ class OperacionResource extends Resource
         return Carbon::today(config('app.timezone'))->subDays(2)->toDateString();
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()->with([
-            'cliente.operadoraProfile',
-            'cliente.operadoraRequirements',
-            'piloto',
-            'dron',
-        ]);
-    }
-
-    public static function table(Table $table): Table
+    public static function buildOperationsTable(Table $table, bool $onlyUpcoming = false, ?string $heading = null): Table
     {
         $activeFrom = static::activeOperationsFrom();
 
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->whereDate('operation_date', '>=', $activeFrom))
+            ->modifyQueryUsing(function (Builder $query) use ($onlyUpcoming, $activeFrom): void {
+                $query->withCount('tramites');
+
+                if ($onlyUpcoming) {
+                    $query->whereDate('operation_date', '>=', $activeFrom);
+                }
+            })
+            ->heading($heading)
             ->columns([
                 TextColumn::make('reference')
                     ->label('Operacion')
                     ->searchable()
                     ->sortable()
                     ->description(fn (Operacion $record): ?string => $record->estimated_filming_schedule ?: null),
+
+                TextColumn::make('status')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (Operacion $record): string => $record->statusColor())
+                    ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
 
                 TextColumn::make('operation_date')
                     ->label('Fecha')
@@ -101,10 +107,24 @@ class OperacionResource extends Resource
                     })
                     ->toggleable(),
 
+                TextColumn::make('tramites_count')
+                    ->label('Tramites')
+                    ->badge()
+                    ->color('gray')
+                    ->state(fn (Operacion $record): string => (string) ($record->tramites_count ?? 0))
+                    ->toggleable(),
+
+                TextColumn::make('operation_cost')
+                    ->label('Coste')
+                    ->state(fn (Operacion $record): string => filled($record->operation_cost)
+                        ? number_format((float) $record->operation_cost, 2, ',', '.').' EUR'
+                        : 'Sin definir')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('address')
                     ->label('Ubicacion')
                     ->state(fn (Operacion $record): string => $record->address ?: $record->location ?: 'Sin definir')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('environment_type')
                     ->label('Entorno')
@@ -123,67 +143,113 @@ class OperacionResource extends Resource
             ->recordAction('view');
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with([
+                'cliente.operadoraProfile',
+                'cliente.operadoraRequirements',
+                'piloto',
+                'dron',
+            ])
+            ->withCount('tramites');
+    }
+
+    public static function table(Table $table): Table
+    {
+        return static::buildOperationsTable($table, onlyUpcoming: false, heading: 'Todas las operaciones');
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return $schema
+            ->columns(2)
             ->components([
                 Section::make('Resumen de la operacion')
                     ->description('Informacion principal de la operacion que el gestor necesita revisar primero.')
+                    ->columnSpanFull()
                     ->schema([
                         TextEntry::make('reference')
                             ->label('Operacion')
                             ->weight('bold'),
+
+                        TextEntry::make('status')
+                            ->label('Estado')
+                            ->badge()
+                            ->color(fn (Operacion $record): string => $record->statusColor())
+                            ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
+
                         TextEntry::make('operation_date')
                             ->label('Fecha de la operacion')
                             ->date('d/m/Y')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('estimated_filming_schedule')
                             ->label('Horario de rodaje estimado')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('google_maps_link')
                             ->label('Google Maps')
                             ->state('Abrir mapa')
                             ->url(fn (Operacion $record): ?string => $record->google_maps_link)
                             ->placeholder('Sin definir')
                             ->visible(fn (Operacion $record): bool => filled($record->google_maps_link)),
+
+                        TextEntry::make('operation_cost')
+                            ->label('Coste de operacion')
+                            ->state(fn (Operacion $record): string => filled($record->operation_cost)
+                                ? number_format((float) $record->operation_cost, 2, ',', '.').' EUR'
+                                : 'Sin definir'),
+
                         TextEntry::make('address')
                             ->label('Direccion completa')
                             ->placeholder('Sin definir')
                             ->columnSpanFull(),
+
                         TextEntry::make('country')
                             ->label('Pais')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('city')
                             ->label('Ciudad')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('province')
                             ->label('Provincia')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('postal_code')
                             ->label('Codigo postal')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('altitude')
                             ->label('Altitud')
                             ->suffix(' m')
                             ->numeric(maxDecimalPlaces: 2)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('operation_radius')
                             ->label('Radio operacion')
                             ->suffix(' m')
                             ->numeric(maxDecimalPlaces: 2)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('video_objective')
                             ->label('Objetivo del video')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('end_client')
                             ->label('Cliente final')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('production_company_name')
                             ->label('Productora')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('production_contact_phone')
                             ->label('Contacto en set')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('environment_type')
                             ->label('Interior o exterior')
                             ->formatStateUsing(fn (?string $state): string => match ($state) {
@@ -191,16 +257,23 @@ class OperacionResource extends Resource
                                 'exterior' => 'Exterior',
                                 default => 'Sin definir',
                             }),
+
                         IconEntry::make('people_present')
                             ->label('Hay gente')
                             ->boolean()
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('prior_permits_notes')
                             ->label('Permisos previos necesarios')
                             ->placeholder('Sin definir')
                             ->columnSpanFull(),
+
+                        TextEntry::make('operational_conditions')
+                            ->label('Condiciones operativas')
+                            ->placeholder('Sin definir')
+                            ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                    ->columns(3),
 
                 Section::make('Cliente')
                     ->description('Ficha completa del cliente vinculada a esta operacion.')
@@ -211,39 +284,50 @@ class OperacionResource extends Resource
                             ->url(fn (Operacion $record): ?string => $record->cliente ? ClienteResource::getUrl('edit', ['record' => $record->cliente_id]) : null)
                             ->weight('bold')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.client_type')
                             ->label('Tipo')
                             ->formatStateUsing(fn (?string $state): string => Cliente::typeOptions()[$state] ?? 'Sin definir')
                             ->badge(),
+
                         TextEntry::make('cliente.email')
                             ->label('Email de acceso')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.personal_email')
                             ->label('Correo personal')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.phone')
                             ->label('Telefono')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.dni')
                             ->label('DNI / NIE')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.birth_date')
                             ->label('Fecha de nacimiento')
                             ->date('d/m/Y')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.address')
                             ->label('Direccion')
                             ->placeholder('Sin definir')
                             ->columnSpanFull(),
+
                         TextEntry::make('cliente.country')
                             ->label('Pais')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.city')
                             ->label('Ciudad')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.province')
                             ->label('Provincia')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('cliente.postal_code')
                             ->label('Codigo postal')
                             ->placeholder('Sin definir'),
@@ -261,15 +345,18 @@ class OperacionResource extends Resource
                                 $record->cliente?->operadoraProfile?->second_last_name,
                             ]))) ?: null)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('operadora_registration_number')
                             ->label('Numero de registro')
                             ->state(fn (Operacion $record): ?string => $record->cliente?->operadoraProfile?->registration_number)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('operadora_expiration_date')
                             ->label('Fecha de caducidad')
                             ->state(fn (Operacion $record): mixed => $record->cliente?->operadoraProfile?->expiration_date)
                             ->date('d/m/Y')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('operadora_requirements_summary')
                             ->label('Expediente operadora')
                             ->state(function (Operacion $record): string {
@@ -294,39 +381,50 @@ class OperacionResource extends Resource
                             ->state(fn (Operacion $record): ?string => $record->piloto?->fullName())
                             ->weight('bold')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.dni_nie')
                             ->label('DNI / NIE')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.birth_date')
                             ->label('Fecha de nacimiento')
                             ->date('d/m/Y')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.pilot_identification_number')
                             ->label('Numero identificacion piloto')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.theoretical_certificate_level')
                             ->label('Certificado teorico')
                             ->formatStateUsing(fn (?string $state): string => Piloto::theoreticalCertificateOptions()[$state] ?? 'Sin definir'),
+
                         IconEntry::make('piloto.has_radiofonista_certificate')
                             ->label('Radiofonista')
                             ->boolean()
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.phone')
                             ->label('Telefono')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.address')
                             ->label('Direccion')
                             ->placeholder('Sin definir')
                             ->columnSpanFull(),
+
                         TextEntry::make('piloto.country')
                             ->label('Pais')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.city')
                             ->label('Ciudad')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.province')
                             ->label('Provincia')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('piloto.postal_code')
                             ->label('Codigo postal')
                             ->placeholder('Sin definir'),
@@ -340,64 +438,87 @@ class OperacionResource extends Resource
                             ->label('Dron')
                             ->state(fn (Operacion $record): string => trim(($record->dron?->manufacturer_name ?? '').' '.($record->dron?->model ?? '')) ?: 'Sin definir')
                             ->weight('bold'),
+
                         TextEntry::make('dron.uas_class')
                             ->label('Clase de UAS')
                             ->formatStateUsing(fn (?string $state): string => Dron::uasClassOptions()[$state] ?? 'Sin definir'),
+
                         TextEntry::make('dron.drone_serial_number')
                             ->label('Numero de serie dron')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.controller_serial_number')
                             ->label('Numero de serie controladora')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.registration_number')
                             ->label('Matricula')
                             ->state(fn (Operacion $record): string => $record->dron?->registrationLabel() ?? 'Sin definir'),
+
                         TextEntry::make('dron.remote_id_number')
                             ->label('Numero ID remoto')
                             ->state(fn (Operacion $record): string => $record->dron?->remoteIdLabel() ?? 'Sin definir'),
+
                         TextEntry::make('dron.mtom_weight')
                             ->label('Peso MTOM')
                             ->suffix(' g')
                             ->numeric(maxDecimalPlaces: 2)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.class_marking')
                             ->label('Marcado de clase')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.band_frequency')
                             ->label('Banda y frecuencia')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.color')
                             ->label('Color')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.payload')
                             ->label('Carga de pago')
                             ->state(fn (Operacion $record): ?string => $record->dron?->payload_not_applicable ? 'No aplica' : $record->dron?->payload)
                             ->placeholder('Sin definir')
                             ->columnSpanFull(),
+
                         TextEntry::make('dron.vhf_equipment')
                             ->label('Equipo comunicaciones VHF')
                             ->state(fn (Operacion $record): ?string => $record->dron?->vhf_not_applicable ? 'No aplica' : $record->dron?->vhf_equipment)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.emergency_equipment')
                             ->label('Equipo de emergencia')
                             ->state(fn (Operacion $record): ?string => $record->dron?->emergency_not_applicable ? 'No aplica' : $record->dron?->emergency_equipment)
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.insurance_policy_number')
                             ->label('Numero poliza seguro')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.insurance_valid_until')
                             ->label('Validez seguro')
                             ->date('d/m/Y')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.insurance_company_name')
                             ->label('Entidad aseguradora')
                             ->placeholder('Sin definir'),
+
                         TextEntry::make('dron.aesa_registration_status')
                             ->label('Registrado en AESA')
-                            ->formatStateUsing(fn (?string $state): string => Dron::aesaRegistrationOptions()[$state] ?? 'Sin definir'),
+                            ->state(fn (Operacion $record): string => $record->dron?->aesaRegistrationLabel() ?? 'Sin definir'),
                     ])
                     ->columns(2),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            OperacionTramitesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

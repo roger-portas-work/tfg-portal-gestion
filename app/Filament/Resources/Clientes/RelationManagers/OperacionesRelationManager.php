@@ -185,12 +185,18 @@ class OperacionesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['piloto', 'dron']))
+            ->modifyQueryUsing(fn ($query) => $query->with(['piloto', 'dron'])->withCount('tramites'))
             ->columns([
                 TextColumn::make('reference')
                     ->label('Operacion')
                     ->searchable()
                     ->weight('semibold'),
+
+                TextColumn::make('status')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (Operacion $record): string => $record->statusColor())
+                    ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
 
                 TextColumn::make('operation_date')
                     ->label('Fecha')
@@ -226,6 +232,20 @@ class OperacionesRelationManager extends RelationManager
 
                 TextColumn::make('estimated_filming_schedule')
                     ->label('Rodaje estimado')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('operation_cost')
+                    ->label('Coste')
+                    ->state(fn (Operacion $record): string => filled($record->operation_cost)
+                        ? number_format((float) $record->operation_cost, 2, ',', '.').' EUR'
+                        : 'Sin definir')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('tramites_count')
+                    ->label('Tramites')
+                    ->badge()
+                    ->color('gray')
+                    ->state(fn (Operacion $record): string => (string) ($record->tramites_count ?? 0))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('altitude')
@@ -282,6 +302,10 @@ class OperacionesRelationManager extends RelationManager
                         default => 'Sin definir',
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('operational_conditions')
+                    ->label('Condiciones operativas')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->headerActions([
@@ -307,7 +331,8 @@ class OperacionesRelationManager extends RelationManager
 
                         return $data;
                     }),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn (Operacion $record): bool => $record->isPending()),
             ])
             ->recordAction('gestionar');
     }

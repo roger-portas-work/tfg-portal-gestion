@@ -203,10 +203,49 @@ class Cliente extends Model
             ->count();
     }
 
+    public function confirmedOperacionesCount(): int
+    {
+        return $this->operaciones()
+            ->where('status', Operacion::STATUS_CONFIRMED)
+            ->count();
+    }
+
+    public function rejectedOperacionesCount(): int
+    {
+        return $this->operaciones()
+            ->where('status', Operacion::STATUS_REJECTED)
+            ->count();
+    }
+
+    public function pendingOperacionesCount(): int
+    {
+        return $this->operaciones()
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('status')
+                    ->orWhere('status', Operacion::STATUS_PENDING);
+            })
+            ->count();
+    }
+
     public function pendingOperadoraRequirementsCount(): int
     {
         return $this->operadoraRequirements
             ->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->isCompleted())
+            ->count();
+    }
+
+    public function pendingRequiredOperadoraRequirementsCount(): int
+    {
+        return $this->operadoraRequirements
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->is_required && ! $requirement->isCompleted())
+            ->count();
+    }
+
+    public function pendingOptionalOperadoraRequirementsCount(): int
+    {
+        return $this->operadoraRequirements
+            ->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->is_required && ! $requirement->isCompleted())
             ->count();
     }
 }
