@@ -199,7 +199,7 @@ class Cliente extends Model
     public function completedOperadoraRequirementsCount(): int
     {
         return $this->operadoraRequirements
-            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->isCompleted())
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_APPROVED)
             ->count();
     }
 
@@ -231,21 +231,21 @@ class Cliente extends Model
     public function pendingOperadoraRequirementsCount(): int
     {
         return $this->operadoraRequirements
-            ->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->isCompleted())
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status !== OperadoraRequirement::STATUS_APPROVED)
             ->count();
     }
 
     public function pendingRequiredOperadoraRequirementsCount(): int
     {
         return $this->operadoraRequirements
-            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->is_required && ! $requirement->isCompleted())
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->is_required && $requirement->status !== OperadoraRequirement::STATUS_APPROVED)
             ->count();
     }
 
     public function pendingOptionalOperadoraRequirementsCount(): int
     {
         return $this->operadoraRequirements
-            ->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->is_required && ! $requirement->isCompleted())
+            ->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->is_required && $requirement->status !== OperadoraRequirement::STATUS_APPROVED)
             ->count();
     }
 }

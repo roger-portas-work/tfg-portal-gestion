@@ -52,7 +52,10 @@ class OperacionResource extends Resource
 
         return $table
             ->modifyQueryUsing(function (Builder $query) use ($onlyUpcoming, $activeFrom): void {
-                $query->withCount('tramites');
+                $query->withCount([
+                    'tramites',
+                    'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery->where('status', \App\Models\OperacionTramite::STATUS_APPROVED),
+                ]);
 
                 if ($onlyUpcoming) {
                     $query->whereDate('operation_date', '>=', $activeFrom);
@@ -71,6 +74,12 @@ class OperacionResource extends Resource
                     ->badge()
                     ->color(fn (Operacion $record): string => $record->statusColor())
                     ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
+
+                TextColumn::make('documentation_status')
+                    ->label('Documentacion')
+                    ->badge()
+                    ->state(fn (Operacion $record): string => $record->documentationStatusLabel())
+                    ->color(fn (Operacion $record): string => $record->documentationStatusColor()),
 
                 TextColumn::make('operation_date')
                     ->label('Fecha')
@@ -152,7 +161,10 @@ class OperacionResource extends Resource
                 'piloto',
                 'dron',
             ])
-            ->withCount('tramites');
+            ->withCount([
+                'tramites',
+                'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery->where('status', \App\Models\OperacionTramite::STATUS_APPROVED),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -178,6 +190,12 @@ class OperacionResource extends Resource
                             ->badge()
                             ->color(fn (Operacion $record): string => $record->statusColor())
                             ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
+
+                        TextEntry::make('documentation_status')
+                            ->label('Documentacion')
+                            ->badge()
+                            ->state(fn (Operacion $record): string => $record->documentationStatusLabel())
+                            ->color(fn (Operacion $record): string => $record->documentationStatusColor()),
 
                         TextEntry::make('operation_date')
                             ->label('Fecha de la operacion')

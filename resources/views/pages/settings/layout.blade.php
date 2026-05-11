@@ -32,7 +32,7 @@
             <flux:subheading>{{ $subheading ?? '' }}</flux:subheading>
         @endunless
 
-        <div class="{{ $isClientePortal ? 'w-full max-w-5xl' : 'mt-5 w-full max-w-lg' }}">
+        <div class="{{ $isClientePortal ? 'portal-client-shell' : 'mt-5 w-full max-w-lg' }}">
             {{ $slot }}
         </div>
     </div>

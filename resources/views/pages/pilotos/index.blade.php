@@ -368,23 +368,35 @@ new #[Title('Mis pilotos')] class extends Component {
     }
 }; ?>
 
-<section class="portal-page">
+<section class="portal-page portal-page--wide">
     <x-pages::settings.layout heading="" subheading="">
-        <div class="portal-hero portal-hero--indigo">
+        <div class="portal-hero portal-hero--client">
             <div class="portal-hero__row">
                 <div>
-                    <p class="portal-hero__eyebrow text-indigo-700 dark:text-indigo-300">Portal cliente</p>
+                    <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
                     <h1 class="portal-hero__title">Mis pilotos</h1>
-                    <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
+                    <p class="portal-hero__text">
                         Puedes revisar y modificar los pilotos registrados en tu expediente.
                     </p>
+
+                    @if ($this->pilotos->isNotEmpty() && ! $showForm)
+                        <div class="portal-hero__actions">
+                            <flux:button variant="primary" wire:click="startCreate">
+                                Anadir otro piloto
+                            </flux:button>
+                        </div>
+                    @endif
                 </div>
 
-                @if ($this->pilotos->isNotEmpty() && ! $showForm)
-                    <flux:button variant="primary" wire:click="startCreate">
-                        Anadir otro piloto
-                    </flux:button>
-                @endif
+                <div class="portal-hero__aside">
+                    <div class="portal-hero__brand">
+                        <img
+                            src="{{ asset('images/logo-idronlex.png') }}"
+                            alt="Idron Lex & Consulting"
+                            class="portal-hero__logo"
+                        >
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -663,7 +675,7 @@ new #[Title('Mis pilotos')] class extends Component {
                 </form>
             </div>
         @else
-            <div class="portal-record-list">
+            <div class="portal-record-list portal-record-list--duo">
                 @foreach ($this->pilotos as $piloto)
                     @php
                         $pilotDocuments = array_filter([
@@ -746,7 +758,7 @@ new #[Title('Mis pilotos')] class extends Component {
                                 </p>
                             </div>
 
-                            <div class="portal-spec-card portal-spec-card--action">
+                            <div class="portal-spec-card portal-spec-card--action md:col-span-2 xl:col-span-3">
                                 <p class="portal-spec-card__label">Documentacion PDF</p>
                                 @if ($pilotDocuments)
                                     <div class="portal-spec-actions">

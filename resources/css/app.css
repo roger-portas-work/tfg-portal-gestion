@@ -556,6 +556,465 @@ select:focus[data-flux-control] {
         @apply rounded-3xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-sm text-neutral-600;
     }
 
+    .operadora-shell {
+        @apply space-y-5;
+    }
+
+    .operadora-dashboard-hero__badges {
+        @apply mt-5 flex flex-wrap gap-2;
+    }
+
+    .operadora-section-card {
+        @apply rounded-[1.35rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:p-6;
+    }
+
+    .operadora-section-card--profile {
+        @apply border-neutral-300 bg-neutral-100/75 dark:border-neutral-700 dark:bg-neutral-900/70;
+    }
+
+    .operadora-section-card__header {
+        @apply mb-6 flex items-start gap-4;
+    }
+
+    .operadora-section-card__icon {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:ring-sky-800;
+    }
+
+    .operadora-section-card__title {
+        @apply text-xl font-semibold tracking-tight text-neutral-900 dark:text-white;
+    }
+
+    .operadora-section-card__text {
+        @apply mt-1 text-sm leading-6 text-neutral-500 dark:text-neutral-300;
+    }
+
+    .operadora-profile-grid {
+        @apply grid gap-5 xl:grid-cols-2;
+    }
+
+    .operadora-profile-card {
+        @apply min-w-0 rounded-[1.1rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-950/35;
+    }
+
+    .operadora-card-heading {
+        @apply flex flex-wrap items-start justify-between gap-3;
+    }
+
+    .operadora-card-heading__badges {
+        @apply flex flex-wrap justify-end gap-2;
+    }
+
+    .operadora-card-heading h3 {
+        @apply text-base font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .operadora-card-heading p {
+        @apply mt-1 text-sm leading-5 text-neutral-500 dark:text-neutral-300;
+    }
+
+    .operadora-form-grid {
+        @apply mt-6 grid gap-5 md:grid-cols-2 2xl:grid-cols-3;
+    }
+
+    .operadora-info-callout {
+        @apply mt-5 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium leading-6 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200;
+    }
+
+    .operadora-actions {
+        @apply mt-5 flex flex-wrap items-center gap-3;
+    }
+
+    .operadora-shell [data-flux-button],
+    .operadora-button {
+        @apply inline-flex min-h-10 items-center justify-center rounded-lg border border-neutral-950 bg-neutral-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-neutral-800 hover:shadow-md dark:border-white dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200;
+    }
+
+    .operadora-dropzone {
+        @apply mt-6 flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-[1.1rem] border-2 border-dashed border-neutral-200 bg-neutral-50/70 px-5 py-7 text-center transition hover:border-emerald-300 hover:bg-emerald-50/40 dark:border-neutral-700 dark:bg-neutral-950/35 dark:hover:border-emerald-700;
+    }
+
+    .operadora-dropzone__icon {
+        @apply mb-3 flex size-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800;
+    }
+
+    .operadora-dropzone strong {
+        @apply text-base font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .operadora-dropzone span {
+        @apply mt-1 text-sm text-neutral-500 dark:text-neutral-300;
+    }
+
+    .operadora-dropzone small {
+        @apply mt-2 text-xs text-neutral-400 dark:text-neutral-500;
+    }
+
+    .operadora-selected-file,
+    .operadora-file-current {
+        @apply mt-4 flex min-w-0 items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200;
+    }
+
+    .operadora-selected-file span,
+    .operadora-file-current p,
+    .operadora-file-current span,
+    .operadora-row-file strong,
+    .operadora-row-file small {
+        overflow-wrap: anywhere;
+    }
+
+    .operadora-file-current {
+        @apply justify-between;
+    }
+
+    .operadora-file-current--pending,
+    .operadora-file-current--changes {
+        @apply border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/25 dark:text-red-200;
+    }
+
+    .operadora-file-current--review {
+        @apply border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/25 dark:text-amber-200;
+    }
+
+    .operadora-file-current--approved {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200;
+    }
+
+    .operadora-file-current__icon {
+        @apply flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm dark:bg-neutral-900 dark:text-emerald-300;
+    }
+
+    .operadora-file-current--pending .operadora-file-current__icon,
+    .operadora-file-current--changes .operadora-file-current__icon,
+    .operadora-file-current--pending .operadora-file-current__status-icon,
+    .operadora-file-current--changes .operadora-file-current__status-icon {
+        @apply text-red-600 dark:text-red-300;
+    }
+
+    .operadora-file-current--review .operadora-file-current__icon,
+    .operadora-file-current--review .operadora-file-current__status-icon {
+        @apply text-amber-600 dark:text-amber-300;
+    }
+
+    .operadora-file-current--approved .operadora-file-current__icon,
+    .operadora-file-current--approved .operadora-file-current__status-icon {
+        @apply text-emerald-600 dark:text-emerald-300;
+    }
+
+    .operadora-file-current__status-icon {
+        @apply shrink-0;
+    }
+
+    .operadora-file-current p {
+        @apply text-sm font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .operadora-file-current span {
+        @apply text-xs text-neutral-500 dark:text-neutral-300;
+    }
+
+    .operadora-upload-progress {
+        @apply mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-800 dark:bg-sky-950/30;
+    }
+
+    .operadora-upload-progress__row {
+        @apply flex items-center justify-between gap-4 text-sm text-sky-800 dark:text-sky-200;
+    }
+
+    .operadora-upload-progress__track {
+        @apply mt-3 h-2 overflow-hidden rounded-full bg-sky-100 dark:bg-sky-900/40;
+    }
+
+    .operadora-upload-progress__fill {
+        @apply h-full rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300;
+    }
+
+    .operadora-status-pill {
+        @apply inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold;
+    }
+
+    .operadora-status-pill--pending {
+        @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .operadora-status-pill--review {
+        @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300;
+    }
+
+    .operadora-status-pill--approved {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .operadora-status-pill--changes {
+        @apply border-red-300 bg-red-100 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200;
+    }
+
+    .operadora-status-pill--info {
+        @apply border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300;
+    }
+
+    .operadora-status-pill--required {
+        @apply border-neutral-300 bg-neutral-100 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
+    }
+
+    .operadora-status-pill--neutral {
+        @apply border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300;
+    }
+
+    .operadora-requirements-header {
+        @apply flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between;
+    }
+
+    .operadora-progress-summary {
+        @apply w-full min-w-0 lg:max-w-sm;
+    }
+
+    .operadora-progress-summary__row {
+        @apply flex items-center justify-between gap-4 text-sm font-semibold text-neutral-700 dark:text-neutral-200;
+    }
+
+    .operadora-progress-summary__track {
+        @apply mt-3 h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800;
+    }
+
+    .operadora-progress-summary__fill {
+        @apply h-full rounded-full bg-emerald-500 transition-all duration-300;
+    }
+
+    .operadora-filter-bar {
+        @apply mt-5 mb-6;
+    }
+
+    .operadora-filter-statuses {
+        @apply gap-2 xl:grid-cols-4;
+    }
+
+    .operadora-filter-statuses--type {
+        @apply xl:grid-cols-3;
+    }
+
+    .operadora-filter-option strong {
+        @apply ml-auto inline-flex min-w-7 items-center justify-center rounded-full bg-neutral-100 px-2 py-0.5 text-sm font-bold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
+    }
+
+    .operadora-filter-option--all .portal-filter-option__dot {
+        @apply border-neutral-900 bg-neutral-900 dark:border-white dark:bg-white;
+    }
+
+    .operadora-filter-option--pending .portal-filter-option__dot {
+        @apply border-red-400 bg-red-400;
+    }
+
+    .operadora-filter-option--review .portal-filter-option__dot {
+        @apply border-amber-400 bg-amber-400;
+    }
+
+    .operadora-filter-option--approved .portal-filter-option__dot {
+        @apply border-emerald-500 bg-emerald-500;
+    }
+
+    .operadora-filter-option--required .portal-filter-option__dot {
+        @apply border-emerald-500 bg-emerald-500;
+    }
+
+    .operadora-filter-option--optional .portal-filter-option__dot {
+        @apply border-violet-400 bg-violet-400;
+    }
+
+    .operadora-filter-option.portal-filter-option--active strong {
+        @apply bg-white/15 text-white dark:bg-neutral-900/10 dark:text-neutral-900;
+    }
+
+    .operadora-requirement-groups {
+        @apply mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(22rem,0.9fr)] xl:items-start;
+    }
+
+    .operadora-requirement-group {
+        @apply rounded-[1.35rem] border p-4 shadow-sm dark:border-neutral-700 dark:bg-neutral-950/25;
+    }
+
+    .operadora-requirement-group--required {
+        @apply border-emerald-200 bg-emerald-50/45 dark:border-emerald-800 dark:bg-emerald-950/15;
+    }
+
+    .operadora-requirement-group--optional {
+        @apply border-violet-200 bg-violet-50/45 dark:border-violet-800 dark:bg-violet-950/15;
+    }
+
+    .operadora-requirement-group__header {
+        @apply mb-4 grid gap-3 rounded-2xl border border-white/70 bg-white/70 p-4 shadow-sm dark:border-white/10 dark:bg-neutral-900/60;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .operadora-requirement-group__icon {
+        @apply flex size-10 items-center justify-center rounded-xl shadow-sm;
+    }
+
+    .operadora-requirement-group--required .operadora-requirement-group__icon {
+        @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300;
+    }
+
+    .operadora-requirement-group--optional .operadora-requirement-group__icon {
+        @apply bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300;
+    }
+
+    .operadora-requirement-group__header h3 {
+        @apply text-base font-bold uppercase tracking-[0.04em] text-neutral-900 dark:text-white;
+    }
+
+    .operadora-requirement-group__header p {
+        @apply mt-1 text-sm leading-5 text-neutral-500 dark:text-neutral-300;
+    }
+
+    .operadora-requirement-group__header span {
+        @apply inline-flex min-w-9 items-center justify-center self-start rounded-full border bg-white px-3 py-1 text-xs font-bold shadow-sm dark:bg-neutral-900;
+    }
+
+    .operadora-requirement-group--required .operadora-requirement-group__header span {
+        @apply border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300;
+    }
+
+    .operadora-requirement-group--optional .operadora-requirement-group__header span {
+        @apply border-violet-200 text-violet-700 dark:border-violet-800 dark:text-violet-300;
+    }
+
+    .operadora-requirement-list {
+        @apply space-y-3;
+    }
+
+    .operadora-requirement-row {
+        @apply grid min-w-0 gap-4 rounded-[1rem] border bg-white p-4 shadow-sm dark:bg-neutral-950/30 lg:grid-cols-[minmax(0,1.1fr)_minmax(17rem,0.9fr)] lg:items-center;
+    }
+
+    .operadora-requirement-group--required .operadora-requirement-row {
+        @apply lg:grid-cols-[minmax(0,1fr)_minmax(21rem,0.9fr)];
+    }
+
+    .operadora-requirement-group--optional .operadora-requirement-row {
+        @apply lg:grid-cols-1;
+    }
+
+    .operadora-requirement-group--required .operadora-requirement-action {
+        @apply lg:border-l lg:border-neutral-200 lg:pl-5 dark:lg:border-neutral-700;
+    }
+
+    .operadora-requirement-row--pending {
+        @apply border-red-200 bg-red-50/60 dark:border-red-800 dark:bg-red-950/20;
+    }
+
+    .operadora-requirement-row--review {
+        @apply border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20;
+    }
+
+    .operadora-requirement-row--changes {
+        @apply border-red-300 bg-red-50/80 dark:border-red-700 dark:bg-red-950/25;
+    }
+
+    .operadora-requirement-row--approved {
+        @apply border-emerald-200 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-950/20;
+    }
+
+    .operadora-requirement-main {
+        @apply flex min-w-0 items-start gap-4;
+    }
+
+    .operadora-requirement-icon {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-lg border bg-white shadow-sm dark:bg-neutral-900;
+    }
+
+    .operadora-requirement-row--pending .operadora-requirement-icon {
+        @apply border-red-200 text-red-600 dark:border-red-800 dark:text-red-300;
+    }
+
+    .operadora-requirement-row--review .operadora-requirement-icon {
+        @apply border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-300;
+    }
+
+    .operadora-requirement-row--changes .operadora-requirement-icon {
+        @apply border-red-200 text-red-600 dark:border-red-800 dark:text-red-300;
+    }
+
+    .operadora-requirement-row--approved .operadora-requirement-icon {
+        @apply border-emerald-200 text-emerald-600 dark:border-emerald-800 dark:text-emerald-300;
+    }
+
+    .operadora-requirement-copy {
+        @apply min-w-0;
+    }
+
+    .operadora-requirement-titleline {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .operadora-requirement-titleline h3 {
+        @apply text-base font-semibold uppercase text-neutral-900 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .operadora-requirement-copy p {
+        @apply mt-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300;
+    }
+
+    .operadora-review-note {
+        @apply mt-3 rounded-xl border border-red-200 bg-white/80 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-800 dark:bg-neutral-900 dark:text-red-300;
+    }
+
+    .operadora-requirement-action {
+        @apply min-w-0;
+    }
+
+    .operadora-text-form {
+        @apply space-y-3;
+    }
+
+    .operadora-row-upload {
+        @apply space-y-3;
+    }
+
+    .operadora-row-upload__trigger {
+        @apply flex min-h-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-white px-4 py-3 text-center text-sm transition hover:border-sky-300 hover:bg-sky-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-sky-700;
+    }
+
+    .operadora-row-upload__trigger strong {
+        @apply font-semibold text-sky-700 dark:text-sky-300;
+    }
+
+    .operadora-row-upload__trigger span {
+        @apply mt-1 text-xs text-neutral-500 dark:text-neutral-400;
+    }
+
+    .operadora-row-file {
+        @apply grid min-w-0 gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-700 dark:bg-neutral-900 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center;
+    }
+
+    .operadora-row-file__actions {
+        @apply flex shrink-0 flex-row flex-nowrap items-center justify-start gap-2 sm:justify-end;
+    }
+
+    .operadora-row-file__actions [data-flux-button],
+    .operadora-row-file__replace {
+        @apply h-10 whitespace-nowrap;
+    }
+
+    .operadora-row-file__replace {
+        @apply inline-flex cursor-pointer items-center justify-center rounded-lg border border-neutral-950 bg-neutral-950 px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-neutral-800 hover:shadow-md dark:border-white dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200;
+    }
+
+    .operadora-row-file span {
+        @apply text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .operadora-row-file strong {
+        @apply mt-1 block text-sm font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .operadora-row-file small {
+        @apply mt-1 block text-xs text-neutral-500 dark:text-neutral-400;
+    }
+
+    .operadora-empty-state {
+        @apply rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-sm text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900/50 dark:text-neutral-300;
+    }
+
     @media (max-width: 768px) {
         .operadora-summary-card__value {
             @apply text-3xl;
@@ -577,6 +1036,27 @@ select:focus[data-flux-control] {
         .operadora-card__instructions {
             @apply px-4 py-3 text-sm leading-6;
         }
+
+        .operadora-profile-grid {
+            @apply grid-cols-1;
+        }
+
+        .operadora-requirement-row {
+            @apply p-4;
+        }
+
+        .operadora-requirement-group__header {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .operadora-requirement-group__header span {
+            grid-column: 1 / -1;
+            width: fit-content;
+        }
+
+        .operadora-file-current {
+            @apply flex-wrap;
+        }
     }
 }
 
@@ -594,7 +1074,17 @@ select:focus[data-flux-control] {
     }
 
     .portal-page {
-        @apply flex h-full w-full flex-1 flex-col gap-6 rounded-xl;
+        @apply mx-auto flex h-full w-full max-w-7xl min-w-0 flex-1 flex-col gap-6 rounded-xl;
+    }
+
+    .portal-page--wide {
+        @apply max-w-none;
+        max-width: min(100%, 112rem);
+    }
+
+    .portal-client-shell {
+        @apply mx-auto w-full min-w-0;
+        max-width: min(100%, 112rem);
     }
 
     .portal-hero {
@@ -603,6 +1093,26 @@ select:focus[data-flux-control] {
 
     .portal-hero__row {
         @apply flex flex-wrap items-start justify-between gap-4;
+    }
+
+    .portal-hero__aside {
+        @apply relative z-10 flex w-full max-w-sm flex-col items-end gap-4;
+    }
+
+    .portal-hero__brand {
+        @apply relative hidden h-36 w-full max-w-md items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/75 px-10 py-5 shadow-sm backdrop-blur md:flex;
+    }
+
+    .portal-hero__brand::before {
+        content: '';
+        @apply absolute inset-0 opacity-80;
+        background:
+            radial-gradient(circle at 18% 22%, rgba(59, 130, 246, 0.12), transparent 9rem),
+            radial-gradient(circle at 84% 72%, rgba(20, 184, 166, 0.16), transparent 8rem);
+    }
+
+    .portal-hero__logo {
+        @apply relative z-10 max-h-32 w-auto max-w-full object-contain drop-shadow-sm;
     }
 
     .portal-hero__eyebrow {
@@ -617,9 +1127,31 @@ select:focus[data-flux-control] {
         @apply mt-3 max-w-3xl text-sm leading-7 text-neutral-700 dark:text-neutral-300;
     }
 
+    .portal-hero__actions {
+        @apply mt-5 flex flex-wrap items-center gap-3;
+    }
+
     .portal-hero--emerald {
         border-color: rgb(167 243 208 / 0.95);
         background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 48%, #f0fdfa 100%);
+    }
+
+    .portal-hero--client {
+        @apply rounded-[1.5rem] border-sky-200 bg-sky-50/80;
+        background:
+            linear-gradient(135deg, rgba(239, 246, 255, 0.96) 0%, rgba(255, 255, 255, 0.98) 50%, rgba(207, 250, 254, 0.82) 100%);
+    }
+
+    .portal-hero--client .portal-hero__eyebrow {
+        @apply text-xs font-bold tracking-[0.22em];
+    }
+
+    .portal-hero--client .portal-hero__title {
+        @apply tracking-tight;
+    }
+
+    .portal-hero--client .portal-hero__text {
+        @apply leading-6 text-neutral-600 dark:text-neutral-300;
     }
 
     .portal-hero--sky {
@@ -637,9 +1169,75 @@ select:focus[data-flux-control] {
         background: linear-gradient(135deg, #fef2f2 0%, #ffffff 50%, #fff1f2 100%);
     }
 
+    .portal-operations-hero {
+        @apply relative overflow-hidden;
+    }
+
+    .portal-operations-hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 78% 22%, rgba(52, 211, 153, 0.16), transparent 20rem),
+            radial-gradient(circle at 88% 78%, rgba(56, 189, 248, 0.12), transparent 18rem);
+    }
+
+    .portal-operations-hero__copy {
+        @apply relative z-10 max-w-3xl;
+    }
+
+    .portal-operations-hero__aside {
+        @apply relative z-10 flex w-full max-w-sm flex-col items-end gap-4;
+    }
+
+    .portal-operations-hero__art {
+        @apply relative hidden h-28 w-full overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/60 backdrop-blur md:block;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+
+    .portal-operations-hero__art::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 100%),
+            radial-gradient(circle at 25% 75%, rgba(110, 231, 183, 0.22), transparent 10rem);
+    }
+
+    .portal-operations-hero__art::after {
+        content: '';
+        position: absolute;
+        inset: 18% 10% 16% auto;
+        width: 58%;
+        border-radius: 999px;
+        opacity: 0.35;
+        background:
+            radial-gradient(circle at 18% 50%, rgba(20, 184, 166, 0.32), transparent 1.2rem),
+            linear-gradient(180deg, transparent 0%, rgba(148, 163, 184, 0.25) 100%);
+        filter: blur(0.4px);
+    }
+
+    .portal-operations-hero__art-orb {
+        @apply absolute flex items-center justify-center rounded-full border border-white/80 bg-white/90 text-emerald-600 shadow-sm;
+    }
+
+    .portal-operations-hero__art-orb--drone {
+        @apply right-16 top-5 size-14 text-sky-500;
+    }
+
+    .portal-operations-hero__art-orb--pin {
+        @apply bottom-5 right-8 size-12;
+    }
+
     .dark .portal-hero--emerald {
         border-color: rgb(6 95 70 / 0.8);
         background: linear-gradient(135deg, rgb(6 78 59 / 0.28) 0%, rgb(23 23 23) 52%, rgb(8 145 178 / 0.16) 100%);
+    }
+
+    .dark .portal-hero--client {
+        border-color: rgb(7 89 133 / 0.75);
+        background: linear-gradient(135deg, rgb(8 47 73 / 0.34) 0%, rgb(23 23 23) 50%, rgb(8 145 178 / 0.18) 100%);
     }
 
     .dark .portal-hero--sky {
@@ -669,12 +1267,144 @@ select:focus[data-flux-control] {
         @apply bg-white/90 backdrop-blur dark:bg-neutral-950/50;
     }
 
+    .portal-operation-overview {
+        @apply border-emerald-200/80 bg-emerald-50/50 dark:border-emerald-800/70 dark:bg-emerald-950/10;
+    }
+
+    .portal-operation-overview__header {
+        @apply space-y-4;
+    }
+
+    .portal-operation-overview__status {
+        @apply inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300;
+    }
+
+    .portal-operation-overview__title {
+        @apply max-w-5xl text-3xl font-semibold tracking-tight text-neutral-900 dark:text-white md:text-5xl;
+    }
+
+    .portal-operation-overview__stats {
+        @apply mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .portal-operation-overview__stat {
+        @apply flex items-start gap-4 rounded-[1.35rem] border border-white/70 bg-white/80 px-5 py-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-900/75;
+    }
+
+    .portal-operation-overview__icon-wrap {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300;
+    }
+
+    .portal-operation-overview__icon {
+        @apply size-6;
+    }
+
+    .portal-operation-overview__label {
+        @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-operation-overview__value {
+        @apply mt-2 text-lg font-semibold text-neutral-900 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-progress {
+        @apply mt-8 grid gap-3 overflow-x-auto pb-3 md:gap-5 md:overflow-visible md:pb-0;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(6.75rem, 1fr);
+        scrollbar-width: thin;
+    }
+
+    @media (min-width: 48rem) {
+        .portal-operation-progress {
+            grid-auto-flow: row;
+            grid-auto-columns: initial;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    .portal-operation-progress__step {
+        @apply min-w-0;
+    }
+
+    .portal-operation-progress__track {
+        @apply flex items-center;
+    }
+
+    .portal-operation-progress__circle {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-neutral-300 bg-white text-sm font-semibold text-neutral-500 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 md:size-11;
+    }
+
+    .portal-operation-progress__circle--completed {
+        @apply border-emerald-500 bg-emerald-500 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950;
+    }
+
+    .portal-operation-progress__line {
+        @apply ml-2 block h-0.5 flex-1 rounded-full bg-neutral-200 md:ml-3 dark:bg-neutral-700;
+    }
+
+    .portal-operation-progress__line--completed {
+        @apply bg-emerald-500 dark:bg-emerald-400;
+    }
+
+    .portal-operation-progress__content {
+        @apply mt-3;
+    }
+
+    .portal-operation-progress__label {
+        @apply text-sm font-semibold leading-snug text-neutral-900 dark:text-white md:text-base;
+    }
+
+    .portal-operation-progress__meta {
+        @apply mt-1 text-xs leading-snug text-neutral-600 dark:text-neutral-300 md:text-sm;
+    }
+
+    .portal-operation-assets {
+        @apply grid gap-4 xl:grid-cols-2;
+    }
+
+    .portal-operation-asset {
+        @apply flex items-start gap-4 rounded-[1.35rem] border border-neutral-200 bg-white/85 px-5 py-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/75;
+    }
+
+    .portal-operation-asset__icon-wrap {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300;
+    }
+
+    .portal-operation-asset__icon {
+        @apply size-6;
+    }
+
+    .portal-operation-asset__content {
+        @apply min-w-0 flex-1;
+    }
+
+    .portal-operation-asset__stack {
+        @apply min-w-0 flex-1 space-y-3;
+    }
+
+    .portal-operation-tramites__header {
+        @apply flex items-start justify-between gap-4;
+    }
+
+    .portal-operation-tramites__empty {
+        @apply mt-6 flex flex-col items-center text-center;
+    }
+
+    .portal-operation-tramites__empty-icon {
+        @apply mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300;
+    }
+
     .portal-toolbar {
         @apply flex flex-wrap items-start justify-between gap-4;
     }
 
     .portal-form-shell {
-        @apply mt-6 rounded-[1.75rem] border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
+        @apply mt-6 rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:p-6;
+    }
+
+    .portal-page--wide .portal-form-shell {
+        @apply lg:p-7;
     }
 
     .portal-form-header {
@@ -694,7 +1424,7 @@ select:focus[data-flux-control] {
     }
 
     .portal-form-section {
-        @apply rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-950/50;
+        @apply rounded-[1.5rem] border border-neutral-200 bg-neutral-50 p-5 dark:border-neutral-800 dark:bg-neutral-950/50 md:p-6;
     }
 
     .portal-form-section__title {
@@ -714,7 +1444,151 @@ select:focus[data-flux-control] {
     }
 
     .portal-record-list--relaxed {
-        @apply gap-18;
+        @apply gap-6;
+    }
+
+    .portal-record-list--duo {
+        @apply xl:grid-cols-2;
+    }
+
+    .portal-record-list--duo .portal-record-card {
+        min-width: 0;
+    }
+
+    .portal-filter-bar {
+        @apply mt-6 flex flex-col gap-6 rounded-[1.6rem] border border-neutral-200 bg-white/95 px-5 py-5 shadow-[0_20px_45px_-32px_rgba(15,23,42,0.22)] dark:border-neutral-700 dark:bg-neutral-900/80 md:px-6 md:py-6;
+    }
+
+    .portal-filter-bar--compact {
+        @apply gap-4 rounded-[1.25rem] px-4 py-4 md:px-5 md:py-5;
+    }
+
+    .portal-filter-header {
+        @apply flex items-center gap-4;
+    }
+
+    .portal-filter-header__icon {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-filter-header__title {
+        @apply text-2xl font-semibold tracking-tight text-neutral-950 dark:text-white;
+    }
+
+    .portal-filter-header__text {
+        @apply mt-1 text-sm text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-filter-bar--compact .portal-filter-header {
+        @apply gap-3;
+    }
+
+    .portal-filter-bar--compact .portal-filter-header__icon {
+        @apply size-11 rounded-xl;
+    }
+
+    .portal-filter-bar--compact .portal-filter-header__title {
+        @apply text-lg;
+    }
+
+    .portal-filter-bar--compact .portal-filter-header__text {
+        @apply text-xs;
+    }
+
+    .portal-filter-section {
+        @apply flex flex-col gap-4;
+    }
+
+    .portal-filter-bar--compact .portal-filter-section {
+        @apply gap-3;
+    }
+
+    .portal-filter-section__heading {
+        @apply flex items-center gap-3;
+    }
+
+    .portal-filter-section__icon {
+        @apply text-emerald-600 dark:text-emerald-300;
+    }
+
+    .portal-filter-section__title {
+        @apply text-xl font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .portal-filter-bar--compact .portal-filter-section__title {
+        @apply text-base;
+    }
+
+    .portal-filter-divider {
+        @apply h-px w-full bg-neutral-200 dark:bg-neutral-700;
+    }
+
+    .portal-filter-statuses {
+        @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .portal-filter-dates {
+        @apply grid gap-3 md:items-end;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    }
+
+    @media (min-width: 64rem) {
+        .portal-filter-dates {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+        }
+    }
+
+    .portal-filter-option {
+        @apply inline-flex min-h-14 w-full items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-3 text-base font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950/50 dark:text-neutral-200;
+    }
+
+    .portal-filter-bar--compact .portal-filter-option {
+        @apply min-h-11 justify-start rounded-xl px-4 py-2 text-sm;
+    }
+
+    .portal-filter-option__dot {
+        @apply size-3.5 rounded-full border border-neutral-300 bg-neutral-300 dark:border-neutral-500 dark:bg-neutral-500;
+    }
+
+    .portal-filter-option--all .portal-filter-option__dot {
+        @apply bg-neutral-900 border-neutral-900 dark:bg-white dark:border-white;
+    }
+
+    .portal-filter-option--pending .portal-filter-option__dot {
+        @apply border-amber-400 bg-amber-400;
+    }
+
+    .portal-filter-option--rejected .portal-filter-option__dot {
+        @apply border-red-400 bg-red-400;
+    }
+
+    .portal-filter-option--confirmed .portal-filter-option__dot {
+        @apply border-emerald-500 bg-emerald-500;
+    }
+
+    .portal-filter-option--active {
+        @apply border-neutral-900 bg-neutral-900 text-white shadow-[0_16px_30px_-22px_rgba(10,10,10,0.6)] dark:border-white dark:bg-white dark:text-neutral-900;
+    }
+
+    .portal-filter-option--active .portal-filter-option__dot {
+        @apply border-white bg-white dark:border-neutral-900 dark:bg-neutral-900;
+        box-shadow: inset 0 0 0 3px currentColor;
+    }
+
+    .portal-filter-field {
+        @apply flex min-w-0 flex-1 flex-col gap-2;
+    }
+
+    .portal-filter-field__label {
+        @apply text-sm font-medium text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-filter-date-input {
+        @apply h-14 rounded-2xl border border-neutral-200 bg-white px-4 text-lg font-medium text-neutral-700 shadow-sm transition outline-hidden focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-white dark:focus:ring-white/10;
+    }
+
+    .portal-filter-reset {
+        @apply inline-flex h-14 w-full items-center justify-center rounded-2xl border border-neutral-200 bg-white px-5 text-base font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950/50 dark:text-neutral-200 lg:w-auto;
     }
 
     .portal-record-card {
@@ -760,7 +1634,48 @@ select:focus[data-flux-control] {
     }
 
     .portal-operation-card__title {
-        @apply text-2xl uppercase;
+        @apply text-2xl uppercase leading-tight;
+    }
+
+    .portal-operation-card__title--confirmed {
+        @apply text-[2rem] normal-case md:text-[2.35rem];
+    }
+
+    .portal-operation-card__eyebrow {
+        @apply mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300;
+    }
+
+    .portal-operation-card__headline {
+        @apply flex items-start gap-4;
+    }
+
+    .portal-operation-card__state-icon {
+        @apply flex size-12 shrink-0 items-center justify-center rounded-full border bg-white/90 shadow-sm;
+    }
+
+    .portal-operation-card__state-icon--confirmed {
+        @apply border-emerald-200 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-operation-card__state-icon--pending {
+        @apply border-amber-200 text-amber-600 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300;
+    }
+
+    .portal-operation-card__state-icon--rejected {
+        @apply border-red-200 text-red-600 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-operation-card-shell {
+        @apply relative overflow-hidden;
+    }
+
+    .portal-operation-card-shell::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle at 85% 0%, rgba(255, 255, 255, 0.85), transparent 20rem);
+        opacity: 0.9;
     }
 
     .portal-record-card__meta {
@@ -781,6 +1696,7 @@ select:focus[data-flux-control] {
 
     .portal-spec-grid {
         @apply mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
     }
 
     .portal-spec-card {
@@ -816,6 +1732,16 @@ select:focus[data-flux-control] {
         @apply mt-4;
     }
 
+    @media (min-width: 80rem) {
+        .portal-record-list--duo .portal-spec-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .portal-record-list--duo .portal-spec-card--action {
+            grid-column: 1 / -1;
+        }
+    }
+
     .portal-operation-status-panel {
         @apply mt-6 rounded-2xl border-2 px-5 py-5;
     }
@@ -836,8 +1762,17 @@ select:focus[data-flux-control] {
         @apply border-red-200 bg-white/85 dark:border-red-800 dark:bg-neutral-900/70;
     }
 
+    .portal-operation-status-panel--priority {
+        @apply border-2 border-red-300 bg-red-50/95 shadow-md dark:border-red-700 dark:bg-red-950/28;
+        box-shadow: 0 20px 36px -24px rgba(239, 68, 68, 0.28);
+    }
+
     .portal-operation-status-panel__title {
         @apply text-xs font-semibold uppercase tracking-[0.18em] text-neutral-900 dark:text-white;
+    }
+
+    .portal-operation-status-panel__title--priority {
+        @apply text-sm tracking-[0.2em] text-red-700 dark:text-red-300;
     }
 
     .portal-operation-status-panel__text {
@@ -849,6 +1784,85 @@ select:focus[data-flux-control] {
     }
 
     .portal-operation-confirmed-summary span {
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-confirmed-card {
+        @apply mt-4 rounded-[1.2rem] border border-emerald-200/90 bg-white/90 px-4 py-4 shadow-sm dark:border-emerald-800/80 dark:bg-neutral-900/80;
+    }
+
+    .portal-operation-info-grid {
+        @apply mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    }
+
+    .portal-operation-info-grid--secondary {
+        @apply mt-3;
+    }
+
+    .portal-operation-info-card {
+        @apply flex items-start gap-4 rounded-[1.35rem] border border-white/80 bg-white/92 px-5 py-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-900/80;
+        min-width: 0;
+    }
+
+    .portal-operation-info-card--wide {
+        @apply xl:col-span-1;
+    }
+
+    .portal-operation-info-card__icon-wrap {
+        @apply flex size-12 shrink-0 items-center justify-center rounded-full border bg-white shadow-sm;
+    }
+
+    .portal-record-card--confirmed .portal-operation-info-card__icon-wrap {
+        @apply border-emerald-200 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950/35 dark:text-emerald-300;
+    }
+
+    .portal-record-card--pending .portal-operation-info-card__icon-wrap {
+        @apply border-amber-200 text-amber-600 dark:border-amber-800 dark:bg-amber-950/35 dark:text-amber-300;
+    }
+
+    .portal-record-card--rejected .portal-operation-info-card__icon-wrap {
+        @apply border-red-200 text-red-600 dark:border-red-800 dark:bg-red-950/35 dark:text-red-300;
+    }
+
+    .portal-operation-info-card__icon {
+        @apply size-5;
+    }
+
+    .portal-operation-info-card__content {
+        @apply min-w-0 flex-1;
+    }
+
+    .portal-operation-info-card__value {
+        @apply mt-2 text-base font-semibold text-neutral-900 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-progress--card {
+        @apply mt-8;
+    }
+
+    .portal-operation-assets--compact {
+        @apply mt-6 grid-cols-1 md:grid-cols-2;
+    }
+
+    @media (min-width: 80rem) {
+        .portal-operation-assets--compact {
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(11rem, 0.75fr) minmax(11rem, 0.75fr);
+        }
+    }
+
+    .portal-operation-asset--compact {
+        @apply rounded-[1.2rem] px-4 py-4;
+        min-width: 0;
+    }
+
+    .portal-operation-asset--metric {
+        @apply items-center;
+    }
+
+    .portal-operation-asset--compact .portal-chip {
+        @apply inline-flex w-fit max-w-full shrink-0 whitespace-normal;
         overflow-wrap: anywhere;
     }
 
@@ -864,12 +1878,20 @@ select:focus[data-flux-control] {
         @apply border-red-200/80 bg-red-50/80 dark:border-red-800/80 dark:bg-red-950/30;
     }
 
+    .portal-operation-docs--priority {
+        @apply border-red-300 bg-white shadow-sm dark:border-red-700 dark:bg-neutral-950/80;
+    }
+
     .portal-operation-docs__title {
         @apply text-sm font-semibold text-neutral-900 dark:text-white;
     }
 
     .portal-operation-docs__text {
         @apply mt-1 text-sm font-semibold leading-6 text-neutral-700 dark:text-neutral-200;
+    }
+
+    .portal-operation-docs__text--priority {
+        @apply text-base font-semibold text-neutral-900 dark:text-white;
     }
 
     .portal-operation-docs__badges {
@@ -996,6 +2018,185 @@ select:focus[data-flux-control] {
         @apply mt-5;
     }
 
+    .portal-dashboard-hero__chips {
+        @apply mt-5 flex flex-wrap gap-2;
+    }
+
+    .portal-dashboard-summary-grid {
+        @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .portal-dashboard-summary-card {
+        @apply flex min-w-0 items-start gap-4 rounded-[1.5rem] border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-neutral-500;
+    }
+
+    .portal-dashboard-summary-card__icon {
+        @apply flex size-12 shrink-0 items-center justify-center rounded-2xl border;
+    }
+
+    .portal-dashboard-summary-card__icon--sky {
+        @apply border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300;
+    }
+
+    .portal-dashboard-summary-card__icon--indigo {
+        @apply border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-300;
+    }
+
+    .portal-dashboard-summary-card__icon--emerald {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-dashboard-summary-card__icon--danger {
+        @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-dashboard-summary-card__label {
+        @apply block text-xs font-bold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-dashboard-summary-card strong {
+        @apply mt-1 block text-3xl font-semibold text-neutral-950 dark:text-white;
+    }
+
+    .portal-dashboard-summary-card__text {
+        @apply mt-1 block text-sm leading-5 text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-dashboard-layout {
+        @apply grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(22rem,0.8fr)] xl:items-start;
+    }
+
+    .portal-dashboard-section-header {
+        @apply mb-5 flex flex-wrap items-start justify-between gap-3;
+    }
+
+    .portal-dashboard-section-header__eyebrow {
+        @apply text-xs font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300;
+    }
+
+    .portal-dashboard-section-header__title {
+        @apply mt-1 text-xl font-semibold tracking-tight text-neutral-950 dark:text-white;
+    }
+
+    .portal-dashboard-next,
+    .portal-dashboard-guide {
+        @apply min-w-0;
+    }
+
+    .portal-dashboard-operation {
+        @apply grid gap-4 rounded-[1.25rem] border border-neutral-200 bg-neutral-50/80 p-4 dark:border-neutral-700 dark:bg-neutral-950/35 md:grid-cols-[11rem_minmax(0,1fr)_auto] md:items-center;
+    }
+
+    .portal-dashboard-operation + .portal-dashboard-operation {
+        @apply mt-3;
+    }
+
+    .portal-dashboard-operation__date {
+        @apply rounded-2xl border border-white bg-white px-4 py-3 shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
+    }
+
+    .portal-dashboard-operation__date span {
+        @apply block text-base font-semibold text-neutral-950 dark:text-white;
+    }
+
+    .portal-dashboard-operation__date small {
+        @apply mt-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-dashboard-operation__body {
+        @apply min-w-0;
+    }
+
+    .portal-dashboard-operation__body h3 {
+        @apply text-lg font-semibold uppercase text-neutral-950 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-dashboard-operation__body p {
+        @apply mt-1 text-sm leading-5 text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-dashboard-operation__meta {
+        @apply mt-3 flex flex-wrap gap-2;
+    }
+
+    .portal-dashboard-operation__meta span {
+        @apply rounded-full border border-neutral-200 bg-white px-3 py-1 text-xs font-semibold text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300;
+    }
+
+    .portal-dashboard-guide__list {
+        @apply space-y-3;
+    }
+
+    .portal-dashboard-guide__item {
+        @apply flex items-start gap-3 rounded-[1.15rem] border border-neutral-200 bg-neutral-50/80 p-4 transition hover:border-neutral-300 hover:bg-white dark:border-neutral-700 dark:bg-neutral-950/35 dark:hover:bg-neutral-900;
+    }
+
+    .portal-dashboard-guide__icon {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-xl border;
+    }
+
+    .portal-dashboard-guide__icon--emerald {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-dashboard-guide__icon--danger {
+        @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-dashboard-guide__icon--sky {
+        @apply border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300;
+    }
+
+    .portal-dashboard-guide__item strong {
+        @apply block text-sm font-semibold text-neutral-950 dark:text-white;
+    }
+
+    .portal-dashboard-guide__item small {
+        @apply mt-1 block text-sm leading-5 text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-dashboard-doc-summary {
+        @apply mt-5 rounded-[1.25rem] border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-800 dark:bg-emerald-950/15;
+    }
+
+    .portal-dashboard-doc-summary__header {
+        @apply mb-3 flex items-center justify-between gap-4 text-sm font-semibold text-neutral-800 dark:text-neutral-100;
+    }
+
+    .portal-dashboard-doc-summary__list {
+        @apply mt-4 space-y-2;
+    }
+
+    .portal-dashboard-doc-task {
+        @apply flex items-center justify-between gap-3 rounded-xl border bg-white/80 px-3 py-3 text-sm shadow-sm transition hover:bg-white dark:bg-neutral-900/70 dark:hover:bg-neutral-900;
+    }
+
+    .portal-dashboard-doc-task--danger {
+        @apply border-red-200 dark:border-red-800;
+    }
+
+    .portal-dashboard-doc-task--warning {
+        @apply border-amber-200 dark:border-amber-800;
+    }
+
+    .portal-dashboard-doc-task--neutral {
+        @apply border-neutral-200 dark:border-neutral-700;
+    }
+
+    .portal-dashboard-doc-task--success {
+        @apply border-emerald-200 dark:border-emerald-800;
+    }
+
+    .portal-dashboard-doc-task strong {
+        @apply block font-semibold uppercase text-neutral-950 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-dashboard-doc-task small {
+        @apply mt-1 block text-xs font-medium text-neutral-500 dark:text-neutral-400;
+    }
+
     .portal-upload-card {
         @apply mt-6 rounded-[1.25rem] border border-sky-200 bg-white p-5 dark:border-sky-800/70 dark:bg-neutral-900;
     }
@@ -1103,9 +2304,62 @@ select:focus[data-flux-control] {
         @apply grid gap-6 md:grid-cols-[1.5fr_1fr] md:p-8;
     }
 
+    @media (min-width: 120rem) {
+        .portal-page--wide,
+        .portal-client-shell {
+            max-width: min(100%, 120rem);
+        }
+
+        .portal-page--wide .portal-hero,
+        .portal-page--wide .portal-form-shell,
+        .portal-page--wide .portal-record-card,
+        .portal-page--wide .portal-panel,
+        .portal-page--wide .portal-filter-bar {
+            @apply p-8;
+        }
+    }
+
     @media (max-width: 768px) {
+        .portal-page {
+            @apply gap-4;
+        }
+
         .portal-hero {
             @apply p-5;
+        }
+
+        .portal-page--wide .portal-hero__row {
+            @apply flex-col;
+        }
+
+        .portal-operations-hero__aside {
+            @apply max-w-none items-start;
+        }
+
+        .portal-filter-bar {
+            @apply gap-5 rounded-[1.25rem] px-4 py-4;
+        }
+
+        .portal-filter-header {
+            @apply items-start gap-3;
+        }
+
+        .portal-filter-header__icon {
+            @apply size-11 rounded-xl;
+        }
+
+        .portal-filter-header__title {
+            @apply text-xl;
+        }
+
+        .portal-filter-section__title {
+            @apply text-base;
+        }
+
+        .portal-filter-option,
+        .portal-filter-date-input,
+        .portal-filter-reset {
+            @apply min-h-12 h-12 rounded-xl text-sm;
         }
 
         .portal-form-shell,
@@ -1118,6 +2372,106 @@ select:focus[data-flux-control] {
 
         .portal-dashboard-main {
             @apply p-6;
+        }
+
+        .portal-record-card__header {
+            @apply flex-col;
+        }
+
+        .portal-record-card__actions {
+            @apply w-full;
+        }
+
+        .portal-record-card__actions > * {
+            flex: 1 1 auto;
+        }
+
+        .portal-operation-info-card,
+        .portal-operation-asset,
+        .portal-operation-overview__stat {
+            @apply gap-3 px-4 py-4;
+        }
+
+        .portal-operation-card__headline {
+            @apply gap-3;
+        }
+
+        .portal-operation-card__state-icon {
+            @apply size-10;
+        }
+
+        .portal-operation-card__title--confirmed {
+            @apply text-2xl;
+        }
+
+        .portal-operation-assets--compact {
+            @apply grid-cols-1;
+        }
+
+        .portal-operation-progress {
+            @apply -mx-1 px-1;
+        }
+
+        .portal-operation-docs,
+        .portal-file-card {
+            @apply flex-col items-stretch;
+        }
+
+        .portal-operation-docs [data-flux-button],
+        .portal-file-card [data-flux-button] {
+            @apply w-full;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .portal-hero,
+        .portal-form-shell,
+        .portal-form-section,
+        .portal-record-card,
+        .portal-panel,
+        .portal-filter-bar {
+            @apply rounded-[1.1rem] px-4 py-4;
+        }
+
+        .portal-hero__eyebrow,
+        .portal-operation-card__eyebrow,
+        .portal-operation-status-panel__title,
+        .portal-spec-card__label,
+        .portal-operation-overview__label {
+            letter-spacing: 0.12em;
+        }
+
+        .portal-hero--client .portal-hero__eyebrow {
+            letter-spacing: 0.22em;
+        }
+
+        .portal-hero__title,
+        .portal-operation-overview__title {
+            @apply text-2xl;
+        }
+
+        .portal-operation-card__headline {
+            @apply flex-col items-start;
+        }
+
+        .portal-operation-progress {
+            grid-auto-columns: minmax(6rem, 1fr);
+        }
+
+        .portal-operation-progress__circle {
+            @apply size-9 text-xs;
+        }
+
+        .portal-operation-progress__content {
+            @apply mt-2;
+        }
+
+        .portal-operation-progress__label {
+            @apply text-xs;
+        }
+
+        .portal-operation-progress__meta {
+            @apply text-[11px];
         }
     }
 }

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Models\OperadoraProfile;
 use App\Models\OperadoraRequirement;
@@ -28,6 +28,10 @@ new #[Title('Operadora')] class extends Component {
 
     /** @var array<int, mixed> */
     public array $pdfUploads = [];
+
+    public string $requirementFilter = 'all';
+
+    public string $requirementTypeFilter = 'all';
 
     public function mount(): void
     {
@@ -64,10 +68,10 @@ new #[Title('Operadora')] class extends Component {
         $this->cliente->ensureDefaultOperadoraRequirement();
 
         $statusOrder = [
-            OperadoraRequirement::STATUS_PENDING => 0,
+            OperadoraRequirement::STATUS_APPROVED => 0,
             OperadoraRequirement::STATUS_NEEDS_CHANGES => 1,
             OperadoraRequirement::STATUS_IN_REVIEW => 2,
-            OperadoraRequirement::STATUS_APPROVED => 3,
+            OperadoraRequirement::STATUS_PENDING => 3,
         ];
 
         return $this->cliente
@@ -75,12 +79,32 @@ new #[Title('Operadora')] class extends Component {
             ->get()
             ->sortBy(fn (OperadoraRequirement $requirement): string => sprintf(
                 '%d-%d-%d-%010d',
-                $requirement->is_system_default ? 0 : 1,
-                $requirement->is_required ? 0 : 1,
                 $statusOrder[$requirement->status ?? OperadoraRequirement::STATUS_PENDING] ?? 9,
+                $requirement->is_required ? 0 : 1,
+                $requirement->is_system_default ? 0 : 1,
                 9999999999 - $requirement->id
             ))
             ->values();
+    }
+
+    #[Computed]
+    public function displayedRequirements()
+    {
+        $requirements = match ($this->requirementFilter) {
+            'pending' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => in_array($requirement->status, [
+                OperadoraRequirement::STATUS_PENDING,
+                OperadoraRequirement::STATUS_NEEDS_CHANGES,
+            ], true))->values(),
+            'review' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_IN_REVIEW)->values(),
+            'approved' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_APPROVED)->values(),
+            default => $this->requirements,
+        };
+
+        return match ($this->requirementTypeFilter) {
+            'required' => $requirements->filter(fn (OperadoraRequirement $requirement): bool => (bool) $requirement->is_required)->values(),
+            'optional' => $requirements->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->is_required)->values(),
+            default => $requirements,
+        };
     }
 
     #[Computed]
@@ -110,6 +134,30 @@ new #[Title('Operadora')] class extends Component {
             ->count();
     }
 
+    #[Computed]
+    public function progressPercent(): int
+    {
+        $requiredRequirements = $this->requirements
+            ->filter(fn (OperadoraRequirement $requirement): bool => (bool) $requirement->is_required);
+
+        $totalRequired = $requiredRequirements->count();
+        $completedRequired = $requiredRequirements
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_APPROVED)
+            ->count();
+
+        return $totalRequired > 0
+            ? (int) round(($completedRequired / $totalRequired) * 100)
+            : 0;
+    }
+
+    #[Computed]
+    public function certificateRequirement(): ?OperadoraRequirement
+    {
+        return $this->requirements->first(
+            fn (OperadoraRequirement $requirement): bool => (bool) $requirement->is_system_default
+        );
+    }
+
     public function saveProfile(): void
     {
         abort_unless($this->cliente, 403);
@@ -133,6 +181,24 @@ new #[Title('Operadora')] class extends Component {
         ]);
 
         $this->dispatch('operadora-profile-saved');
+    }
+
+    public function setRequirementFilter(string $filter): void
+    {
+        if (! in_array($filter, ['all', 'pending', 'review', 'approved'], true)) {
+            return;
+        }
+
+        $this->requirementFilter = $filter;
+    }
+
+    public function setRequirementTypeFilter(string $filter): void
+    {
+        if (! in_array($filter, ['all', 'required', 'optional'], true)) {
+            return;
+        }
+
+        $this->requirementTypeFilter = $filter;
     }
 
     public function saveTextRequirement(int $requirementId): void
@@ -225,6 +291,71 @@ new #[Title('Operadora')] class extends Component {
         };
     }
 
+    public function requirementStatusMessage(OperadoraRequirement $requirement): string
+    {
+        return match ($requirement->status) {
+            OperadoraRequirement::STATUS_APPROVED => 'Documento validado por el gestor.',
+            OperadoraRequirement::STATUS_IN_REVIEW => 'Entrega enviada y pendiente de revision.',
+            OperadoraRequirement::STATUS_NEEDS_CHANGES => 'El gestor ha solicitado correcciones.',
+            default => 'Todavia no has enviado este requisito.',
+        };
+    }
+
+    public function requirementTone(OperadoraRequirement $requirement): string
+    {
+        return match ($requirement->status) {
+            OperadoraRequirement::STATUS_APPROVED => 'approved',
+            OperadoraRequirement::STATUS_IN_REVIEW => 'review',
+            OperadoraRequirement::STATUS_NEEDS_CHANGES => 'changes',
+            default => 'pending',
+        };
+    }
+
+    public function requirementIcon(OperadoraRequirement $requirement): string
+    {
+        return match ($requirement->status) {
+            OperadoraRequirement::STATUS_APPROVED => 'document-check',
+            default => 'document',
+        };
+    }
+
+    public function formatDateValue(mixed $value): string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('d/m/Y');
+        }
+
+        if (blank($value)) {
+            return 'Sin definir';
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse((string) $value)->format('d/m/Y');
+        } catch (\Throwable) {
+            return (string) $value;
+        }
+    }
+
+    public function formatFileSize(?int $bytes): string
+    {
+        if (! $bytes || $bytes <= 0) {
+            return 'Tamano no disponible';
+        }
+
+        return $bytes >= 1024 * 1024
+            ? number_format($bytes / (1024 * 1024), 1, ',', '.').' MB'
+            : number_format($bytes / 1024, 0, ',', '.').' KB';
+    }
+
+    public function selectedPdfName(int $requirementId): ?string
+    {
+        $selectedPdf = $this->pdfUploads[$requirementId] ?? null;
+
+        return is_object($selectedPdf) && method_exists($selectedPdf, 'getClientOriginalName')
+            ? $selectedPdf->getClientOriginalName()
+            : null;
+    }
+
     protected function loadProfile(): void
     {
         $profile = $this->operadoraProfile ?? $this->cliente?->ensureOperadoraProfile();
@@ -261,231 +392,401 @@ new #[Title('Operadora')] class extends Component {
     }
 }; ?>
 
-<section class="portal-page">
+<section class="portal-page portal-page--wide">
     <x-pages::settings.layout heading="" subheading="">
-        <div class="portal-hero portal-hero--sky">
-            <div class="portal-hero__row">
-                <div>
-                    <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
-                    <h1 class="portal-hero__title">Operadora</h1>
-                    <p class="portal-hero__text">
-                        Completa primero los datos del certificado operador y, debajo, entrega la documentacion que el gestor te solicite.
-                    </p>
-                </div>
-            </div>
+        @php
+            $certificateRequirement = $this->certificateRequirement;
+            $totalRequirements = $this->requirements->count();
+            $requiredTotalRequirements = $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => (bool) $requirement->is_required)->count();
+            $optionalTotalRequirements = $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->is_required)->count();
+            $displayedRequirements = $this->displayedRequirements;
+            $requiredRequirements = $displayedRequirements->filter(fn (OperadoraRequirement $requirement): bool => (bool) $requirement->is_required)->values();
+            $optionalRequirements = $displayedRequirements->filter(fn (OperadoraRequirement $requirement): bool => ! $requirement->is_required)->values();
+            $selectedCertificateName = $certificateRequirement ? $this->selectedPdfName($certificateRequirement->id) : null;
+            $certificateTone = $certificateRequirement ? $this->requirementTone($certificateRequirement) : 'pending';
+        @endphp
 
-            <div class="mt-4 flex flex-wrap gap-3 text-sm">
-                <span class="portal-badge portal-badge--danger">Pendientes: {{ $this->pendingCount }}</span>
-                <span class="portal-badge portal-badge--amber">En revision: {{ $this->inReviewCount }}</span>
-                <span class="portal-badge portal-badge--emerald">Completados: {{ $this->completedCount }}</span>
-            </div>
-        </div>
-
-        <div class="portal-form-shell mt-6">
-            <div class="portal-form-header">
-                <div>
-                    <h2 class="portal-form-title">Datos del certificado operador</h2>
-                    <p class="portal-form-text">
-                        Completa esta ficha con los mismos datos que aparecen en tu certificado.
-                    </p>
-                </div>
-            </div>
-
-            <form wire:submit="saveProfile" class="portal-form-sections">
-                <div class="portal-form-section">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <h3 class="portal-form-section__title">Ficha de operadora</h3>
-                        <span class="portal-badge portal-badge--sky">Despues, sube aqui debajo el CERTIFICADO OPERADOR</span>
-                    </div>
-
-                    <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Importante</p>
-                        <p class="mt-2">
-                            Los datos que introduzcas deben coincidir exactamente con los que aparecen en el PDF <strong>CERTIFICADO OPERADOR</strong>.
+        <div class="operadora-shell">
+            <section class="portal-hero portal-hero--client">
+                <div class="portal-hero__row">
+                    <div>
+                        <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
+                        <h1 class="portal-hero__title">Operadora</h1>
+                        <p class="portal-hero__text">
+                            Completa y gestiona los datos del certificado operador y la documentacion requerida por el gestor.
                         </p>
+
+                        <div class="operadora-dashboard-hero__badges">
+                            <span class="operadora-status-pill operadora-status-pill--pending">Pendientes: {{ $this->pendingCount }}</span>
+                            <span class="operadora-status-pill operadora-status-pill--review">En revision: {{ $this->inReviewCount }}</span>
+                            <span class="operadora-status-pill operadora-status-pill--approved">Completados: {{ $this->completedCount }}</span>
+                        </div>
                     </div>
 
-                    <div class="mt-6 grid gap-6 md:grid-cols-3">
-                        <flux:input wire:model="first_name" label="Nombre" type="text" required />
-                        <flux:input wire:model="last_name" label="Apellido" type="text" required />
-                        <flux:input wire:model="second_last_name" label="Segundo apellido" type="text" />
+                    <div class="portal-hero__aside">
+                        <div class="portal-hero__brand">
+                            <img
+                                src="{{ asset('images/logo-idronlex.png') }}"
+                                alt="Idron Lex & Consulting"
+                                class="portal-hero__logo"
+                            >
+                        </div>
                     </div>
+                </div>
+            </section>
 
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="registration_number" label="Numero de registro" type="text" required />
-                        <flux:input wire:model="expiration_date" label="Fecha de caducidad" type="date" required />
+            <section class="operadora-section-card operadora-section-card--profile">
+                <div class="operadora-section-card__header">
+                    <div class="operadora-section-card__icon">
+                        <flux:icon icon="briefcase" variant="mini" class="size-5" />
+                    </div>
+                    <div>
+                        <h2 class="operadora-section-card__title">Certificado de Operador</h2>
+                        <p class="operadora-section-card__text">Introduce los datos tal y como aparecen en tu certificado de operador.</p>
                     </div>
                 </div>
 
-                <div class="portal-form-actions">
-                    <flux:button variant="primary" type="submit">Guardar datos</flux:button>
-                    <x-action-message class="me-3" on="operadora-profile-saved">Guardado.</x-action-message>
-                </div>
-            </form>
-        </div>
+                <div class="operadora-profile-grid">
+                    <form wire:submit="saveProfile" class="operadora-profile-card">
+                        <div class="operadora-card-heading">
+                            <div>
+                                <h3>Datos del operador</h3>
+                                <p>Rellena los campos exactamente como figuran en el certificado.</p>
+                            </div>
+                            <span class="operadora-status-pill operadora-status-pill--info">Datos base</span>
+                        </div>
 
-        <div class="portal-form-shell mt-6">
-            <div class="portal-form-header">
-                <div>
-                    <h2 class="portal-form-title">Requisitos operadora</h2>
-                </div>
-            </div>
+                        <div class="operadora-form-grid">
+                            <flux:input wire:model="first_name" label="Nombre" type="text" required />
+                            <flux:input wire:model="last_name" label="Apellido" type="text" required />
+                            <flux:input wire:model="second_last_name" label="Segundo apellido" type="text" />
+                            <flux:input wire:model="registration_number" label="Numero de registro" type="text" required />
+                            <flux:input wire:model="expiration_date" label="Fecha de caducidad" type="date" required />
+                        </div>
 
-            <div class="portal-status-legend">
-                <span class="portal-status-legend__label">Leyenda</span>
-                <span class="portal-badge portal-badge--danger">Pendiente</span>
-                <span class="portal-badge portal-badge--amber">En revision</span>
-                <span class="portal-badge portal-badge--sky">Corregir</span>
-                <span class="portal-badge portal-badge--emerald">Aprobado</span>
-            </div>
+                        <div class="operadora-info-callout">
+                            <flux:icon icon="information-circle" variant="mini" class="size-5" />
+                            <span>Asegurate de que los datos coinciden exactamente con los que aparecen en tu certificado de operador.</span>
+                        </div>
 
-            <div class="portal-record-list">
-                @forelse ($this->requirements as $requirement)
-                    @php
-                        $statusColor = match ($requirement->status) {
-                            OperadoraRequirement::STATUS_APPROVED => 'portal-badge--emerald',
-                            OperadoraRequirement::STATUS_IN_REVIEW => 'portal-badge--amber',
-                            OperadoraRequirement::STATUS_NEEDS_CHANGES => 'portal-badge--sky',
-                            default => 'portal-badge--danger',
-                        };
+                        <div class="operadora-actions">
+                            <flux:button variant="primary" type="submit">Guardar datos</flux:button>
+                            <x-action-message class="me-3" on="operadora-profile-saved">Guardado.</x-action-message>
+                        </div>
+                    </form>
 
-                        $cardStatusClass = match ($requirement->status) {
-                            OperadoraRequirement::STATUS_APPROVED => 'portal-record-card--approved',
-                            OperadoraRequirement::STATUS_IN_REVIEW => 'portal-record-card--review',
-                            OperadoraRequirement::STATUS_NEEDS_CHANGES => 'portal-record-card--changes',
-                            default => 'portal-record-card--pending',
-                        };
-
-                        $typeColor = $requirement->input_type === OperadoraRequirement::TYPE_TEXT
-                            ? 'portal-badge--indigo'
-                            : 'portal-badge--slate';
-
-                        $statusMessage = match ($requirement->status) {
-                            OperadoraRequirement::STATUS_APPROVED => 'Este requisito ya ha sido validado por el gestor.',
-                            OperadoraRequirement::STATUS_IN_REVIEW => 'Tu entrega ya esta enviada y pendiente de revision.',
-                            OperadoraRequirement::STATUS_NEEDS_CHANGES => 'El gestor ha solicitado correcciones en este requisito.',
-                            default => 'Todavia no has enviado este requisito.',
-                        };
-                    @endphp
-
-                    <article class="portal-record-card {{ $cardStatusClass }}">
-                        <div class="portal-record-card__header">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="portal-record-card__title">{{ $requirement->name }}</h3>
-                                    <span class="portal-badge {{ $statusColor }}">{{ $this->requirementStatusLabel($requirement) }}</span>
-                                    <span class="portal-badge {{ $requirement->is_required ? 'portal-badge--neutral' : 'portal-badge--indigo' }}">
-                                        {{ $requirement->is_required ? 'Obligatorio' : 'Opcional' }}
+                    <div class="operadora-profile-card">
+                        <div class="operadora-card-heading">
+                            <div>
+                                <h3>Certificado de operador</h3>
+                                <p>Sube el PDF de tu certificado de operador emitido por AESA.</p>
+                            </div>
+                            <div class="operadora-card-heading__badges">
+                                @if ($certificateRequirement)
+                                    <span class="operadora-status-pill operadora-status-pill--{{ $certificateTone }}">
+                                        {{ $this->requirementStatusLabel($certificateRequirement) }}
                                     </span>
-                                    <span class="portal-badge {{ $typeColor }}">
-                                        {{ OperadoraRequirement::inputTypeOptions()[$requirement->input_type] ?? $requirement->input_type }}
-                                    </span>
-                                </div>
-
-                                <div class="portal-record-card__meta">
-                                    <p>{{ $statusMessage }}</p>
-                                    @if (filled($requirement->instructions))
-                                        <p>Indicaciones: {{ $requirement->instructions }}</p>
-                                    @endif
-                                    @if ($requirement->submitted_at)
-                                        <p>Ultima entrega: {{ \Illuminate\Support\Carbon::parse($requirement->submitted_at)->format('d/m/Y H:i') }}</p>
-                                    @endif
-                                </div>
-
-                                @if ($requirement->status === OperadoraRequirement::STATUS_NEEDS_CHANGES && filled($requirement->review_notes))
-                                    <p class="portal-record-card__text">
-                                        Correccion solicitada: {{ $requirement->review_notes }}
-                                    </p>
                                 @endif
+                                <span class="operadora-status-pill operadora-status-pill--required">Obligatorio</span>
                             </div>
                         </div>
 
-                        @if ($requirement->input_type === OperadoraRequirement::TYPE_TEXT)
-                            <form wire:submit="saveTextRequirement({{ $requirement->id }})" class="mt-6 space-y-4">
-                                <div class="portal-upload-card">
-                                    <p class="text-sm font-semibold text-neutral-900 dark:text-white">Respuesta por texto</p>
-                                    <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-                                        Escribe la informacion solicitada y guardala para enviarla al gestor.
-                                    </p>
+                        @if ($certificateRequirement)
+                            <form
+                                wire:submit="savePdfRequirement({{ $certificateRequirement->id }})"
+                                x-data="{ uploading: false, progress: 0 }"
+                                x-on:livewire-upload-start="uploading = true; progress = 0"
+                                x-on:livewire-upload-finish="uploading = false; progress = 100"
+                                x-on:livewire-upload-error="uploading = false"
+                                x-on:livewire-upload-cancel="uploading = false; progress = 0"
+                                x-on:livewire-upload-progress="progress = $event.detail.progress"
+                            >
+                                <input id="operadora-certificate-pdf-{{ $certificateRequirement->id }}" type="file" wire:model="pdfUploads.{{ $certificateRequirement->id }}" accept=".pdf,application/pdf" class="hidden" />
 
-                                    <div class="mt-4">
-                                        <flux:textarea wire:model="textInputs.{{ $requirement->id }}" label="Tu respuesta" rows="5" />
-                                    </div>
-                                </div>
+                                <label for="operadora-certificate-pdf-{{ $certificateRequirement->id }}" class="operadora-dropzone">
+                                    <span class="operadora-dropzone__icon">
+                                        <flux:icon icon="cloud-arrow-up" variant="mini" class="size-9" />
+                                    </span>
+                                    <strong>Arrastra tu archivo PDF aqui</strong>
+                                    <span>o haz clic para seleccionar</span>
+                                    <small>Formato PDF - Max. 10MB</small>
+                                </label>
 
-                                <div class="portal-form-actions">
-                                    <flux:button variant="primary" type="submit">Guardar cambios</flux:button>
-                                    <x-action-message class="me-3" on="operadora-saved">Guardado.</x-action-message>
-                                </div>
-                            </form>
-                        @else
-                            <div class="mt-6 space-y-4">
-                                @if ($requirement->file_path)
-                                    <div class="portal-upload-card portal-upload-card--compact">
-                                        <p class="text-sm font-semibold text-neutral-900 dark:text-white">Documento actual</p>
-                                        <p class="portal-upload-filename mt-1">
-                                            {{ $requirement->original_file_name ?: 'PDF cargado correctamente.' }}
-                                        </p>
-
-                                        <div class="mt-4">
-                                            <flux:button variant="filled" color="zinc" wire:click="downloadPdf({{ $requirement->id }})">Descargar actual</flux:button>
-                                        </div>
+                                @if ($selectedCertificateName)
+                                    <div class="operadora-selected-file">
+                                        <flux:icon icon="document" variant="mini" class="size-5" />
+                                        <span>{{ $selectedCertificateName }}</span>
                                     </div>
                                 @endif
 
-                                <form wire:submit="savePdfRequirement({{ $requirement->id }})" class="space-y-4" x-data="{ uploading: false, progress: 0 }" x-on:livewire-upload-start="uploading = true; progress = 0" x-on:livewire-upload-finish="uploading = false; progress = 100" x-on:livewire-upload-error="uploading = false" x-on:livewire-upload-cancel="uploading = false; progress = 0" x-on:livewire-upload-progress="progress = $event.detail.progress">
-                                    <input id="operadora-pdf-{{ $requirement->id }}" type="file" wire:model="pdfUploads.{{ $requirement->id }}" accept=".pdf,application/pdf" class="hidden" />
+                                <div x-cloak x-show="uploading" class="operadora-upload-progress">
+                                    <div class="operadora-upload-progress__row">
+                                        <span>Subiendo PDF...</span>
+                                        <strong x-text="`${progress}%`"></strong>
+                                    </div>
+                                    <div class="operadora-upload-progress__track">
+                                        <div class="operadora-upload-progress__fill" x-bind:style="`width: ${progress}%`"></div>
+                                    </div>
+                                </div>
 
-                                    @php
-                                        $selectedPdf = $pdfUploads[$requirement->id] ?? null;
-                                        $selectedPdfName = is_object($selectedPdf) && method_exists($selectedPdf, 'getClientOriginalName')
-                                            ? $selectedPdf->getClientOriginalName()
-                                            : null;
-                                    @endphp
-
-                                    <div class="portal-upload-card portal-upload-card--compact">
-                                        <p class="text-sm font-semibold text-neutral-900 dark:text-white">Subir documento PDF</p>
-                                        <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">
-                                            Selecciona el archivo y se enviara automaticamente a este requisito.
-                                        </p>
-
-                                        <div class="portal-upload-actions mt-4">
-                                            <label for="operadora-pdf-{{ $requirement->id }}" class="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg bg-cyan-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-cyan-600">
-                                                Seleccionar PDF
-                                            </label>
-
-                                            @if ($selectedPdfName)
-                                                <span class="portal-upload-filename">{{ $selectedPdfName }}</span>
-                                            @endif
+                                @if ($certificateRequirement->file_path)
+                                    <div class="operadora-file-current operadora-file-current--{{ $certificateTone }}">
+                                        <div class="operadora-file-current__icon">
+                                            <flux:icon icon="document-text" variant="mini" class="size-6" />
                                         </div>
-
-                                        <div x-cloak x-show="uploading" class="mt-4">
-                                            <div class="flex items-center justify-between gap-4 text-sm">
-                                                <p class="font-medium text-cyan-800 dark:text-cyan-200">Subiendo PDF...</p>
-                                                <span class="font-semibold text-cyan-700 dark:text-cyan-300" x-text="`${progress}%`"></span>
-                                            </div>
-
-                                            <div class="mt-3 h-[10px] overflow-hidden rounded-full bg-cyan-100 dark:bg-cyan-900/40">
-                                                <div class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-sky-500 transition-all duration-300" x-bind:style="`width: ${progress}%`"></div>
-                                            </div>
+                                        <div>
+                                            <p>{{ $certificateRequirement->original_file_name ?: 'Certificado operador.pdf' }}</p>
+                                            <span>
+                                                {{ $this->requirementStatusLabel($certificateRequirement) }} -
+                                                Subido el {{ $this->formatDateValue($certificateRequirement->submitted_at ?? $certificateRequirement->updated_at) }}
+                                                - {{ $this->formatFileSize($certificateRequirement->file_size) }}
+                                            </span>
                                         </div>
-
-                                        @error("pdfUploads.$requirement->id")
-                                            <p class="mt-3 text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
-                                        @enderror
+                                        <span class="operadora-file-current__status-icon">
+                                            <flux:icon :icon="$this->requirementIcon($certificateRequirement)" variant="mini" class="size-5" />
+                                        </span>
                                     </div>
 
-                                    <x-action-message class="me-3" on="operadora-saved">Guardado.</x-action-message>
-                                </form>
-                            </div>
+                                    <div class="operadora-actions">
+                                        <flux:button type="button" variant="filled" color="zinc" wire:click="downloadPdf({{ $certificateRequirement->id }})">
+                                            Descargar archivo actual
+                                        </flux:button>
+                                    </div>
+                                @endif
+
+                                @error("pdfUploads.$certificateRequirement->id")
+                                    <p class="mt-3 text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @enderror
+
+                                <x-action-message class="me-3" on="operadora-saved">Guardado.</x-action-message>
+                            </form>
+                        @else
+                            <div class="operadora-empty-state">No se ha encontrado el requisito base del certificado.</div>
                         @endif
-                    </article>
-                @empty
-                    <div class="portal-empty-state">
-                        El gestor todavia no ha definido documentacion adicional para Operadora.
                     </div>
-                @endforelse
-            </div>
+                </div>
+            </section>
+
+            <section class="operadora-section-card">
+                <div class="operadora-requirements-header">
+                    <div>
+                        <h2 class="operadora-section-card__title">Requisitos de la operadora</h2>
+                        <p class="operadora-section-card__text">Documentacion obligatoria para operar. Sube los documentos requeridos segun indique el gestor.</p>
+                    </div>
+
+                    <div class="operadora-progress-summary">
+                        <div class="operadora-progress-summary__row">
+                            <span>Progreso obligatorios</span>
+                            <strong>{{ $this->progressPercent }}%</strong>
+                        </div>
+                        <div class="operadora-progress-summary__track">
+                            <div class="operadora-progress-summary__fill" style="width: {{ $this->progressPercent }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="operadora-filter-bar portal-filter-bar portal-filter-bar--compact">
+                    <div class="portal-filter-header">
+                        <span class="portal-filter-header__icon">
+                            <flux:icon icon="funnel" variant="mini" class="size-7" />
+                        </span>
+                        <div>
+                            <h3 class="portal-filter-header__title">Filtros</h3>
+                            <p class="portal-filter-header__text">Encuentra rapidamente los requisitos que necesitas revisar.</p>
+                        </div>
+                    </div>
+
+                    <div class="portal-filter-section">
+                        <div class="portal-filter-section__heading">
+                            <p class="portal-filter-section__title">Estado del requisito</p>
+                        </div>
+
+                        <div class="portal-filter-statuses operadora-filter-statuses">
+                            <button type="button" wire:click="setRequirementFilter('all')" class="portal-filter-option operadora-filter-option operadora-filter-option--all {{ $requirementFilter === 'all' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementFilter === 'all' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Todos</span>
+                                <strong>{{ $totalRequirements }}</strong>
+                            </button>
+                            <button type="button" wire:click="setRequirementFilter('pending')" class="portal-filter-option operadora-filter-option operadora-filter-option--pending {{ $requirementFilter === 'pending' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementFilter === 'pending' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Pendientes</span>
+                                <strong>{{ $this->pendingCount }}</strong>
+                            </button>
+                            <button type="button" wire:click="setRequirementFilter('review')" class="portal-filter-option operadora-filter-option operadora-filter-option--review {{ $requirementFilter === 'review' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementFilter === 'review' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>En revision</span>
+                                <strong>{{ $this->inReviewCount }}</strong>
+                            </button>
+                            <button type="button" wire:click="setRequirementFilter('approved')" class="portal-filter-option operadora-filter-option operadora-filter-option--approved {{ $requirementFilter === 'approved' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementFilter === 'approved' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Completados</span>
+                                <strong>{{ $this->completedCount }}</strong>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="portal-filter-divider"></div>
+
+                    <div class="portal-filter-section">
+                        <div class="portal-filter-section__heading">
+                            <p class="portal-filter-section__title">Tipo de requisito</p>
+                        </div>
+
+                        <div class="portal-filter-statuses operadora-filter-statuses operadora-filter-statuses--type">
+                            <button type="button" wire:click="setRequirementTypeFilter('all')" class="portal-filter-option operadora-filter-option operadora-filter-option--all {{ $requirementTypeFilter === 'all' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementTypeFilter === 'all' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Todos</span>
+                                <strong>{{ $totalRequirements }}</strong>
+                            </button>
+                            <button type="button" wire:click="setRequirementTypeFilter('required')" class="portal-filter-option operadora-filter-option operadora-filter-option--required {{ $requirementTypeFilter === 'required' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementTypeFilter === 'required' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Obligatorios</span>
+                                <strong>{{ $requiredTotalRequirements }}</strong>
+                            </button>
+                            <button type="button" wire:click="setRequirementTypeFilter('optional')" class="portal-filter-option operadora-filter-option operadora-filter-option--optional {{ $requirementTypeFilter === 'optional' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementTypeFilter === 'optional' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Opcionales</span>
+                                <strong>{{ $optionalTotalRequirements }}</strong>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="operadora-requirement-groups">
+                    @foreach ([
+                        ['kind' => 'required', 'title' => 'Requisitos obligatorios', 'description' => 'Documentos necesarios para validar la operadora.', 'items' => $requiredRequirements, 'countLabel' => $requiredRequirements->count().' requisitos', 'icon' => 'bookmark', 'visible' => $requirementTypeFilter !== 'optional'],
+                        ['kind' => 'optional', 'title' => 'Documentacion adicional', 'description' => 'Documentos complementarios que pueden ser requeridos en el futuro.', 'items' => $optionalRequirements, 'countLabel' => $optionalRequirements->count().' opcionales', 'icon' => 'paper-clip', 'visible' => $requirementTypeFilter !== 'required'],
+                    ] as $group)
+                        @continue(! $group['visible'])
+
+                        <div class="operadora-requirement-group operadora-requirement-group--{{ $group['kind'] }}">
+                            <div class="operadora-requirement-group__header">
+                                <div class="operadora-requirement-group__icon">
+                                    <flux:icon icon="{{ $group['icon'] }}" variant="mini" class="size-5" />
+                                </div>
+                                <div>
+                                    <h3>{{ $group['title'] }}</h3>
+                                    <p>{{ $group['description'] }}</p>
+                                </div>
+                                <span>{{ $group['countLabel'] }}</span>
+                            </div>
+
+                            <div class="operadora-requirement-list">
+                                @forelse ($group['items'] as $requirement)
+                                    @php
+                                        $tone = $this->requirementTone($requirement);
+                                        $selectedPdfName = $this->selectedPdfName($requirement->id);
+                                    @endphp
+
+                                    <article class="operadora-requirement-row operadora-requirement-row--{{ $tone }}">
+                                        <div class="operadora-requirement-main">
+                                            <div class="operadora-requirement-icon">
+                                                <flux:icon :icon="$this->requirementIcon($requirement)" variant="mini" class="size-6" />
+                                            </div>
+
+                                            <div class="operadora-requirement-copy">
+                                                <div class="operadora-requirement-titleline">
+                                                    <h3>{{ $requirement->name }}</h3>
+                                                    <span class="operadora-status-pill operadora-status-pill--{{ $tone }}">
+                                                        {{ $this->requirementStatusLabel($requirement) }}
+                                                    </span>
+                                                    <span class="operadora-status-pill {{ $requirement->is_required ? 'operadora-status-pill--required' : 'operadora-status-pill--neutral' }}">
+                                                        {{ $requirement->is_required ? 'Obligatorio' : 'Opcional' }}
+                                                    </span>
+                                                </div>
+
+                                                <p>{{ filled($requirement->instructions) ? $requirement->instructions : $this->requirementStatusMessage($requirement) }}</p>
+
+                                                @if ($requirement->status === OperadoraRequirement::STATUS_NEEDS_CHANGES && filled($requirement->review_notes))
+                                                    <div class="operadora-review-note">
+                                                        Correccion solicitada: {{ $requirement->review_notes }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <div class="operadora-requirement-action">
+                                            @if ($requirement->input_type === OperadoraRequirement::TYPE_TEXT)
+                                                <form wire:submit="saveTextRequirement({{ $requirement->id }})" class="operadora-text-form">
+                                                    <flux:textarea wire:model="textInputs.{{ $requirement->id }}" label="Tu respuesta" rows="3" />
+                                                    <div class="operadora-actions">
+                                                        <flux:button variant="primary" type="submit">Guardar cambios</flux:button>
+                                                        <x-action-message class="me-3" on="operadora-saved">Guardado.</x-action-message>
+                                                    </div>
+                                                </form>
+                                            @else
+                                                <form
+                                                    wire:submit="savePdfRequirement({{ $requirement->id }})"
+                                                    x-data="{ uploading: false, progress: 0 }"
+                                                    x-on:livewire-upload-start="uploading = true; progress = 0"
+                                                    x-on:livewire-upload-finish="uploading = false; progress = 100"
+                                                    x-on:livewire-upload-error="uploading = false"
+                                                    x-on:livewire-upload-cancel="uploading = false; progress = 0"
+                                                    x-on:livewire-upload-progress="progress = $event.detail.progress"
+                                                    class="operadora-row-upload"
+                                                >
+                                                    <input id="operadora-row-pdf-{{ $requirement->id }}" type="file" wire:model="pdfUploads.{{ $requirement->id }}" accept=".pdf,application/pdf" class="hidden" />
+
+                                                    @if ($requirement->file_path)
+                                                        <div class="operadora-row-file">
+                                                            <div>
+                                                                <span>Documento subido</span>
+                                                                <strong>{{ $requirement->original_file_name ?: 'PDF cargado correctamente.' }}</strong>
+                                                                <small>Subido el {{ $this->formatDateValue($requirement->submitted_at ?? $requirement->updated_at) }}</small>
+                                                            </div>
+
+                                                            <div class="operadora-row-file__actions">
+                                                                <label for="operadora-row-pdf-{{ $requirement->id }}" class="operadora-row-file__replace">
+                                                                    Cambiar PDF
+                                                                </label>
+                                                                <flux:button type="button" variant="filled" color="zinc" wire:click="downloadPdf({{ $requirement->id }})">
+                                                                    Descargar
+                                                                </flux:button>
+                                                            </div>
+                                                        </div>
+                                                    @else
+                                                        <label for="operadora-row-pdf-{{ $requirement->id }}" class="operadora-row-upload__trigger">
+                                                            <strong>Seleccionar PDF</strong>
+                                                            <span>o arrastrar el archivo aqui</span>
+                                                        </label>
+                                                    @endif
+
+                                                    @if ($selectedPdfName)
+                                                        <div class="operadora-selected-file">
+                                                            <flux:icon icon="document" variant="mini" class="size-5" />
+                                                            <span>{{ $selectedPdfName }}</span>
+                                                        </div>
+                                                    @endif
+
+                                                    <div x-cloak x-show="uploading" class="operadora-upload-progress">
+                                                        <div class="operadora-upload-progress__row">
+                                                            <span>Subiendo PDF...</span>
+                                                            <strong x-text="`${progress}%`"></strong>
+                                                        </div>
+                                                        <div class="operadora-upload-progress__track">
+                                                            <div class="operadora-upload-progress__fill" x-bind:style="`width: ${progress}%`"></div>
+                                                        </div>
+                                                    </div>
+
+                                                    @error("pdfUploads.$requirement->id")
+                                                        <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ $message }}</p>
+                                                    @enderror
+
+                                                    <x-action-message class="me-3" on="operadora-saved">Guardado.</x-action-message>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </article>
+                                @empty
+                                    <div class="operadora-empty-state">
+                                        No hay {{ \Illuminate\Support\Str::lower($group['title']) }} para el filtro seleccionado.
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
         </div>
     </x-pages::settings.layout>
 </section>

@@ -229,71 +229,99 @@ new #[Title('Profile settings')] class extends Component {
 
     <x-pages::settings.layout :heading="$this->profileHeading" :subheading="$this->profileSubheading">
         @if ($this->isClientePortal())
-            <div class="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-6 shadow-sm dark:border-sky-800/60 dark:from-sky-950/30 dark:via-neutral-900 dark:to-cyan-950/30">
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <p class="text-sm uppercase tracking-[0.25em] text-sky-700 dark:text-sky-300">Portal cliente</p>
-                        <h1 class="mt-3 text-3xl font-semibold text-neutral-900 dark:text-white">Mi ficha</h1>
-                        <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
-                            {{ $this->cliente?->isUnblocked()
-                                ? 'Puedes modificar los datos de tu ficha base.'
-                                : 'Completa tu ficha para desbloquear el resto del portal.' }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            @if ($this->isClientePortal())
-                <div class="rounded-3xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
-                    <div class="grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="name" label="Nombre" type="text" required />
-                        <flux:input wire:model="last_name" label="Primer apellido" type="text" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="second_last_name" label="Segundo apellido" type="text" />
-                        <flux:input wire:model="dni" label="DNI o NIE" type="text" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="email" label="Correo de acceso" type="email" required />
-                        <flux:input wire:model="personal_email" label="Correo personal" type="email" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="phone" label="Telefono" type="text" required />
-                        <flux:input wire:model="address" label="Direccion completa" type="text" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="country" label="Pais" type="text" required />
-                        <flux:input wire:model="city" label="Ciudad" type="text" required />
-                    </div>
-
-                    <div class="mt-6 grid gap-6 md:grid-cols-2">
-                        <flux:input wire:model="province" label="Provincia" type="text" required />
-                        <flux:input wire:model="postal_code" label="Codigo postal" type="text" required />
-                    </div>
-
-                    <div class="mt-6 max-w-md">
-                        <flux:input wire:model="birth_date" label="Fecha de nacimiento" type="date" required />
-                    </div>
-
-                    <div class="mt-6 flex items-center gap-4">
-                        <div class="flex items-center justify-end">
-                            <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
-                                Guardar cambios
-                            </flux:button>
+            <div class="portal-page portal-page--wide">
+                <div class="portal-hero portal-hero--client">
+                    <div class="portal-hero__row">
+                        <div>
+                            <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
+                            <h1 class="portal-hero__title">Mi ficha</h1>
+                            <p class="portal-hero__text">
+                                {{ $this->cliente?->isUnblocked()
+                                    ? 'Puedes modificar los datos de tu ficha base.'
+                                    : 'Completa tu ficha para desbloquear el resto del portal.' }}
+                            </p>
                         </div>
 
-                        <x-action-message class="me-3" on="profile-updated">
-                            Guardado.
-                        </x-action-message>
+                        <div class="portal-hero__aside">
+                            <div class="portal-hero__brand">
+                                <img
+                                    src="{{ asset('images/logo-idronlex.png') }}"
+                                    alt="Idron Lex & Consulting"
+                                    class="portal-hero__logo"
+                                >
+                            </div>
+                        </div>
                     </div>
                 </div>
-            @else
+
+                <form wire:submit="updateProfileInformation" class="portal-form-shell">
+                    <div class="portal-form-header">
+                        <div>
+                            <h2 class="portal-form-title">Datos de la ficha base</h2>
+                            <p class="portal-form-text">
+                                Manten actualizada la informacion principal de tu expediente de cliente.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-form-sections">
+                        <div class="portal-form-section">
+                            <h3 class="portal-form-section__title">Datos personales</h3>
+                            <p class="portal-form-section__text">
+                                Estos datos identifican tu ficha dentro del portal.
+                            </p>
+
+                            <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+                                <flux:input wire:model="name" label="Nombre" type="text" required />
+                                <flux:input wire:model="last_name" label="Primer apellido" type="text" required />
+                                <flux:input wire:model="second_last_name" label="Segundo apellido" type="text" />
+                                <flux:input wire:model="dni" label="DNI o NIE" type="text" required />
+                            </div>
+                        </div>
+
+                        <div class="portal-form-section">
+                            <h3 class="portal-form-section__title">Contacto</h3>
+                            <p class="portal-form-section__text">
+                                Usaremos estos datos para comunicaciones relacionadas con tu expediente.
+                            </p>
+
+                            <div class="mt-6 grid gap-6 md:grid-cols-3">
+                                <flux:input wire:model="email" label="Correo de acceso" type="email" required />
+                                <flux:input wire:model="personal_email" label="Correo personal" type="email" required />
+                                <flux:input wire:model="phone" label="Telefono" type="text" required />
+                            </div>
+                        </div>
+
+                        <div class="portal-form-section">
+                            <h3 class="portal-form-section__title">Direccion y nacimiento</h3>
+                            <p class="portal-form-section__text">
+                                Completa la direccion completa y la fecha de nacimiento para mantener la ficha validada.
+                            </p>
+
+                            <div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                                <flux:input wire:model="address" label="Direccion completa" type="text" required />
+                                <flux:input wire:model="country" label="Pais" type="text" required />
+                                <flux:input wire:model="city" label="Ciudad" type="text" required />
+                                <flux:input wire:model="province" label="Provincia" type="text" required />
+                                <flux:input wire:model="postal_code" label="Codigo postal" type="text" required />
+                                <flux:input wire:model="birth_date" label="Fecha de nacimiento" type="date" required />
+                            </div>
+                        </div>
+
+                        <div class="portal-form-actions">
+                            <flux:button variant="primary" type="submit" data-test="update-profile-button">
+                                Guardar cambios
+                            </flux:button>
+
+                            <x-action-message class="me-3" on="profile-updated">
+                                Guardado.
+                            </x-action-message>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        @else
+            <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
                 <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
 
                 <div>
@@ -328,8 +356,8 @@ new #[Title('Profile settings')] class extends Component {
                         {{ __('Saved.') }}
                     </x-action-message>
                 </div>
-            @endif
-        </form>
+            </form>
+        @endif
 
         @if ($this->showDeleteUser)
             <livewire:pages::settings.delete-user-form />

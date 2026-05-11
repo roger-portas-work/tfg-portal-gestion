@@ -10,6 +10,16 @@ class ListOperaciones extends ListRecords
 {
     protected static string $resource = OperacionResource::class;
 
+    public function hydrate(): void
+    {
+        $this->flushCachedTableRecords();
+    }
+
+    protected function getTablePollingInterval(): ?string
+    {
+        return '10s';
+    }
+
     protected function getHeaderActions(): array
     {
         return [];

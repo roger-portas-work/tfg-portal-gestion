@@ -114,4 +114,34 @@ class Operacion extends Model
     {
         return $this->status === self::STATUS_CONFIRMED;
     }
+
+    public function documentationIsFullyApproved(): bool
+    {
+        $tramitesCount = (int) ($this->tramites_count ?? 0);
+        $approvedCount = (int) ($this->approved_tramites_count ?? 0);
+
+        return $this->isConfirmed() && $tramitesCount > 0 && $approvedCount === $tramitesCount;
+    }
+
+    public function documentationStatusLabel(): string
+    {
+        if (! $this->isConfirmed()) {
+            return 'No aplica';
+        }
+
+        return $this->documentationIsFullyApproved()
+            ? 'Documentacion aprobada'
+            : 'Falta documentacion';
+    }
+
+    public function documentationStatusColor(): string
+    {
+        if (! $this->isConfirmed()) {
+            return 'gray';
+        }
+
+        return $this->documentationIsFullyApproved()
+            ? 'success'
+            : 'danger';
+    }
 }

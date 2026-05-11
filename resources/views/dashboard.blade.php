@@ -15,13 +15,42 @@
             $pendingOperaciones = $cliente->pendingOperacionesCount();
             $rejectedOperaciones = $cliente->rejectedOperacionesCount();
             $confirmedOperaciones = $cliente->confirmedOperacionesCount();
-            $hasOperadoraRequirements = $cliente->operadoraRequirements()->exists();
-            $pendingOperadora = $cliente->pendingOperadoraRequirementsCount();
-            $pendingRequiredOperadora = $cliente->pendingRequiredOperadoraRequirementsCount();
-            $pendingOptionalOperadora = $cliente->pendingOptionalOperadoraRequirementsCount();
-            $completedOperadora = $cliente->completedOperadoraRequirementsCount();
+            $operadoraRequirements = $cliente->operadoraRequirements()->get();
+            $requiredOperadoraRequirements = $operadoraRequirements->filter(fn ($requirement): bool => (bool) $requirement->is_required);
+            $pendingOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
+            $pendingRequiredOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
+            $pendingOptionalOperadora = $operadoraRequirements->filter(fn ($requirement): bool => ! $requirement->is_required && $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
+            $completedOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
+            $completedRequiredOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
             $completedOnboardingSteps = collect([$profileCompleted, $hasDrones])->filter()->count();
             $onboardingProgress = (int) (($completedOnboardingSteps / 2) * 100);
+            $operacionesCount = $cliente->operaciones()->count();
+            $totalOperadora = $operadoraRequirements->count();
+            $totalRequiredOperadora = $requiredOperadoraRequirements->count();
+            $operadoraProgress = $totalRequiredOperadora > 0 ? (int) round(($completedRequiredOperadora / $totalRequiredOperadora) * 100) : 0;
+            $dashboardOperadoraTasks = $operadoraRequirements
+                ->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)
+                ->sortBy(function ($requirement): string {
+                    $statusOrder = [
+                        \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES => 0,
+                        \App\Models\OperadoraRequirement::STATUS_PENDING => 1,
+                        \App\Models\OperadoraRequirement::STATUS_IN_REVIEW => 2,
+                    ];
+
+                    return sprintf(
+                        '%d-%d-%010d',
+                        $requirement->is_required ? 0 : 1,
+                        $statusOrder[$requirement->status] ?? 9,
+                        $requirement->id
+                    );
+                })
+                ->take(4);
+            $upcomingOperaciones = $cliente->operaciones()
+                ->with(['piloto', 'dron'])
+                ->whereDate('operation_date', '>=', now()->toDateString())
+                ->orderBy('operation_date')
+                ->limit(3)
+                ->get();
         @endphp
 
         <div class="portal-page">
@@ -159,118 +188,192 @@
                     </div>
                 </div>
             @else
-                <div class="portal-hero portal-hero--emerald">
-                    <div class="max-w-4xl">
-                        <p class="portal-hero__eyebrow text-emerald-700 dark:text-emerald-300">Portal cliente</p>
-                        <h1 class="portal-hero__title">
-                            Hola, {{ $cliente->fullName() ?: $user->name }}
-                        </h1>
-                        <p class="mt-4 max-w-2xl text-sm leading-7 text-neutral-700 dark:text-neutral-300">
-                            Tu ficha ya esta completada y ya tienes un dron registrado. El onboarding base del portal esta finalizado.
-                        </p>
+                <div class="portal-hero portal-hero--client portal-dashboard-hero">
+                    <div class="portal-hero__row">
+                        <div>
+                            <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
+                            <h1 class="portal-hero__title">
+                                Hola, {{ $cliente->fullName() ?: $user->name }}
+                            </h1>
+                            <p class="portal-hero__text">
+                                Resumen general de tu expediente: drones, pilotos, operaciones y documentacion de operadora.
+                            </p>
 
-                        <div class="mt-6">
-                            <div class="flex items-center justify-between gap-4">
-                                <p class="text-sm font-semibold text-neutral-900 dark:text-white">Progreso del onboarding base</p>
-                                <span class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                                    100%
+                            <div class="portal-dashboard-hero__chips">
+                                <span class="portal-badge portal-badge--emerald">Portal activo</span>
+                                <span class="portal-badge portal-badge--sky">{{ $operacionesCount }} operaciones</span>
+                                <span class="portal-badge {{ $pendingRequiredOperadora > 0 ? 'portal-badge--danger' : 'portal-badge--emerald' }}">
+                                    Obligatorios pendientes: {{ $pendingRequiredOperadora }}
                                 </span>
-                            </div>
-
-                            <div class="mt-3">
-                                <x-ui.progress-bar
-                                    :value="100"
-                                    height="12px"
-                                    track-color="#d1fae5"
-                                    fill-color="linear-gradient(90deg, #10b981 0%, #06b6d4 100%)"
-                                />
                             </div>
                         </div>
 
-                        <div class="mt-6 flex flex-wrap items-center gap-3">
-                            <flux:button as="a" variant="primary" :href="route('profile.edit')" wire:navigate>
-                                Ver mi ficha
-                            </flux:button>
-
-                            <span class="portal-badge portal-badge--emerald">
-                                Estado actual: activo
-                            </span>
+                        <div class="portal-hero__aside">
+                            <div class="portal-hero__brand">
+                                <img
+                                    src="{{ asset('images/logo-idronlex.png') }}"
+                                    alt="Idron Lex & Consulting"
+                                    class="portal-hero__logo"
+                                >
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="portal-support-grid">
-                    <div class="portal-support-card portal-support-card--indigo">
-                        <p class="portal-support-card__title">Drones</p>
-                        <p class="portal-support-card__text">
-                            Consulta y gestiona los drones registrados en tu expediente.
-                        </p>
+                <div class="portal-dashboard-summary-grid">
+                    <a href="{{ route('drones.index') }}" wire:navigate class="portal-dashboard-summary-card">
+                        <span class="portal-dashboard-summary-card__icon portal-dashboard-summary-card__icon--sky">
+                            <flux:icon icon="paper-airplane" variant="mini" class="size-5" />
+                        </span>
+                        <span>
+                            <span class="portal-dashboard-summary-card__label">Drones</span>
+                            <strong>{{ $dronesCount }}</strong>
+                            <span class="portal-dashboard-summary-card__text">Registrados en tu expediente</span>
+                        </span>
+                    </a>
 
-                        <div class="mt-4">
-                            <span class="portal-badge {{ $dronesCount === 0 ? 'portal-badge--danger' : 'portal-badge--emerald' }}">
-                                Registrados: {{ $dronesCount }}
+                    <a href="{{ route('pilotos.index') }}" wire:navigate class="portal-dashboard-summary-card">
+                        <span class="portal-dashboard-summary-card__icon portal-dashboard-summary-card__icon--indigo">
+                            <flux:icon icon="identification" variant="mini" class="size-5" />
+                        </span>
+                        <span>
+                            <span class="portal-dashboard-summary-card__label">Pilotos</span>
+                            <strong>{{ $pilotosCount }}</strong>
+                            <span class="portal-dashboard-summary-card__text">Disponibles para operar</span>
+                        </span>
+                    </a>
+
+                    <a href="{{ route('operaciones.index') }}" wire:navigate class="portal-dashboard-summary-card">
+                        <span class="portal-dashboard-summary-card__icon portal-dashboard-summary-card__icon--emerald">
+                            <flux:icon icon="clipboard-document-list" variant="mini" class="size-5" />
+                        </span>
+                        <span>
+                            <span class="portal-dashboard-summary-card__label">Operaciones</span>
+                            <strong>{{ $operacionesCount }}</strong>
+                            <span class="portal-dashboard-summary-card__text">
+                                {{ $confirmedOperaciones }} confirmadas, {{ $pendingOperaciones }} pendientes, {{ $rejectedOperaciones }} rechazadas
                             </span>
-                        </div>
+                        </span>
+                    </a>
 
-                        <div class="portal-support-card__footer">
-                            <flux:button as="a" variant="primary" :href="route('drones.index')" wire:navigate>
-                                Ir a Drones
-                            </flux:button>
-                        </div>
-                    </div>
-
-                    <div class="portal-support-card portal-support-card--indigo">
-                        <p class="portal-support-card__title">Pilotos</p>
-                        <p class="portal-support-card__text">
-                            Crea los pilotos que podras asignar despues dentro de cada operacion.
-                        </p>
-
-                        <div class="mt-4">
-                            <span class="portal-badge {{ $pilotosCount === 0 ? 'portal-badge--danger' : 'portal-badge--emerald' }}">
-                                Registrados: {{ $pilotosCount }}
+                    <a href="{{ route('operadora.index') }}" wire:navigate class="portal-dashboard-summary-card">
+                        <span class="portal-dashboard-summary-card__icon {{ $pendingRequiredOperadora > 0 ? 'portal-dashboard-summary-card__icon--danger' : 'portal-dashboard-summary-card__icon--emerald' }}">
+                            <flux:icon icon="folder" variant="mini" class="size-5" />
+                        </span>
+                        <span>
+                            <span class="portal-dashboard-summary-card__label">Operadora</span>
+                            <strong>{{ $operadoraProgress }}%</strong>
+                            <span class="portal-dashboard-summary-card__text">
+                                {{ $completedRequiredOperadora }} de {{ $totalRequiredOperadora }} obligatorios aprobados
                             </span>
-                        </div>
+                        </span>
+                    </a>
+                </div>
 
-                        <div class="portal-support-card__footer">
-                            <flux:button as="a" variant="primary" :href="route('pilotos.index')" wire:navigate>
-                                Ir a Pilotos
-                            </flux:button>
-                        </div>
-                    </div>
-
-                    <div class="portal-support-card portal-support-card--emerald">
-                        <p class="portal-support-card__title">Operaciones</p>
-                        <p class="portal-support-card__text">
-                            Crea y gestiona las operaciones vinculando un piloto y un dron de tu expediente.
-                        </p>
-
-                        <div class="mt-4 flex flex-col items-start gap-3 text-sm">
-                            <span class="portal-badge portal-badge--danger">
-                                Rechazadas: {{ $rejectedOperaciones }}
-                            </span>
-                            <span class="portal-badge portal-badge--amber">
-                                Pendientes: {{ $pendingOperaciones }}
-                            </span>
-                            <span class="portal-badge portal-badge--emerald">
-                                Confirmadas: {{ $confirmedOperaciones }}
-                            </span>
-                        </div>
-
-                        <div class="portal-support-card__footer">
+                <div class="portal-dashboard-layout">
+                    <section class="portal-panel portal-dashboard-next">
+                        <div class="portal-dashboard-section-header">
+                            <div>
+                                <p class="portal-dashboard-section-header__eyebrow">Agenda</p>
+                                <h2 class="portal-dashboard-section-header__title">Proximas operaciones</h2>
+                            </div>
                             <flux:button as="a" variant="primary" :href="route('operaciones.index')" wire:navigate>
-                                Ir a Operaciones
+                                Ver operaciones
                             </flux:button>
                         </div>
-                    </div>
 
-                    <div class="portal-support-card portal-support-card--sky">
-                        <p class="portal-support-card__title">Documentacion Operadora</p>
-                        <p class="portal-support-card__text">
-                            Requisitos definidos por el gestor para la documentacion base de operadora.
-                        </p>
+                        @forelse ($upcomingOperaciones as $operacion)
+                            @php
+                                $operationDate = $operacion->operation_date instanceof \DateTimeInterface
+                                    ? $operacion->operation_date->format('d/m/Y')
+                                    : (filled($operacion->operation_date) ? \Illuminate\Support\Carbon::parse((string) $operacion->operation_date)->format('d/m/Y') : 'Sin fecha');
+                                $operationAddress = trim(collect([
+                                    $operacion->address ?: $operacion->location,
+                                    $operacion->city,
+                                    $operacion->province,
+                                ])->filter()->implode(', ')) ?: 'Sin direccion';
+                                $operationBadge = $operacion->isConfirmed()
+                                    ? 'portal-badge--emerald'
+                                    : ($operacion->isRejected() ? 'portal-badge--danger' : 'portal-badge--amber');
+                            @endphp
 
-                        @if ($hasOperadoraRequirements)
-                            <div class="mt-4 flex flex-col items-start gap-3 text-sm">
+                            <article class="portal-dashboard-operation">
+                                <div class="portal-dashboard-operation__date">
+                                    <span>{{ $operationDate }}</span>
+                                    <small>{{ $operacion->estimated_filming_schedule ?: 'Hora sin definir' }}</small>
+                                </div>
+                                <div class="portal-dashboard-operation__body">
+                                    <h3>{{ $operacion->reference }}</h3>
+                                    <p>{{ $operationAddress }}</p>
+                                    <div class="portal-dashboard-operation__meta">
+                                        <span>{{ $operacion->piloto?->fullName() ?? 'Sin piloto' }}</span>
+                                        <span>{{ trim(($operacion->dron?->manufacturer_name ?? '').' '.($operacion->dron?->model ?? '')) ?: 'Sin dron' }}</span>
+                                    </div>
+                                </div>
+                                <span class="portal-badge {{ $operationBadge }}">
+                                    {{ $operacion->statusLabel() }}
+                                </span>
+                            </article>
+                        @empty
+                            <div class="portal-empty-state">
+                                Todavia no tienes operaciones futuras programadas.
+                            </div>
+                        @endforelse
+                    </section>
+
+                    <aside class="portal-panel portal-dashboard-guide">
+                        <div class="portal-dashboard-section-header">
+                            <div>
+                                <p class="portal-dashboard-section-header__eyebrow">Guia rapida</p>
+                                <h2 class="portal-dashboard-section-header__title">Que puedes hacer ahora</h2>
+                            </div>
+                        </div>
+
+                        <div class="portal-dashboard-guide__list">
+                            <a href="{{ route('operaciones.index') }}" wire:navigate class="portal-dashboard-guide__item">
+                                <span class="portal-dashboard-guide__icon portal-dashboard-guide__icon--emerald">
+                                    <flux:icon icon="plus" variant="mini" class="size-4" />
+                                </span>
+                                <span>
+                                    <strong>Crear una operacion</strong>
+                                    <small>Vincula un piloto y un dron para enviar la solicitud.</small>
+                                </span>
+                            </a>
+
+                            <a href="{{ route('operadora.index') }}" wire:navigate class="portal-dashboard-guide__item">
+                                <span class="portal-dashboard-guide__icon {{ $pendingRequiredOperadora > 0 ? 'portal-dashboard-guide__icon--danger' : 'portal-dashboard-guide__icon--emerald' }}">
+                                    <flux:icon icon="folder" variant="mini" class="size-4" />
+                                </span>
+                                <span>
+                                    <strong>Revisar documentacion</strong>
+                                    <small>{{ $pendingOperadora }} requisitos pendientes de operadora.</small>
+                                </span>
+                            </a>
+
+                            <a href="{{ route('profile.edit') }}" wire:navigate class="portal-dashboard-guide__item">
+                                <span class="portal-dashboard-guide__icon portal-dashboard-guide__icon--sky">
+                                    <flux:icon icon="identification" variant="mini" class="size-4" />
+                                </span>
+                                <span>
+                                    <strong>Actualizar mi ficha</strong>
+                                    <small>Modifica tus datos base cuando lo necesites.</small>
+                                </span>
+                            </a>
+                        </div>
+
+                        <div class="portal-dashboard-doc-summary">
+                            <div class="portal-dashboard-doc-summary__header">
+                                <span>Documentacion operadora</span>
+                                <strong>{{ $operadoraProgress }}%</strong>
+                            </div>
+                            <x-ui.progress-bar
+                                :value="$operadoraProgress"
+                                height="10px"
+                                track-color="#e5e7eb"
+                                fill-color="linear-gradient(90deg, #10b981 0%, #06b6d4 100%)"
+                            />
+
+                            <div class="mt-4 flex flex-wrap gap-2">
                                 @if ($pendingOperadora === 0)
                                     <span class="portal-badge portal-badge--amber">
                                         Pendientes: 0
@@ -287,18 +390,43 @@
                                     Completados: {{ $completedOperadora }}
                                 </span>
                             </div>
-                        @else
-                            <p class="mt-4 text-sm text-neutral-500 dark:text-neutral-400">
-                                Todavia no hay requisitos definidos.
-                            </p>
-                        @endif
 
-                        <div class="portal-support-card__footer">
-                            <flux:button as="a" variant="primary" :href="route('operadora.index')" wire:navigate>
-                                Ir a Operadora
-                            </flux:button>
+                            <div class="portal-dashboard-doc-summary__list">
+                                @forelse ($dashboardOperadoraTasks as $requirement)
+                                    @php
+                                        $requirementTone = match ($requirement->status) {
+                                            \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES => 'danger',
+                                            \App\Models\OperadoraRequirement::STATUS_IN_REVIEW => 'warning',
+                                            default => 'neutral',
+                                        };
+                                        $requirementLabel = match ($requirement->status) {
+                                            \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES => 'Corregir',
+                                            \App\Models\OperadoraRequirement::STATUS_IN_REVIEW => 'En revision',
+                                            default => 'Pendiente',
+                                        };
+                                    @endphp
+
+                                    <a href="{{ route('operadora.index') }}" wire:navigate class="portal-dashboard-doc-task portal-dashboard-doc-task--{{ $requirementTone }}">
+                                        <span>
+                                            <strong>{{ $requirement->name }}</strong>
+                                            <small>{{ $requirement->is_required ? 'Obligatorio' : 'Opcional' }}</small>
+                                        </span>
+                                        <span class="portal-badge {{ $requirementTone === 'danger' ? 'portal-badge--danger' : ($requirementTone === 'warning' ? 'portal-badge--amber' : 'portal-badge--neutral') }}">
+                                            {{ $requirementLabel }}
+                                        </span>
+                                    </a>
+                                @empty
+                                    <div class="portal-dashboard-doc-task portal-dashboard-doc-task--success">
+                                        <span>
+                                            <strong>Sin documentos pendientes</strong>
+                                            <small>Los requisitos de operadora estan al dia.</small>
+                                        </span>
+                                        <span class="portal-badge portal-badge--emerald">Al dia</span>
+                                    </div>
+                                @endforelse
+                            </div>
                         </div>
-                    </div>
+                    </aside>
                 </div>
             @endif
         </div>

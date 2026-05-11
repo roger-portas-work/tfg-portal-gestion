@@ -377,25 +377,37 @@ new #[Title('Mis drones')] class extends Component {
     }
 }; ?>
 
-<section class="portal-page">
+<section class="portal-page portal-page--wide">
     <x-pages::settings.layout heading="" subheading="">
-        <div class="portal-hero portal-hero--sky">
+        <div class="portal-hero portal-hero--client">
             <div class="portal-hero__row">
                 <div>
                     <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
                     <h1 class="portal-hero__title">Mis drones</h1>
-                    <p class="mt-3 max-w-3xl text-sm text-neutral-700 dark:text-neutral-300">
+                    <p class="portal-hero__text">
                         {{ $this->cliente?->isUnblocked()
                             ? 'Puedes revisar y modificar los drones registrados en tu expediente.'
                             : 'Registra tu primer dron para desbloquear el resto del portal.' }}
                     </p>
+
+                    @if ($this->drones->isNotEmpty() && ! $showForm)
+                        <div class="portal-hero__actions">
+                            <flux:button variant="primary" wire:click="startCreate">
+                                Anadir otro dron
+                            </flux:button>
+                        </div>
+                    @endif
                 </div>
 
-                @if ($this->drones->isNotEmpty() && ! $showForm)
-                    <flux:button variant="primary" wire:click="startCreate">
-                        Anadir otro dron
-                    </flux:button>
-                @endif
+                <div class="portal-hero__aside">
+                    <div class="portal-hero__brand">
+                        <img
+                            src="{{ asset('images/logo-idronlex.png') }}"
+                            alt="Idron Lex & Consulting"
+                            class="portal-hero__logo"
+                        >
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -615,7 +627,7 @@ new #[Title('Mis drones')] class extends Component {
                 </form>
             </div>
         @else
-            <div class="portal-record-list">
+            <div class="portal-record-list portal-record-list--duo">
                 @foreach ($this->drones as $dron)
                     <div class="portal-record-card">
                         <div class="portal-record-card__header">

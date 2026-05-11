@@ -12,6 +12,13 @@ class UpcomingOperacionesTableWidget extends TableWidget
 
     protected static ?string $heading = 'Proximas operaciones';
 
+    protected ?string $pollingInterval = '10s';
+
+    public function hydrate(): void
+    {
+        $this->flushCachedTableRecords();
+    }
+
     public function table(Table $table): Table
     {
         return OperacionResource::buildOperationsTable(
