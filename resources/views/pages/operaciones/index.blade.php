@@ -19,6 +19,10 @@ new #[Title('Mis operaciones')] class extends Component {
 
     public string $dateToFilter = '';
 
+    public string $dronFilter = 'all';
+
+    public string $pilotoFilter = 'all';
+
     public string $piloto_id = '';
 
     public string $dron_id = '';
@@ -65,7 +69,19 @@ new #[Title('Mis operaciones')] class extends Component {
     {
         abort_unless($this->cliente?->isUnblocked(), 403);
 
-        $this->showForm = $this->operaciones->isEmpty() && $this->canCreateOperations();
+        $requestedDron = request('dron');
+        $requestedPiloto = request('piloto');
+
+        if (filled($requestedDron) && $this->availableDrones->contains('id', (int) $requestedDron)) {
+            $this->dronFilter = (string) $requestedDron;
+        }
+
+        if (filled($requestedPiloto) && $this->availablePilotos->contains('id', (int) $requestedPiloto)) {
+            $this->pilotoFilter = (string) $requestedPiloto;
+        }
+
+        $this->showForm = $this->canCreateOperations()
+            && (request()->boolean('crear') || $this->operaciones->isEmpty());
     }
 
     #[Computed]
@@ -126,6 +142,14 @@ new #[Title('Mis operaciones')] class extends Component {
                     || ($this->statusFilter === Operacion::STATUS_PENDING && $operacion->isPending());
 
                 if (! $matchesStatus) {
+                    return false;
+                }
+
+                if ($this->dronFilter !== 'all' && (int) $operacion->dron_id !== (int) $this->dronFilter) {
+                    return false;
+                }
+
+                if ($this->pilotoFilter !== 'all' && (int) $operacion->piloto_id !== (int) $this->pilotoFilter) {
                     return false;
                 }
 
@@ -395,13 +419,9 @@ new #[Title('Mis operaciones')] class extends Component {
 
     protected function operationDronLabel(Operacion $operacion): string
     {
-        $dronName = trim(($operacion->dron?->manufacturer_name ?? '').' '.($operacion->dron?->model ?? '')) ?: 'Sin dron';
+        $dronName = $operacion->dron?->displayNameWithSerial() ?? 'Sin dron';
 
-        if (! $operacion->dron || ! filled($operacion->dron->registration_number)) {
-            return $dronName;
-        }
-
-        return $dronName.' - '.$operacion->dron->registrationLabel();
+        return $dronName;
     }
 
     protected function operationTramiteStatusCounts(Operacion $operacion): array
@@ -584,7 +604,7 @@ new #[Title('Mis operaciones')] class extends Component {
                             <select wire:model="dron_id" data-flux-control class="block w-full rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white p-3 text-sm text-zinc-700 shadow-xs dark:border-white/10 dark:bg-white/10 dark:text-zinc-300">
                                 <option value="">Selecciona un dron</option>
                                 @foreach ($this->availableDrones as $dron)
-                                    <option value="{{ $dron->id }}">{{ trim($dron->manufacturer_name.' '.$dron->model) }}{{ filled($dron->registration_number) || $dron->registration_not_applicable ? ' - '.$dron->registrationLabel() : '' }}</option>
+                                    <option value="{{ $dron->id }}">{{ $dron->displayNameWithSerial() }}{{ filled($dron->registration_number) ? ' - Matricula: '.$dron->registrationLabel() : '' }}</option>
                                 @endforeach
                             </select>
                             @error('dron_id') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
@@ -595,7 +615,7 @@ new #[Title('Mis operaciones')] class extends Component {
                             <select wire:model="piloto_id" data-flux-control class="block w-full rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white p-3 text-sm text-zinc-700 shadow-xs dark:border-white/10 dark:bg-white/10 dark:text-zinc-300">
                                 <option value="">Selecciona un piloto</option>
                                 @foreach ($this->availablePilotos as $piloto)
-                                    <option value="{{ $piloto->id }}">{{ $piloto->fullName() }}</option>
+                                    <option value="{{ $piloto->id }}">{{ $piloto->displayNameWithIdentification() }}</option>
                                 @endforeach
                             </select>
                             @error('piloto_id') <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p> @enderror
@@ -735,6 +755,52 @@ new #[Title('Mis operaciones')] class extends Component {
                 <div class="portal-filter-section">
                     <div class="portal-filter-section__heading">
                         <span class="portal-filter-section__icon">
+                            <flux:icon icon="user" variant="micro" class="size-5" />
+                        </span>
+                        <p class="portal-filter-section__title">Piloto</p>
+                    </div>
+
+                    <label class="portal-filter-field">
+                        <span class="portal-filter-field__label">Filtrar por piloto</span>
+                        <select wire:model.live="pilotoFilter" class="portal-filter-date-input">
+                            <option value="all">Todos los pilotos</option>
+                            @foreach ($this->availablePilotos as $filterPiloto)
+                                <option value="{{ $filterPiloto->id }}">
+                                    {{ $filterPiloto->displayNameWithIdentification() }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+
+                <div class="portal-filter-divider"></div>
+
+                <div class="portal-filter-section">
+                    <div class="portal-filter-section__heading">
+                        <span class="portal-filter-section__icon">
+                            <flux:icon icon="paper-airplane" variant="micro" class="size-5" />
+                        </span>
+                        <p class="portal-filter-section__title">Dron</p>
+                    </div>
+
+                    <label class="portal-filter-field">
+                        <span class="portal-filter-field__label">Filtrar por dron</span>
+                        <select wire:model.live="dronFilter" class="portal-filter-date-input">
+                            <option value="all">Todos los drones</option>
+                            @foreach ($this->availableDrones as $filterDron)
+                                <option value="{{ $filterDron->id }}">
+                                    {{ $filterDron->displayNameWithSerial() }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+
+                <div class="portal-filter-divider"></div>
+
+                <div class="portal-filter-section">
+                    <div class="portal-filter-section__heading">
+                        <span class="portal-filter-section__icon">
                             <flux:icon icon="calendar-days" variant="micro" class="size-5" />
                         </span>
                         <p class="portal-filter-section__title">Filtrar por fecha</p>
@@ -775,7 +841,7 @@ new #[Title('Mis operaciones')] class extends Component {
             @else
             <div class="portal-record-list portal-record-list--relaxed">
                 @foreach ($this->filteredOperaciones as $operacion)
-                    <div class="{{ $this->operationCardClass($operacion) }} portal-operation-card-shell">
+                    <div id="operacion-{{ $operacion->id }}" class="{{ $this->operationCardClass($operacion) }} portal-operation-card-shell portal-anchor-target">
                         <div class="portal-record-card__header">
                             <div class="min-w-0 flex-1">
                                 <div class="portal-operation-card__headline">
@@ -970,7 +1036,7 @@ new #[Title('Mis operaciones')] class extends Component {
                                     <div class="portal-operation-asset__stack">
                                         <div class="portal-operation-asset__content">
                                             <p class="portal-operation-overview__label">Piloto</p>
-                                            <p class="portal-operation-overview__value">{{ $operacion->piloto?->fullName() ?? 'Sin piloto' }}</p>
+                                            <p class="portal-operation-overview__value">{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</p>
                                         </div>
                                         @if (filled($operacion->piloto?->fullName()) && filled($operacion->piloto?->pilot_identification_number))
                                             <span class="portal-chip portal-chip--success">Verificado</span>
@@ -988,9 +1054,9 @@ new #[Title('Mis operaciones')] class extends Component {
                                             <p class="portal-operation-overview__value">{{ $this->operationDronLabel($operacion) }}</p>
                                         </div>
                                         @if ($operacion->dron?->registration_not_applicable)
-                                            <span class="portal-chip portal-chip--neutral">
-                                                {{ filled($operacion->dron?->drone_serial_number) ? 'Serie: '.$operacion->dron->drone_serial_number : 'No aplica' }}
-                                            </span>
+                                            <span class="portal-chip portal-chip--neutral">Matricula: No aplica</span>
+                                        @elseif (filled($operacion->dron?->registration_number))
+                                            <span class="portal-chip portal-chip--success">Matricula: {{ $operacion->dron->registrationLabel() }}</span>
                                         @endif
                                     </div>
                                 </div>
@@ -1024,7 +1090,7 @@ new #[Title('Mis operaciones')] class extends Component {
                                     </div>
                                     <div class="portal-operation-info-card__content">
                                         <p class="portal-operation-overview__label">Piloto</p>
-                                        <p class="portal-operation-info-card__value">{{ $operacion->piloto?->fullName() ?? 'Sin piloto' }}</p>
+                                        <p class="portal-operation-info-card__value">{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</p>
                                     </div>
                                 </div>
 

@@ -102,6 +102,20 @@ class Dron extends Model
         ];
     }
 
+    public function displayName(): string
+    {
+        return trim(($this->manufacturer_name ?? '').' '.($this->model ?? '')) ?: 'Dron sin nombre';
+    }
+
+    public function displayNameWithSerial(): string
+    {
+        $serial = filled($this->drone_serial_number)
+            ? $this->drone_serial_number
+            : 'Sin definir';
+
+        return $this->displayName().' - Serie: '.$serial;
+    }
+
     public function registrationLabel(): string
     {
         if ($this->registration_not_applicable) {

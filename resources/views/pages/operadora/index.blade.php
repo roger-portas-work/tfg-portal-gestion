@@ -678,7 +678,7 @@ new #[Title('Operadora')] class extends Component {
                                         $selectedPdfName = $this->selectedPdfName($requirement->id);
                                     @endphp
 
-                                    <article class="operadora-requirement-row operadora-requirement-row--{{ $tone }}">
+                                    <article id="requisito-operadora-{{ $requirement->id }}" class="operadora-requirement-row operadora-requirement-row--{{ $tone }} portal-anchor-target">
                                         <div class="operadora-requirement-main">
                                             <div class="operadora-requirement-icon">
                                                 <flux:icon :icon="$this->requirementIcon($requirement)" variant="mini" class="size-6" />

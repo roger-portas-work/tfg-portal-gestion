@@ -67,14 +67,10 @@ new #[Title('Tramites aprobados')] class extends Component {
 
     protected function operationDronLabel(): string
     {
-        $dronName = trim(($this->operacion->dron?->manufacturer_name ?? '').' '.($this->operacion->dron?->model ?? '')) ?: 'Sin dron';
+        $dronName = $this->operacion->dron?->displayNameWithSerial() ?? 'Sin dron';
 
         if (! $this->operacion->dron) {
             return $dronName;
-        }
-
-        if (filled($this->operacion->dron->registration_number)) {
-            return $dronName.' - '.$this->operacion->dron->registrationLabel();
         }
 
         return $dronName;
@@ -100,16 +96,14 @@ new #[Title('Tramites aprobados')] class extends Component {
 
         if ($dron->registration_not_applicable) {
             return [
-                'label' => filled($dron->drone_serial_number)
-                    ? 'Serie: '.$dron->drone_serial_number
-                    : 'No aplica',
+                'label' => 'Matricula: No aplica',
                 'class' => 'portal-chip portal-chip--neutral',
             ];
         }
 
         if (filled($dron->registration_number)) {
             return [
-                'label' => $dron->registrationLabel(),
+                'label' => 'Matricula: '.$dron->registrationLabel(),
                 'class' => 'portal-chip portal-chip--success',
             ];
         }
@@ -310,7 +304,7 @@ new #[Title('Tramites aprobados')] class extends Component {
 
                     <div class="portal-operation-asset__content">
                         <p class="portal-operation-overview__label">Piloto</p>
-                        <p class="portal-operation-overview__value">{{ $operacion->piloto?->fullName() ?? 'Sin piloto' }}</p>
+                        <p class="portal-operation-overview__value">{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</p>
                     </div>
 
                     @if ($this->pilotoVerified())

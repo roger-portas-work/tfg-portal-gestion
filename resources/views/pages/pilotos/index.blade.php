@@ -59,7 +59,7 @@ new #[Title('Mis pilotos')] class extends Component {
     {
         abort_unless($this->cliente?->isUnblocked(), 403);
 
-        $this->showForm = $this->pilotos->isEmpty();
+        $this->showForm = request()->boolean('crear') || $this->pilotos->isEmpty();
     }
 
     #[Computed]
@@ -72,7 +72,13 @@ new #[Title('Mis pilotos')] class extends Component {
     public function pilotos()
     {
         return $this->cliente
-            ? $this->cliente->pilotos()->latest()->get()
+            ? $this->cliente->pilotos()
+                ->withCount([
+                    'operaciones',
+                    'operaciones as active_operaciones_count' => fn ($query) => $query->whereDate('operation_date', '>=', today()->toDateString()),
+                ])
+                ->latest()
+                ->get()
             : collect();
     }
 
@@ -675,7 +681,7 @@ new #[Title('Mis pilotos')] class extends Component {
                 </form>
             </div>
         @else
-            <div class="portal-record-list portal-record-list--duo">
+            <div class="portal-pilot-list">
                 @foreach ($this->pilotos as $piloto)
                     @php
                         $pilotDocuments = array_filter([
@@ -685,95 +691,150 @@ new #[Title('Mis pilotos')] class extends Component {
                             'theoretical_certificate_path' => 'Certificado teorico',
                             'practical_certificate_path' => 'Certificado practico',
                         ], fn (string $label, string $field): bool => filled($piloto->{$field}), ARRAY_FILTER_USE_BOTH);
+                        $certificateLevel = Piloto::theoreticalCertificateOptions()[$piloto->theoretical_certificate_level]
+                            ?? ($piloto->theoretical_certificate_level ?: 'Sin definir');
+                        $birthDate = $piloto->birth_date instanceof \DateTimeInterface
+                            ? $piloto->birth_date->format('d/m/Y')
+                            : (filled($piloto->birth_date) ? \Illuminate\Support\Carbon::parse($piloto->birth_date)->format('d/m/Y') : 'Sin definir');
+                        $operationsCount = (int) ($piloto->operaciones_count ?? 0);
+                        $activeOperationsCount = (int) ($piloto->active_operaciones_count ?? 0);
                     @endphp
 
-                    <div class="portal-record-card">
-                        <div class="portal-record-card__header">
-                            <div>
-                                <h2 class="portal-record-card__title">{{ $piloto->fullName() }}</h2>
-
-                                <div class="portal-record-card__badges">
-                                    <span class="portal-badge portal-badge--indigo">
-                                        {{ Piloto::theoreticalCertificateOptions()[$piloto->theoretical_certificate_level] ?? $piloto->theoretical_certificate_level }}
-                                    </span>
-                                    @if ($piloto->has_radiofonista_certificate)
-                                        <span class="portal-badge portal-badge--sky">
-                                            Radiofonista
+                    <article id="piloto-{{ $piloto->id }}" class="portal-pilot-card portal-anchor-target">
+                        <div class="portal-pilot-card__main">
+                            <div class="portal-pilot-card__header">
+                                <div class="min-w-0">
+                                    <h2>
+                                        <span>{{ $piloto->displayName() }}</span>
+                                        <span class="portal-pilot-card__dni">
+                                            DNI/NIE: {{ $piloto->dni_nie ?: 'Sin definir' }}
                                         </span>
-                                    @endif
-                                    <span class="portal-badge portal-badge--slate">
-                                        DNI/NIE: {{ $piloto->dni_nie }}
-                                    </span>
+                                    </h2>
+
+                                    <div class="portal-pilot-card__badges">
+                                        <span class="portal-badge portal-badge--indigo">
+                                            {{ $certificateLevel }}
+                                        </span>
+                                        <span class="portal-badge {{ $piloto->has_radiofonista_certificate ? 'portal-badge--sky' : 'portal-badge--neutral' }}">
+                                            {{ $piloto->has_radiofonista_certificate ? 'Radiofonista' : 'Sin radiofonista' }}
+                                        </span>
+                                        <span class="portal-badge portal-badge--emerald">
+                                            Expediente completo
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="portal-pilot-card__status">
+                                    <strong>Disponible para operar</strong>
+                                    <span>{{ $activeOperationsCount }} {{ $activeOperationsCount === 1 ? 'operacion activa vinculada' : 'operaciones activas vinculadas' }}</span>
                                 </div>
                             </div>
 
-                            <div class="portal-record-card__actions">
+                            <div class="portal-pilot-spec-grid">
+                                <div class="portal-pilot-spec">
+                                    <span>Nombre</span>
+                                    <strong>{{ $piloto->first_name ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Primer apellido</span>
+                                    <strong>{{ $piloto->last_name ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Segundo apellido</span>
+                                    <strong>{{ $piloto->second_last_name ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>DNI/NIE</span>
+                                    <strong>{{ $piloto->dni_nie ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Fecha nacimiento</span>
+                                    <strong>{{ $birthDate }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Identificacion piloto</span>
+                                    <strong>{{ $piloto->pilot_identification_number ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Direccion</span>
+                                    <strong>{{ $piloto->address ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Pais</span>
+                                    <strong>{{ $piloto->country ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Ciudad</span>
+                                    <strong>{{ $piloto->city ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Provincia</span>
+                                    <strong>{{ $piloto->province ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Codigo postal</span>
+                                    <strong>{{ $piloto->postal_code ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Telefono</span>
+                                    <strong>{{ $piloto->phone ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Radiofonista</span>
+                                    <strong>{{ $piloto->has_radiofonista_certificate ? 'Disponible' : 'No aportado' }}</strong>
+                                </div>
+                                <div class="portal-pilot-spec">
+                                    <span>Nivel teorico</span>
+                                    <strong>{{ $certificateLevel }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="portal-pilot-downloads">
+                                <strong>Descargar documentos</strong>
+
+                                @if ($pilotDocuments)
+                                    <div class="portal-pilot-downloads__list">
+                                        @foreach ($pilotDocuments as $field => $label)
+                                            <button type="button" wire:click="downloadDocument({{ $piloto->id }}, '{{ $field }}')" class="portal-pilot-document">
+                                                <span class="portal-pilot-document__icon">
+                                                    <flux:icon icon="document" variant="mini" class="size-4" />
+                                                </span>
+                                                <span>{{ $label }}</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <small>No hay PDFs adjuntos.</small>
+                                @endif
+                            </div>
+                        </div>
+
+                        <aside class="portal-pilot-card__actions">
+                            <div class="portal-pilot-card__menu">
                                 <flux:button variant="primary" wire:click="edit({{ $piloto->id }})">
                                     Editar
                                 </flux:button>
-                                @if (! $piloto->operaciones()->exists())
+                                @if ($operationsCount === 0)
                                     <flux:button variant="danger" wire:click="delete({{ $piloto->id }})">
                                         Borrar
                                     </flux:button>
                                 @endif
                             </div>
-                        </div>
 
-                        <div class="portal-spec-grid">
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Identificacion piloto</p>
-                                <p class="portal-spec-card__value">{{ $piloto->pilot_identification_number ?: 'Sin definir' }}</p>
-                            </div>
+                            <p>Acciones</p>
 
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Telefono</p>
-                                <p class="portal-spec-card__value">{{ $piloto->phone ?: 'Sin definir' }}</p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Fecha de nacimiento</p>
-                                <p class="portal-spec-card__value">
-                                    {{ $piloto->birth_date instanceof \DateTimeInterface
-                                        ? $piloto->birth_date->format('d/m/Y')
-                                        : (filled($piloto->birth_date) ? \Illuminate\Support\Carbon::parse($piloto->birth_date)->format('d/m/Y') : 'Sin definir') }}
-                                </p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Radiofonista</p>
-                                <p class="portal-spec-card__value">{{ $piloto->has_radiofonista_certificate ? 'Disponible' : 'No aportado' }}</p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Ubicacion</p>
-                                <p class="portal-spec-card__value">
-                                    {{ trim(implode(', ', array_filter([$piloto->city, $piloto->province, $piloto->country]))) ?: 'Sin definir' }}
-                                </p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Direccion</p>
-                                <p class="portal-spec-card__value">
-                                    {{ trim(implode(', ', array_filter([$piloto->address, $piloto->postal_code]))) ?: 'Sin definir' }}
-                                </p>
-                            </div>
-
-                            <div class="portal-spec-card portal-spec-card--action md:col-span-2 xl:col-span-3">
-                                <p class="portal-spec-card__label">Documentacion PDF</p>
-                                @if ($pilotDocuments)
-                                    <div class="portal-spec-actions">
-                                        @foreach ($pilotDocuments as $field => $label)
-                                            <flux:button variant="primary" wire:click="downloadDocument({{ $piloto->id }}, '{{ $field }}')">
-                                                {{ $label }}
-                                            </flux:button>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <p class="portal-spec-card__value">No hay documentos adjuntos</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+                            <a href="{{ route('operaciones.index', ['piloto' => $piloto->id]) }}" wire:navigate class="portal-pilot-action">
+                                <span class="portal-pilot-action__icon">
+                                    <flux:icon icon="clock" variant="mini" class="size-4" />
+                                </span>
+                                <span>
+                                    <strong>Ver operaciones</strong>
+                                    <small>Filtradas por este piloto</small>
+                                </span>
+                                <flux:icon icon="chevron-right" variant="mini" class="size-4" />
+                            </a>
+                        </aside>
+                    </article>
                 @endforeach
             </div>
         @endif

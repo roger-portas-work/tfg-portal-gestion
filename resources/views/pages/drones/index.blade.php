@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Dron;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -67,7 +68,7 @@ new #[Title('Mis drones')] class extends Component {
 
     public function mount(): void
     {
-        $this->showForm = $this->drones->isEmpty();
+        $this->showForm = request()->boolean('crear') || $this->drones->isEmpty();
     }
 
     #[Computed]
@@ -80,7 +81,12 @@ new #[Title('Mis drones')] class extends Component {
     public function drones()
     {
         return $this->cliente
-            ? $this->cliente->drones()->latest()->get()
+            ? $this->cliente->drones()
+                ->withCount([
+                    'operaciones as active_operaciones_count' => fn ($query) => $query->whereDate('operation_date', '>=', today()->toDateString()),
+                ])
+                ->latest()
+                ->get()
             : collect();
     }
 
@@ -627,33 +633,117 @@ new #[Title('Mis drones')] class extends Component {
                 </form>
             </div>
         @else
-            <div class="portal-record-list portal-record-list--duo">
+            <div class="portal-drone-list">
                 @foreach ($this->drones as $dron)
-                    <div class="portal-record-card">
-                        <div class="portal-record-card__header">
-                            <div>
-                                <h2 class="portal-record-card__title">
-                                    {{ $dron->manufacturer_name }} {{ $dron->model }}
-                                </h2>
+                    @php
+                        $insuranceDate = $dron->insurance_valid_until instanceof \DateTimeInterface
+                            ? Carbon::instance($dron->insurance_valid_until)->startOfDay()
+                            : (filled($dron->insurance_valid_until) ? Carbon::parse((string) $dron->insurance_valid_until)->startOfDay() : null);
+                        $insuranceExpired = $insuranceDate ? $insuranceDate->lt(today()) : false;
+                        $insuranceExpiringSoon = $insuranceDate && ! $insuranceExpired && $insuranceDate->lte(today()->addDays(30));
+                        $aesaNeedsAttention = $dron->aesa_registration_status === Dron::AESA_STATUS_MANAGER;
+                        $missingPolicyPdf = blank($dron->insurance_coverage_policy_path);
+                        $requiresAttention = $insuranceExpired || $insuranceExpiringSoon || $aesaNeedsAttention || $missingPolicyPdf;
+                        $insuranceBadge = match (true) {
+                            $insuranceExpired => 'Poliza caducada',
+                            $insuranceExpiringSoon => 'Poliza proxima a vencer',
+                            $missingPolicyPdf => 'Poliza sin PDF',
+                            default => 'Poliza activa',
+                        };
+                        $attentionTitle = $requiresAttention ? 'Requiere atencion' : 'En regla';
+                        $attentionText = match (true) {
+                            $insuranceExpired => 'La poliza del seguro esta caducada.',
+                            $insuranceExpiringSoon => 'La poliza vence en los proximos 30 dias.',
+                            $aesaNeedsAttention => 'El registro AESA esta pendiente de gestionar.',
+                            $missingPolicyPdf => 'Falta adjuntar el PDF de la poliza.',
+                            default => 'Todo correcto',
+                        };
+                        $activeOperationsCount = (int) ($dron->active_operaciones_count ?? 0);
+                    @endphp
 
-                                <div class="portal-record-card__badges">
-                                    <span class="portal-badge portal-badge--sky">
-                                        Clase: {{ Dron::uasClassOptions()[$dron->uas_class] ?? $dron->uas_class }}
-                                    </span>
-                                    <span class="portal-badge portal-badge--slate">
-                                        Matricula: {{ $dron->registrationLabel() }}
-                                    </span>
-                                    <span class="portal-badge {{ match ($dron->aesaRegistrationColor()) {
-                                        'success' => 'portal-badge--emerald',
-                                        'warning' => 'portal-badge--amber',
-                                        default => 'portal-badge--neutral',
-                                    } }}">
-                                        AESA: {{ $dron->aesaRegistrationLabel() }}
-                                    </span>
+                    <article id="dron-{{ $dron->id }}" class="portal-drone-card {{ $requiresAttention ? 'portal-drone-card--attention' : 'portal-drone-card--ok' }} portal-anchor-target">
+                        <div class="portal-drone-card__main">
+                            <div class="portal-drone-card__header">
+                                <div class="min-w-0">
+                                    <h2>
+                                        <span>{{ $dron->displayName() }}</span>
+                                        <span class="portal-drone-card__serial">
+                                            Serie: {{ $dron->drone_serial_number ?: 'Sin definir' }}
+                                        </span>
+                                    </h2>
+
+                                    <div class="portal-drone-card__badges">
+                                        <span class="portal-badge {{ $aesaNeedsAttention ? 'portal-badge--amber' : ($dron->aesaRegistrationColor() === 'success' ? 'portal-badge--emerald' : 'portal-badge--neutral') }}">
+                                            AESA: {{ $dron->aesaRegistrationLabel() }}
+                                        </span>
+                                        <span class="portal-badge {{ $insuranceExpired ? 'portal-badge--danger' : ($insuranceExpiringSoon || $missingPolicyPdf ? 'portal-badge--amber' : 'portal-badge--emerald') }}">
+                                            {{ $insuranceBadge }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="portal-drone-card__status {{ $requiresAttention ? 'portal-drone-card__status--attention' : 'portal-drone-card__status--ok' }}">
+                                    <strong>{{ $attentionTitle }}</strong>
+                                    <span>{{ $attentionText }} · {{ $activeOperationsCount }} {{ $activeOperationsCount === 1 ? 'operacion activa vinculada' : 'operaciones activas vinculadas' }}</span>
                                 </div>
                             </div>
 
-                            <div class="portal-record-card__actions">
+                            <div class="portal-drone-spec-grid">
+                                <div class="portal-drone-spec">
+                                    <span>Fabricante</span>
+                                    <strong>{{ $dron->manufacturer_name ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Clase</span>
+                                    <strong>{{ Dron::uasClassOptions()[$dron->uas_class] ?? ($dron->uas_class ?: 'Sin definir') }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Controladora</span>
+                                    <strong>{{ $dron->controller_serial_number ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Poliza</span>
+                                    <strong>{{ $dron->insurance_policy_number ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Modelo</span>
+                                    <strong>{{ $dron->model ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Matricula</span>
+                                    <strong>{{ $dron->registrationLabel() }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>MTOM</span>
+                                    <strong>{{ filled($dron->mtom_weight) ? $dron->mtom_weight.' g' : 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Vencimiento poliza</span>
+                                    <strong class="{{ $insuranceExpired ? 'text-red-600 dark:text-red-300' : '' }}">
+                                        {{ $insuranceDate ? $insuranceDate->format('d/m/Y') : 'Sin definir' }}
+                                    </strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Numero de serie</span>
+                                    <strong>{{ $dron->drone_serial_number ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>ID remoto</span>
+                                    <strong>{{ $dron->remoteIdLabel() }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>Seguro</span>
+                                    <strong>{{ $dron->insurance_company_name ?: 'Sin definir' }}</strong>
+                                </div>
+                                <div class="portal-drone-spec">
+                                    <span>PDF poliza</span>
+                                    <strong>{{ $dron->insurance_coverage_policy_path ? 'Adjuntado' : 'Pendiente' }}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <aside class="portal-drone-card__actions">
+                            <div class="portal-drone-card__menu">
                                 <flux:button variant="primary" wire:click="edit({{ $dron->id }})">
                                     Editar
                                 </flux:button>
@@ -663,53 +753,45 @@ new #[Title('Mis drones')] class extends Component {
                                     </flux:button>
                                 @endif
                             </div>
-                        </div>
 
-                        <div class="portal-spec-grid">
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Serie del dron</p>
-                                <p class="portal-spec-card__value">{{ $dron->drone_serial_number ?: 'Sin definir' }}</p>
-                            </div>
+                            <p>Acciones</p>
 
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">ID remoto</p>
-                                <p class="portal-spec-card__value">{{ $dron->remoteIdLabel() }}</p>
-                            </div>
+                            @if ($dron->insurance_coverage_policy_path)
+                                <button type="button" wire:click="downloadCoveragePolicy({{ $dron->id }})" class="portal-drone-action">
+                                    <span class="portal-drone-action__icon">
+                                        <flux:icon icon="document" variant="mini" class="size-4" />
+                                    </span>
+                                    <span>
+                                        <strong>Descargar poliza</strong>
+                                        <small>Ver PDF de seguro</small>
+                                    </span>
+                                    <flux:icon icon="chevron-right" variant="mini" class="size-4" />
+                                </button>
+                            @else
+                                <button type="button" wire:click="edit({{ $dron->id }})" class="portal-drone-action portal-drone-action--attention">
+                                    <span class="portal-drone-action__icon">
+                                        <flux:icon icon="document" variant="mini" class="size-4" />
+                                    </span>
+                                    <span>
+                                        <strong>Anadir poliza</strong>
+                                        <small>Editar dron</small>
+                                    </span>
+                                    <flux:icon icon="chevron-right" variant="mini" class="size-4" />
+                                </button>
+                            @endif
 
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Controladora</p>
-                                <p class="portal-spec-card__value">{{ $dron->controller_serial_number ?: 'Sin definir' }}</p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">MTOM</p>
-                                <p class="portal-spec-card__value">{{ $dron->mtom_weight }} g</p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Seguro</p>
-                                <p class="portal-spec-card__value">{{ $dron->insurance_company_name ?: 'Sin definir' }}</p>
-                            </div>
-
-                            <div class="portal-spec-card">
-                                <p class="portal-spec-card__label">Poliza</p>
-                                <p class="portal-spec-card__value">{{ $dron->insurance_policy_number ?: 'Sin definir' }}</p>
-                            </div>
-
-                            <div class="portal-spec-card portal-spec-card--action">
-                                <p class="portal-spec-card__label">Poliza de seguro PDF</p>
-                                @if ($dron->insurance_coverage_policy_path)
-                                    <div class="mt-3">
-                                        <flux:button variant="primary" wire:click="downloadCoveragePolicy({{ $dron->id }})">
-                                            Descargar PDF
-                                        </flux:button>
-                                    </div>
-                                @else
-                                    <p class="portal-spec-card__value">No hay PDF adjunto</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+                            <a href="{{ route('operaciones.index', ['dron' => $dron->id]) }}" wire:navigate class="portal-drone-action">
+                                <span class="portal-drone-action__icon">
+                                    <flux:icon icon="clock" variant="mini" class="size-4" />
+                                </span>
+                                <span>
+                                    <strong>Ver operaciones</strong>
+                                    <small>Donde se usa este dron</small>
+                                </span>
+                                <flux:icon icon="chevron-right" variant="mini" class="size-4" />
+                            </a>
+                        </aside>
+                    </article>
                 @endforeach
             </div>
         @endif

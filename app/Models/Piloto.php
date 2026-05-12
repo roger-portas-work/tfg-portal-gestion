@@ -74,6 +74,25 @@ class Piloto extends Model
         ])));
     }
 
+    public function displayName(): string
+    {
+        return $this->fullName() ?: 'Piloto sin nombre';
+    }
+
+    public function displayNameWithIdentification(): string
+    {
+        $name = trim(implode(' ', array_filter([
+            $this->first_name,
+            $this->last_name,
+        ]))) ?: $this->displayName();
+
+        $identification = filled($this->dni_nie)
+            ? $this->dni_nie
+            : 'Sin definir';
+
+        return $name.' - DNI/NIE: '.$identification;
+    }
+
     public function requiresPracticalCertificate(): bool
     {
         return $this->theoretical_certificate_level === self::THEORY_STS;
