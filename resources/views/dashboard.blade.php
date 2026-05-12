@@ -557,7 +557,7 @@
                                 </span>
                                 <span>
                                     <strong class="text-emerald-600 dark:text-emerald-300">{{ $completedOperadora }}</strong>
-                                    Completados
+                                    Aprobados
                                 </span>
                             </div>
 
@@ -646,7 +646,7 @@
                                     <span><i class="portal-dashboard-dot portal-dashboard-dot--amber"></i>Pendientes <b>{{ $pendingUploadOperadora }}</b></span>
                                     <span><i class="portal-dashboard-dot portal-dashboard-dot--sky"></i>En revision <b>{{ $inReviewOperadora }}</b></span>
                                     <span><i class="portal-dashboard-dot portal-dashboard-dot--danger"></i>Corregir <b>{{ $needsChangesOperadora }}</b></span>
-                                    <span><i class="portal-dashboard-dot portal-dashboard-dot--success"></i>Completados <b>{{ $completedOperadora }}</b></span>
+                                    <span><i class="portal-dashboard-dot portal-dashboard-dot--success"></i>Aprobados <b>{{ $completedOperadora }}</b></span>
                                 </span>
                             </span>
                         </a>

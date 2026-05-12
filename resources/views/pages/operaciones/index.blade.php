@@ -15,6 +15,8 @@ new #[Title('Mis operaciones')] class extends Component {
 
     public string $statusFilter = 'all';
 
+    public string $searchFilter = '';
+
     public string $dateFromFilter = '';
 
     public string $dateToFilter = '';
@@ -137,6 +139,10 @@ new #[Title('Mis operaciones')] class extends Component {
 
         return $this->operaciones
             ->filter(function (Operacion $operacion) use ($dateFrom, $dateTo): bool {
+                if (! $this->operationMatchesSearch($operacion)) {
+                    return false;
+                }
+
                 $matchesStatus = $this->statusFilter === 'all'
                     || $operacion->status === $this->statusFilter
                     || ($this->statusFilter === Operacion::STATUS_PENDING && $operacion->isPending());
@@ -193,6 +199,15 @@ new #[Title('Mis operaciones')] class extends Component {
     {
         $this->dateFromFilter = '';
         $this->dateToFilter = '';
+    }
+
+    public function clearFilters(): void
+    {
+        $this->searchFilter = '';
+        $this->statusFilter = 'all';
+        $this->pilotoFilter = 'all';
+        $this->dronFilter = 'all';
+        $this->clearDateFilters();
     }
 
     public function canCreateOperations(): bool
@@ -417,6 +432,19 @@ new #[Title('Mis operaciones')] class extends Component {
         ])->filter()->implode(', ')) ?: 'Sin definir';
     }
 
+    protected function operationMatchesSearch(Operacion $operacion): bool
+    {
+        $term = mb_strtolower(trim($this->searchFilter));
+
+        if ($term === '') {
+            return true;
+        }
+
+        $haystack = mb_strtolower((string) $operacion->reference);
+
+        return str_contains($haystack, $term);
+    }
+
     protected function operationDronLabel(Operacion $operacion): string
     {
         $dronName = $operacion->dron?->displayNameWithSerial() ?? 'Sin dron';
@@ -506,7 +534,9 @@ new #[Title('Mis operaciones')] class extends Component {
             ],
             [
                 'label' => 'Confirmacion gestor',
-                'meta' => $operacion->isConfirmed() ? 'Operacion confirmada' : 'Pendiente',
+                'meta' => $operacion->isRejected()
+                    ? 'Rechazada por gestor'
+                    : ($operacion->isConfirmed() ? 'Operacion confirmada' : 'Pendiente'),
                 'completed' => $operacion->isConfirmed(),
             ],
             [
@@ -710,127 +740,140 @@ new #[Title('Mis operaciones')] class extends Component {
                 </form>
             </div>
         @else
-            <div class="portal-filter-bar">
-                @php
-                    $operationFilters = [
-                        'all' => 'Todas',
-                        Operacion::STATUS_PENDING => 'Pendiente',
-                        Operacion::STATUS_REJECTED => 'Rechazada',
-                        Operacion::STATUS_CONFIRMED => 'Confirmada',
-                    ];
-                @endphp
+            @php
+                $totalOperations = $this->operaciones->count();
+                $pendingOperations = $this->operaciones->filter(fn (Operacion $operacion): bool => $operacion->isPending())->count();
+                $confirmedOperations = $this->operaciones->filter(fn (Operacion $operacion): bool => $operacion->isConfirmed())->count();
+                $rejectedOperations = $this->operaciones->filter(fn (Operacion $operacion): bool => $operacion->isRejected())->count();
+                $hasActiveFilters = filled($searchFilter)
+                    || $statusFilter !== 'all'
+                    || $pilotoFilter !== 'all'
+                    || $dronFilter !== 'all'
+                    || filled($dateFromFilter)
+                    || filled($dateToFilter);
+                $operationFilters = [
+                    'all' => 'Todas',
+                    Operacion::STATUS_PENDING => 'Pendientes',
+                    Operacion::STATUS_REJECTED => 'Rechazadas',
+                    Operacion::STATUS_CONFIRMED => 'Confirmadas',
+                ];
+            @endphp
 
-                <div class="portal-filter-header">
-                    <span class="portal-filter-header__icon">
-                        <flux:icon icon="funnel" variant="micro" class="size-5" />
+            <div class="portal-operation-summary-grid">
+                <div class="portal-operation-summary-card portal-operation-summary-card--total">
+                    <span class="portal-operation-summary-card__icon">
+                        <flux:icon icon="clipboard-document-list" variant="mini" class="size-5" />
                     </span>
-
-                    <div>
-                        <h3 class="portal-filter-header__title">Filtros</h3>
-                        <p class="portal-filter-header__text">Encuentra las operaciones que necesitas</p>
-                    </div>
+                    <span>
+                        <small>Total operaciones</small>
+                        <strong>{{ $totalOperations }}</strong>
+                        <em>Todas registradas</em>
+                    </span>
                 </div>
 
-                <div class="portal-filter-section">
-                    <div class="portal-filter-section__heading">
-                        <p class="portal-filter-section__title">Estado</p>
-                    </div>
-
-                <div class="portal-filter-statuses">
-                    @foreach ($operationFilters as $value => $label)
-                        <button
-                            type="button"
-                            wire:click="$set('statusFilter', '{{ $value }}')"
-                            class="portal-filter-option {{ $statusFilter === $value ? 'portal-filter-option--active' : '' }} {{ $value === 'all' ? 'portal-filter-option--all' : ($value === Operacion::STATUS_PENDING ? 'portal-filter-option--pending' : ($value === Operacion::STATUS_REJECTED ? 'portal-filter-option--rejected' : 'portal-filter-option--confirmed')) }}"
-                        >
-                            <span class="portal-filter-option__dot"></span>
-                            <span>{{ $label }}</span>
-                        </button>
-                    @endforeach
-                </div>
+                <div class="portal-operation-summary-card portal-operation-summary-card--pending">
+                    <span class="portal-operation-summary-card__icon">
+                        <flux:icon icon="clock" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Pendientes</small>
+                        <strong>{{ $pendingOperations }}</strong>
+                        <em>Por confirmar</em>
+                    </span>
                 </div>
 
-                <div class="portal-filter-divider"></div>
-
-                <div class="portal-filter-section">
-                    <div class="portal-filter-section__heading">
-                        <span class="portal-filter-section__icon">
-                            <flux:icon icon="user" variant="micro" class="size-5" />
-                        </span>
-                        <p class="portal-filter-section__title">Piloto</p>
-                    </div>
-
-                    <label class="portal-filter-field">
-                        <span class="portal-filter-field__label">Filtrar por piloto</span>
-                        <select wire:model.live="pilotoFilter" class="portal-filter-date-input">
-                            <option value="all">Todos los pilotos</option>
-                            @foreach ($this->availablePilotos as $filterPiloto)
-                                <option value="{{ $filterPiloto->id }}">
-                                    {{ $filterPiloto->displayNameWithIdentification() }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </label>
+                <div class="portal-operation-summary-card portal-operation-summary-card--confirmed">
+                    <span class="portal-operation-summary-card__icon">
+                        <flux:icon icon="check-circle" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Confirmadas</small>
+                        <strong>{{ $confirmedOperations }}</strong>
+                        <em>En curso o aprobadas</em>
+                    </span>
                 </div>
 
-                <div class="portal-filter-divider"></div>
-
-                <div class="portal-filter-section">
-                    <div class="portal-filter-section__heading">
-                        <span class="portal-filter-section__icon">
-                            <flux:icon icon="paper-airplane" variant="micro" class="size-5" />
-                        </span>
-                        <p class="portal-filter-section__title">Dron</p>
-                    </div>
-
-                    <label class="portal-filter-field">
-                        <span class="portal-filter-field__label">Filtrar por dron</span>
-                        <select wire:model.live="dronFilter" class="portal-filter-date-input">
-                            <option value="all">Todos los drones</option>
-                            @foreach ($this->availableDrones as $filterDron)
-                                <option value="{{ $filterDron->id }}">
-                                    {{ $filterDron->displayNameWithSerial() }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </label>
+                <div class="portal-operation-summary-card portal-operation-summary-card--rejected">
+                    <span class="portal-operation-summary-card__icon">
+                        <flux:icon icon="x-circle" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Rechazadas</small>
+                        <strong>{{ $rejectedOperations }}</strong>
+                        <em>No aprobadas</em>
+                    </span>
                 </div>
+            </div>
 
-                <div class="portal-filter-divider"></div>
-
-                <div class="portal-filter-section">
-                    <div class="portal-filter-section__heading">
-                        <span class="portal-filter-section__icon">
-                            <flux:icon icon="calendar-days" variant="micro" class="size-5" />
-                        </span>
-                        <p class="portal-filter-section__title">Filtrar por fecha</p>
-                    </div>
-
-                <div class="portal-filter-dates">
-                    <label class="portal-filter-field">
-                        <span class="portal-filter-field__label">Desde</span>
+            <div class="portal-operations-filter">
+                <div class="portal-operations-filter__search">
+                    <label class="portal-operations-filter__field">
+                        <span>Buscar operacion</span>
                         <input
-                            type="date"
-                            wire:model.live="dateFromFilter"
-                            class="portal-filter-date-input"
+                            type="search"
+                            wire:model.live.debounce.300ms="searchFilter"
+                            placeholder="Buscar por nombre de operacion"
+                            class="portal-operations-filter__input"
                         >
                     </label>
+                </div>
 
-                    <label class="portal-filter-field">
-                        <span class="portal-filter-field__label">Hasta</span>
-                        <input
-                            type="date"
-                            wire:model.live="dateToFilter"
-                            class="portal-filter-date-input"
-                        >
-                    </label>
+                <div class="portal-operations-filter__status">
+                    <span class="portal-operations-filter__label">Estado</span>
+                    <div class="portal-operations-filter__status-grid">
+                        @foreach ($operationFilters as $value => $label)
+                            <button
+                                type="button"
+                                wire:click="$set('statusFilter', '{{ $value }}')"
+                                class="portal-operation-filter-pill {{ $statusFilter === $value ? 'portal-operation-filter-pill--active' : '' }} {{ $value === 'all' ? 'portal-operation-filter-pill--all' : ($value === Operacion::STATUS_PENDING ? 'portal-operation-filter-pill--pending' : ($value === Operacion::STATUS_REJECTED ? 'portal-operation-filter-pill--rejected' : 'portal-operation-filter-pill--confirmed')) }}"
+                            >
+                                <span></span>
+                                {{ $label }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
 
-                    @if (filled($dateFromFilter) || filled($dateToFilter))
-                        <button type="button" wire:click="clearDateFilters" class="portal-filter-reset">
-                            Limpiar fechas
+                <label class="portal-operations-filter__field portal-operations-filter__field--pilot">
+                    <span>Piloto</span>
+                    <select wire:model.live="pilotoFilter" class="portal-operations-filter__input">
+                        <option value="all">Todos los pilotos</option>
+                        @foreach ($this->availablePilotos as $filterPiloto)
+                            <option value="{{ $filterPiloto->id }}">
+                                {{ $filterPiloto->displayNameWithIdentification() }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="portal-operations-filter__field portal-operations-filter__field--dron">
+                    <span>Dron</span>
+                    <select wire:model.live="dronFilter" class="portal-operations-filter__input">
+                        <option value="all">Todos los drones</option>
+                        @foreach ($this->availableDrones as $filterDron)
+                            <option value="{{ $filterDron->id }}">
+                                {{ $filterDron->displayNameWithSerial() }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="portal-operations-filter__field portal-operations-filter__field--date-from">
+                    <span>Fecha desde</span>
+                    <input type="date" wire:model.live="dateFromFilter" class="portal-operations-filter__input">
+                </label>
+
+                <label class="portal-operations-filter__field portal-operations-filter__field--date-to">
+                    <span>Fecha hasta</span>
+                    <input type="date" wire:model.live="dateToFilter" class="portal-operations-filter__input">
+                </label>
+
+                <div class="portal-operations-filter__actions">
+                    @if ($hasActiveFilters)
+                        <button type="button" wire:click="clearFilters" class="portal-operations-filter__reset">
+                            Limpiar filtros
                         </button>
                     @endif
-                </div>
                 </div>
             </div>
 
@@ -839,295 +882,203 @@ new #[Title('Mis operaciones')] class extends Component {
                     No hay operaciones para el filtro seleccionado.
                 </div>
             @else
-            <div class="portal-record-list portal-record-list--relaxed">
-                @foreach ($this->filteredOperaciones as $operacion)
-                    <div id="operacion-{{ $operacion->id }}" class="{{ $this->operationCardClass($operacion) }} portal-operation-card-shell portal-anchor-target">
-                        <div class="portal-record-card__header">
-                            <div class="min-w-0 flex-1">
-                                <div class="portal-operation-card__headline">
-                                    <span class="portal-operation-card__state-icon {{ $operacion->isConfirmed() ? 'portal-operation-card__state-icon--confirmed' : ($operacion->isRejected() ? 'portal-operation-card__state-icon--rejected' : 'portal-operation-card__state-icon--pending') }}">
+                <div class="portal-operation-card-list">
+                    @foreach ($this->filteredOperaciones as $operacion)
+                        @php
+                            $tramitesCount = (int) ($operacion->tramites_count ?? 0);
+                            $pendingTramites = (int) ($operacion->pending_tramites_count ?? 0);
+                            $processedTramites = (int) ($operacion->processed_tramites_count ?? 0);
+                            $deniedTramites = (int) ($operacion->denied_tramites_count ?? 0);
+                            $approvedTramites = (int) ($operacion->approved_tramites_count ?? 0);
+                            $documentationFullyApproved = $this->operationDocumentationFullyApproved($operacion);
+                            $operationTone = $operacion->isRejected()
+                                ? 'rejected'
+                                : ($operacion->isPending() ? 'pending' : ($documentationFullyApproved ? 'approved' : 'confirmed'));
+                            $statusLabel = $operacion->isConfirmed()
+                                ? 'Operacion confirmada'
+                                : $operacion->statusLabel();
+                            $documentationTone = $operacion->isRejected()
+                                ? 'rejected'
+                                : ($operacion->isPending() ? 'pending' : ($documentationFullyApproved ? 'approved' : ($deniedTramites > 0 ? 'danger' : 'partial')));
+                            $documentationTitle = match (true) {
+                                $operacion->isRejected() => 'Operacion rechazada',
+                                $operacion->isPending() => 'Pendiente de confirmacion por el gestor',
+                                $documentationFullyApproved => 'Documentacion aprobada',
+                                $deniedTramites > 0 => 'Falta documentacion por aprobar',
+                                $tramitesCount === 0 => 'Operacion confirmada sin tramites',
+                                default => 'Documentacion en curso',
+                            };
+                            $documentationText = match (true) {
+                                $operacion->isRejected() => 'Esta operacion no admite nuevos tramites mientras este rechazada.',
+                                $operacion->isPending() => 'El gestor debe confirmar esta operacion antes de crear tramites.',
+                                $documentationFullyApproved => 'Todos los tramites estan aprobados. Operacion autorizada.',
+                                $deniedTramites > 0 => $deniedTramites.' '.($deniedTramites === 1 ? 'tramite denegado' : 'tramites denegados').'. Revisa la documentacion.',
+                                $tramitesCount === 0 => 'Aceptada, pendiente de gestion documental.',
+                                default => $approvedTramites.' de '.$tramitesCount.' tramites aprobados.',
+                            };
+                            $primaryActionHref = $operacion->isConfirmed()
+                                ? route('operaciones.tramites-aprobados', $operacion)
+                                : null;
+                            $primaryActionLabel = $documentationFullyApproved ? 'Ver tramites aprobados' : 'Ver tramites';
+                        @endphp
+
+                        <details id="operacion-{{ $operacion->id }}" class="portal-operation-list-card portal-operation-list-card--{{ $operationTone }} portal-anchor-target">
+                            <summary class="portal-operation-list-card__header">
+                                <div class="portal-operation-list-card__title-wrap">
+                                    <span class="portal-operation-status-pill portal-operation-status-pill--{{ $operationTone }}">
                                         @if ($operacion->isConfirmed())
-                                            <flux:icon icon="check-circle" variant="mini" class="size-5" />
+                                            <flux:icon icon="check-circle" variant="mini" class="size-4" />
                                         @elseif ($operacion->isRejected())
-                                            <flux:icon icon="x-circle" variant="mini" class="size-5" />
+                                            <flux:icon icon="x-circle" variant="mini" class="size-4" />
                                         @else
-                                            <flux:icon icon="clock" variant="mini" class="size-5" />
+                                            <flux:icon icon="clock" variant="mini" class="size-4" />
                                         @endif
+                                        {{ $statusLabel }}
                                     </span>
+                                    <h2>{{ $operacion->reference }}</h2>
+                                </div>
 
-                                    <div class="min-w-0 flex-1">
-                                        @if ($operacion->isConfirmed())
-                                            <p class="portal-operation-card__eyebrow">Operacion confirmada</p>
-                                        @endif
+                                <div class="portal-operation-list-card__summary-actions">
+                                    <span class="portal-operation-doc-pill portal-operation-doc-pill--{{ $documentationTone }}">
+                                        {{ $documentationTitle }}
+                                    </span>
+                                    <span class="portal-operation-toggle-indicator" aria-hidden="true"></span>
+                                </div>
+                            </summary>
 
-                                        @if ($operacion->isConfirmed())
-                                            <h2 class="portal-record-card__title portal-operation-card__title portal-operation-card__title--confirmed">
-                                                <span class="block">Tramites aprobados para operacion</span>
-                                                <span class="block">{{ $operacion->reference }}</span>
-                                            </h2>
-                                        @else
-                                            <h2 class="portal-record-card__title portal-operation-card__title">
-                                                {{ $this->operationPrimaryTitle($operacion) }}
-                                            </h2>
-                                        @endif
+                            <div class="portal-operation-list-card__body">
+                                <div class="portal-operation-list-card__main">
+                                    <div class="portal-operation-doc-strip portal-operation-doc-strip--{{ $documentationTone }}">
+                                        <span class="portal-operation-doc-strip__icon">
+                                            <flux:icon icon="document-text" variant="mini" class="size-5" />
+                                        </span>
+                                        <span class="portal-operation-doc-strip__text">{{ $documentationText }}</span>
+                                        <span class="portal-operation-count-pill portal-operation-count-pill--pending">Pendientes <b>{{ $pendingTramites }}</b></span>
+                                        <span class="portal-operation-count-pill portal-operation-count-pill--processed">Procesados <b>{{ $processedTramites }}</b></span>
+                                        <span class="portal-operation-count-pill portal-operation-count-pill--denied">Denegados <b>{{ $deniedTramites }}</b></span>
+                                        <span class="portal-operation-count-pill portal-operation-count-pill--approved">Aprobados <b>{{ $approvedTramites }}</b></span>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="portal-record-card__actions">
-                                @if ($operacion->isPending())
-                                    <flux:button variant="primary" wire:click="edit({{ $operacion->id }})">
-                                        Editar
-                                    </flux:button>
-                                    <flux:button variant="danger" wire:click="delete({{ $operacion->id }})">
-                                        Borrar
-                                    </flux:button>
-                                @endif
-                            </div>
-                        </div>
-
-                        @if ($operacion->isConfirmed())
-                            <div class="portal-operation-status-panel {{ $this->operationDocumentationFullyApproved($operacion) ? 'portal-operation-status-panel--confirmed' : 'portal-operation-status-panel--missing-docs portal-operation-status-panel--priority' }}">
-                                <div>
-                                    <p class="portal-operation-status-panel__title {{ $this->operationDocumentationFullyApproved($operacion) ? '' : 'portal-operation-status-panel__title--priority' }}">
-                                        @if ($this->operationDocumentationFullyApproved($operacion))
-                                            <span class="inline-flex items-center gap-2">
-                                                <flux:icon icon="document-check" variant="mini" class="size-4 text-emerald-600 dark:text-emerald-400" />
-                                                <span>Documentacion aprobada</span>
+                                    <div class="portal-operation-meta-row">
+                                        <div class="portal-operation-meta-item">
+                                            <flux:icon icon="calendar-days" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Fecha</small>
+                                                <strong>{{ $this->formatDateValue($operacion->operation_date) }}</strong>
                                             </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-2">
-                                                <flux:icon icon="exclamation-triangle" variant="mini" class="size-5 text-red-600 dark:text-red-400" />
-                                                <span>Falta documentacion para aprobar</span>
+                                        </div>
+
+                                        <div class="portal-operation-meta-item">
+                                            <flux:icon icon="clock" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Hora / rodaje estimado</small>
+                                                <strong>{{ $operacion->estimated_filming_schedule ?: 'Sin definir' }}</strong>
                                             </span>
-                                        @endif
-                                    </p>
-                                </div>
+                                        </div>
 
-                                <div class="portal-operation-docs {{ $this->operationDocumentationFullyApproved($operacion) ? 'portal-operation-docs--approved' : 'portal-operation-docs--missing portal-operation-docs--priority' }}">
-                                    <div class="min-w-0">
-                                        <p class="portal-operation-docs__text {{ $this->operationDocumentationFullyApproved($operacion) ? '' : 'portal-operation-docs__text--priority' }}">
-                                            @if ($this->operationDocumentationFullyApproved($operacion))
-                                                Todos los tramites estan aprobados. Puedes consultar y descargar los documentos disponibles.
-                                            @else
-                                                Consulta el estado de los tramites y descarga los PDFs aprobados por el gestor.
-                                            @endif
-                                        </p>
+                                        <div class="portal-operation-meta-item portal-operation-meta-item--wide">
+                                            <flux:icon icon="map-pin" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Direccion</small>
+                                                <strong>{{ $this->operationAddressLabel($operacion) }}</strong>
+                                            </span>
+                                        </div>
+                                    </div>
 
-                                        <div class="portal-operation-docs__badges">
-                                            @foreach ($this->operationTramiteStatusCounts($operacion) as $statusCount)
-                                                <span class="{{ $statusCount['class'] }}">
-                                                    {{ $statusCount['label'] }}: {{ $statusCount['count'] }}
+                                    <div class="portal-operation-admin-note">
+                                        <div class="portal-operation-admin-note__item portal-operation-admin-note__item--cost">
+                                            <span class="portal-operation-admin-note__icon">EUR</span>
+                                            <span>
+                                                <small>Coste operacion</small>
+                                                <strong>{{ $this->formatCurrencyValue($operacion->operation_cost) }}</strong>
+                                            </span>
+                                        </div>
+
+                                        <div class="portal-operation-admin-note__item portal-operation-admin-note__item--comment">
+                                            <span>
+                                                <small>Comentario gestor</small>
+                                                <strong>{{ filled($operacion->operational_conditions) ? $operacion->operational_conditions : 'Sin comentario del gestor' }}</strong>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="portal-operation-card-timeline">
+                                        @foreach ($this->operationTimelineSteps($operacion) as $step)
+                                            <div class="portal-operation-card-timeline__step {{ $step['completed'] ? 'portal-operation-card-timeline__step--completed' : '' }}">
+                                                <span>
+                                                    @if ($step['completed'])
+                                                        <flux:icon icon="check" variant="micro" class="size-3.5" />
+                                                    @else
+                                                        {{ $loop->iteration }}
+                                                    @endif
                                                 </span>
-                                            @endforeach
-                                        </div>
+                                                <div>
+                                                    <strong>{{ $step['label'] }}</strong>
+                                                    <small>{{ $step['meta'] }}</small>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
-
-                                    <flux:button as="a" variant="primary" :href="route('operaciones.tramites-aprobados', $operacion)" wire:navigate>
-                                        <flux:icon icon="document-text" variant="mini" class="size-4" />
-                                        Ver tramites aprobados
-                                    </flux:button>
-                                </div>
-                            </div>
-
-                            <div class="portal-operation-confirmed-card">
-                                <div class="portal-record-card__badges">
-                                    <span class="{{ $this->operationStatusBadgeClass($operacion) }}">
-                                        {{ $this->operationStatusLabel($operacion) }}
-                                    </span>
                                 </div>
 
-                                <div class="portal-operation-confirmed-summary">
-                                    <span>Coste: {{ $this->formatCurrencyValue($operacion->operation_cost) }}</span>
-                                    <span>Condiciones: {{ $operacion->operational_conditions ?: 'Sin definir' }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if ($operacion->isPending())
-                            <div class="portal-operation-status-panel portal-operation-status-panel--pending">
-                                <p class="portal-operation-status-panel__title">
-                                    <span class="inline-flex items-center gap-2">
-                                        <flux:icon icon="information-circle" variant="mini" class="size-4 text-sky-600 dark:text-sky-400" />
-                                        <span>Operacion pendiente</span>
-                                    </span>
-                                </p>
-                                <p class="portal-operation-status-panel__text">
-                                    La operacion esta pendiente de revision por parte del gestor.
-                                </p>
-                            </div>
-                        @elseif ($operacion->isRejected())
-                            <div class="portal-operation-status-panel portal-operation-status-panel--rejected">
-                                <p class="portal-operation-status-panel__title">
-                                    <span class="inline-flex items-center gap-2">
-                                        <flux:icon icon="exclamation-triangle" variant="mini" class="size-4 text-red-600 dark:text-red-400" />
-                                        <span>Operacion rechazada</span>
-                                    </span>
-                                </p>
-                                <p class="portal-operation-status-panel__text">
-                                    La operacion ha sido rechazada por el gestor. Esta operacion ya no requiere mas accion.
-                                </p>
-                            </div>
-                        @endif
-
-                        <div class="portal-operation-info-grid">
-                            <div class="portal-operation-info-card">
-                                <div class="portal-operation-info-card__icon-wrap">
-                                    <flux:icon icon="calendar-days" variant="mini" class="portal-operation-info-card__icon" />
-                                </div>
-                                <div class="portal-operation-info-card__content">
-                                    <p class="portal-operation-overview__label">Fecha</p>
-                                    <p class="portal-operation-info-card__value">{{ $this->formatDateValue($operacion->operation_date) }}</p>
-                                </div>
-                            </div>
-
-                            <div class="portal-operation-info-card">
-                                <div class="portal-operation-info-card__icon-wrap">
-                                    <flux:icon icon="clock" variant="mini" class="portal-operation-info-card__icon" />
-                                </div>
-                                <div class="portal-operation-info-card__content">
-                                    <p class="portal-operation-overview__label">Hora / rodaje estimado</p>
-                                    <p class="portal-operation-info-card__value">{{ $operacion->estimated_filming_schedule ?: 'Sin definir' }}</p>
-                                </div>
-                            </div>
-
-                            <div class="portal-operation-info-card portal-operation-info-card--wide">
-                                <div class="portal-operation-info-card__icon-wrap">
-                                    <flux:icon icon="map-pin" variant="mini" class="portal-operation-info-card__icon" />
-                                </div>
-                                <div class="portal-operation-info-card__content">
-                                    <p class="portal-operation-overview__label">Direccion</p>
-                                    <p class="portal-operation-info-card__value">{{ $this->operationAddressLabel($operacion) }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        @if ($operacion->isConfirmed())
-                            <div class="portal-operation-progress portal-operation-progress--card">
-                                @foreach ($this->operationTimelineSteps($operacion) as $step)
-                                    <div class="portal-operation-progress__step">
-                                        <div class="portal-operation-progress__track">
-                                            <span class="portal-operation-progress__circle {{ $step['completed'] ? 'portal-operation-progress__circle--completed' : '' }}">
-                                                @if ($step['completed'])
-                                                    <flux:icon icon="check" variant="micro" class="size-3.5" />
-                                                @else
-                                                    {{ $loop->iteration }}
-                                                @endif
+                                <aside class="portal-operation-list-card__side">
+                                    <div class="portal-operation-side-grid">
+                                        <div class="portal-operation-side-card">
+                                            <flux:icon icon="user" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Piloto</small>
+                                                <strong>{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</strong>
                                             </span>
-
-                                            @if (! $loop->last)
-                                                <span class="portal-operation-progress__line {{ $step['completed'] ? 'portal-operation-progress__line--completed' : '' }}"></span>
-                                            @endif
                                         </div>
 
-                                        <div class="portal-operation-progress__content">
-                                            <p class="portal-operation-progress__label">{{ $step['label'] }}</p>
-                                            <p class="portal-operation-progress__meta">{{ $step['meta'] }}</p>
+                                        <div class="portal-operation-side-card">
+                                            <flux:icon icon="paper-airplane" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Dron</small>
+                                                <strong>{{ $this->operationDronLabel($operacion) }}</strong>
+                                            </span>
+                                        </div>
+
+                                        <div class="portal-operation-side-card">
+                                            <flux:icon icon="arrows-up-down" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Altitud</small>
+                                                <strong>{{ $this->formatMetric($operacion->altitude, 'm') }}</strong>
+                                            </span>
+                                        </div>
+
+                                        <div class="portal-operation-side-card">
+                                            <flux:icon icon="rss" variant="mini" class="size-4" />
+                                            <span>
+                                                <small>Radio</small>
+                                                <strong>{{ $this->formatMetric($operacion->operation_radius, 'm') }}</strong>
+                                            </span>
                                         </div>
                                     </div>
-                                @endforeach
-                            </div>
 
-                            <div class="portal-operation-assets portal-operation-assets--compact">
-                                <div class="portal-operation-asset portal-operation-asset--compact">
-                                    <div class="portal-operation-asset__icon-wrap">
-                                        <flux:icon icon="user" variant="mini" class="portal-operation-asset__icon" />
-                                    </div>
-                                    <div class="portal-operation-asset__stack">
-                                        <div class="portal-operation-asset__content">
-                                            <p class="portal-operation-overview__label">Piloto</p>
-                                            <p class="portal-operation-overview__value">{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</p>
-                                        </div>
-                                        @if (filled($operacion->piloto?->fullName()) && filled($operacion->piloto?->pilot_identification_number))
-                                            <span class="portal-chip portal-chip--success">Verificado</span>
+                                    <div class="portal-operation-card-actions">
+                                        @if ($operacion->isConfirmed())
+                                            <a href="{{ $primaryActionHref }}" wire:navigate class="portal-operation-card-action portal-operation-card-action--primary">
+                                                {{ $primaryActionLabel }}
+                                            </a>
+                                        @elseif ($operacion->isPending())
+                                            <button type="button" wire:click="edit({{ $operacion->id }})" class="portal-operation-card-action portal-operation-card-action--primary">
+                                                Editar operacion
+                                            </button>
+                                            <button type="button" wire:click="delete({{ $operacion->id }})" class="portal-operation-card-action portal-operation-card-action--danger">
+                                                Borrar operacion
+                                            </button>
+                                        @else
+                                            <span class="portal-operation-card-action portal-operation-card-action--muted">
+                                                Sin acciones pendientes
+                                            </span>
                                         @endif
                                     </div>
-                                </div>
-
-                                <div class="portal-operation-asset portal-operation-asset--compact">
-                                    <div class="portal-operation-asset__icon-wrap">
-                                        <flux:icon icon="paper-airplane" variant="mini" class="portal-operation-asset__icon" />
-                                    </div>
-                                    <div class="portal-operation-asset__stack">
-                                        <div class="portal-operation-asset__content">
-                                            <p class="portal-operation-overview__label">Dron</p>
-                                            <p class="portal-operation-overview__value">{{ $this->operationDronLabel($operacion) }}</p>
-                                        </div>
-                                        @if ($operacion->dron?->registration_not_applicable)
-                                            <span class="portal-chip portal-chip--neutral">Matricula: No aplica</span>
-                                        @elseif (filled($operacion->dron?->registration_number))
-                                            <span class="portal-chip portal-chip--success">Matricula: {{ $operacion->dron->registrationLabel() }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="portal-operation-asset portal-operation-asset--compact portal-operation-asset--metric">
-                                    <div class="portal-operation-asset__icon-wrap">
-                                        <flux:icon icon="arrows-up-down" variant="mini" class="portal-operation-asset__icon" />
-                                    </div>
-                                    <div class="portal-operation-asset__content">
-                                        <p class="portal-operation-overview__label">Altitud</p>
-                                        <p class="portal-operation-overview__value">{{ $this->formatMetric($operacion->altitude, 'm') }}</p>
-                                    </div>
-                                </div>
-
-                                <div class="portal-operation-asset portal-operation-asset--compact portal-operation-asset--metric">
-                                    <div class="portal-operation-asset__icon-wrap">
-                                        <flux:icon icon="rss" variant="mini" class="portal-operation-asset__icon" />
-                                    </div>
-                                    <div class="portal-operation-asset__content">
-                                        <p class="portal-operation-overview__label">Radio</p>
-                                        <p class="portal-operation-overview__value">{{ $this->formatMetric($operacion->operation_radius, 'm') }}</p>
-                                    </div>
-                                </div>
+                                </aside>
                             </div>
-
-                        @else
-                            <div class="portal-operation-info-grid portal-operation-info-grid--secondary">
-                                <div class="portal-operation-info-card">
-                                    <div class="portal-operation-info-card__icon-wrap">
-                                        <flux:icon icon="user" variant="mini" class="portal-operation-info-card__icon" />
-                                    </div>
-                                    <div class="portal-operation-info-card__content">
-                                        <p class="portal-operation-overview__label">Piloto</p>
-                                        <p class="portal-operation-info-card__value">{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</p>
-                                    </div>
-                                </div>
-
-                                <div class="portal-operation-info-card">
-                                    <div class="portal-operation-info-card__icon-wrap">
-                                        <flux:icon icon="paper-airplane" variant="mini" class="portal-operation-info-card__icon" />
-                                    </div>
-                                    <div class="portal-operation-info-card__content">
-                                        <p class="portal-operation-overview__label">Dron</p>
-                                        <p class="portal-operation-info-card__value">{{ $this->operationDronLabel($operacion) }}</p>
-                                    </div>
-                                </div>
-
-                                <div class="portal-operation-info-card">
-                                    <div class="portal-operation-info-card__icon-wrap">
-                                        <flux:icon icon="arrows-up-down" variant="mini" class="portal-operation-info-card__icon" />
-                                    </div>
-                                    <div class="portal-operation-info-card__content">
-                                        <p class="portal-operation-overview__label">Altitud</p>
-                                        <p class="portal-operation-info-card__value">{{ $this->formatMetric($operacion->altitude, 'm') }}</p>
-                                    </div>
-                                </div>
-
-                                <div class="portal-operation-info-card">
-                                    <div class="portal-operation-info-card__icon-wrap">
-                                        <flux:icon icon="rss" variant="mini" class="portal-operation-info-card__icon" />
-                                    </div>
-                                    <div class="portal-operation-info-card__content">
-                                        <p class="portal-operation-overview__label">Radio</p>
-                                        <p class="portal-operation-info-card__value">{{ $this->formatMetric($operacion->operation_radius, 'm') }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
+                        </details>
+                    @endforeach
+                </div>
             @endif
         @endif
     </x-pages::settings.layout>

@@ -564,12 +564,169 @@ select:focus[data-flux-control] {
         @apply mt-5 flex flex-wrap gap-2;
     }
 
+    .operadora-status-summary-grid {
+        @apply grid gap-4 md:grid-cols-2 xl:grid-cols-5;
+    }
+
+    .operadora-status-summary-card {
+        @apply flex min-w-0 items-center gap-4 rounded-[1.35rem] border bg-white p-5 shadow-sm dark:bg-neutral-900;
+    }
+
+    .operadora-status-summary-card--total {
+        @apply border-blue-200 dark:border-blue-900/70;
+    }
+
+    .operadora-status-summary-card--pending {
+        @apply border-red-200 bg-red-50/45 dark:border-red-900/70 dark:bg-red-950/15;
+    }
+
+    .operadora-status-summary-card--review {
+        @apply border-amber-200 bg-amber-50/45 dark:border-amber-900/70 dark:bg-amber-950/15;
+    }
+
+    .operadora-status-summary-card--approved {
+        @apply border-emerald-200 bg-emerald-50/45 dark:border-emerald-900/70 dark:bg-emerald-950/15;
+    }
+
+    .operadora-status-summary-card--changes {
+        @apply border-red-300 bg-red-50/65 dark:border-red-800 dark:bg-red-950/25;
+    }
+
+    .operadora-status-summary-card__icon {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full border bg-white shadow-sm dark:bg-neutral-950/70;
+    }
+
+    .operadora-status-summary-card--total .operadora-status-summary-card__icon {
+        @apply border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-300;
+    }
+
+    .operadora-status-summary-card--pending .operadora-status-summary-card__icon {
+        @apply border-red-200 text-red-700 dark:border-red-800 dark:text-red-300;
+    }
+
+    .operadora-status-summary-card--review .operadora-status-summary-card__icon {
+        @apply border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300;
+    }
+
+    .operadora-status-summary-card--approved .operadora-status-summary-card__icon {
+        @apply border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300;
+    }
+
+    .operadora-status-summary-card--changes .operadora-status-summary-card__icon {
+        @apply border-red-300 text-red-700 dark:border-red-700 dark:text-red-300;
+    }
+
+    .operadora-status-summary-card small {
+        @apply block text-sm font-medium text-neutral-700 dark:text-neutral-200;
+    }
+
+    .operadora-status-summary-card strong {
+        @apply mt-1 block text-3xl font-semibold leading-none text-neutral-950 dark:text-white;
+    }
+
+    .operadora-status-summary-card em {
+        @apply mt-2 block text-xs font-medium not-italic text-neutral-500 dark:text-neutral-400;
+    }
+
     .operadora-section-card {
         @apply rounded-[1.35rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:p-6;
     }
 
     .operadora-section-card--profile {
         @apply border-neutral-300 bg-neutral-100/75 dark:border-neutral-700 dark:bg-neutral-900/70;
+    }
+
+    .operadora-certificate-card {
+        @apply rounded-[1.35rem] border bg-white p-5 shadow-sm dark:bg-neutral-900 md:p-6;
+    }
+
+    .operadora-certificate-card--pending {
+        @apply border-red-200 bg-red-50/65 dark:border-red-800 dark:bg-red-950/15;
+    }
+
+    .operadora-certificate-card--review {
+        @apply border-amber-200 bg-amber-50/65 dark:border-amber-800 dark:bg-amber-950/15;
+    }
+
+    .operadora-certificate-card--changes {
+        @apply border-red-300 bg-red-50/80 dark:border-red-700 dark:bg-red-950/25;
+    }
+
+    .operadora-certificate-card--approved {
+        @apply border-emerald-200 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-950/15;
+    }
+
+    .operadora-certificate-card__header {
+        @apply flex flex-wrap items-start justify-between gap-4;
+    }
+
+    .operadora-certificate-card__title {
+        @apply flex min-w-0 items-start gap-3;
+    }
+
+    .operadora-certificate-card__icon {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-200 dark:bg-sky-950/30 dark:text-sky-300 dark:ring-sky-800;
+    }
+
+    .operadora-certificate-card--pending .operadora-certificate-card__icon,
+    .operadora-certificate-card--changes .operadora-certificate-card__icon {
+        @apply bg-red-50 text-red-600 ring-red-200 dark:bg-red-950/30 dark:text-red-300 dark:ring-red-800;
+    }
+
+    .operadora-certificate-card--review .operadora-certificate-card__icon {
+        @apply bg-amber-50 text-amber-600 ring-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:ring-amber-800;
+    }
+
+    .operadora-certificate-card--approved .operadora-certificate-card__icon {
+        @apply bg-emerald-50 text-emerald-600 ring-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:ring-emerald-800;
+    }
+
+    .operadora-certificate-card__title h2 {
+        @apply text-xl font-semibold tracking-tight text-neutral-900 dark:text-white;
+    }
+
+    .operadora-certificate-card__title p {
+        @apply mt-1 text-sm leading-6 text-neutral-500 dark:text-neutral-300;
+    }
+
+    .operadora-certificate-guide {
+        @apply mt-5 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold leading-6 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200;
+    }
+
+    .operadora-certificate-guide svg {
+        @apply mt-0.5 shrink-0;
+    }
+
+    .operadora-certificate-steps {
+        @apply mt-5 grid gap-5 xl:grid-cols-2;
+    }
+
+    .operadora-certificate-step {
+        @apply min-w-0 rounded-[1.1rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-950/35;
+    }
+
+    .operadora-certificate-card--pending .operadora-certificate-step {
+        @apply border-red-200 bg-white/85 dark:border-red-800 dark:bg-red-950/10;
+    }
+
+    .operadora-certificate-card--review .operadora-certificate-step {
+        @apply border-amber-200 bg-white/85 dark:border-amber-800 dark:bg-amber-950/10;
+    }
+
+    .operadora-certificate-card--changes .operadora-certificate-step {
+        @apply border-red-200 bg-white/85 dark:border-red-800 dark:bg-red-950/15;
+    }
+
+    .operadora-certificate-card--approved .operadora-certificate-step {
+        @apply border-emerald-200 bg-white/85 dark:border-emerald-800 dark:bg-emerald-950/10;
+    }
+
+    .operadora-certificate-step .operadora-card-heading h3 {
+        @apply flex items-center gap-3;
+    }
+
+    .operadora-certificate-step .operadora-card-heading h3 span {
+        @apply inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-sm font-bold text-white shadow-sm dark:bg-sky-500;
     }
 
     .operadora-section-card__header {
@@ -785,7 +942,7 @@ select:focus[data-flux-control] {
     }
 
     .operadora-filter-statuses {
-        @apply gap-2 xl:grid-cols-4;
+        @apply gap-2 xl:grid-cols-5;
     }
 
     .operadora-filter-statuses--type {
@@ -806,6 +963,10 @@ select:focus[data-flux-control] {
 
     .operadora-filter-option--review .portal-filter-option__dot {
         @apply border-amber-400 bg-amber-400;
+    }
+
+    .operadora-filter-option--changes .portal-filter-option__dot {
+        @apply border-red-500 bg-red-500;
     }
 
     .operadora-filter-option--approved .portal-filter-option__dot {
@@ -1427,6 +1588,272 @@ select:focus[data-flux-control] {
         @apply mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300;
     }
 
+    .portal-tramites-hero {
+        @apply mt-5 rounded-[1.75rem] border p-6 shadow-sm dark:bg-neutral-900 md:p-8;
+    }
+
+    .portal-tramites-hero--active,
+    .portal-tramites-hero--approved {
+        @apply border-emerald-200 bg-gradient-to-br from-emerald-50/90 via-white to-sky-50/60 dark:border-emerald-800 dark:from-emerald-950/25 dark:via-neutral-900 dark:to-sky-950/15;
+    }
+
+    .portal-tramites-hero__header {
+        @apply space-y-4;
+    }
+
+    .portal-tramites-status {
+        @apply inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300;
+    }
+
+    .portal-tramites-hero__title {
+        @apply text-3xl font-semibold tracking-tight text-neutral-950 dark:text-white md:text-4xl;
+    }
+
+    .portal-tramites-hero__title span {
+        @apply block text-neutral-800 dark:text-neutral-100;
+    }
+
+    .portal-tramites-info-grid {
+        @apply mt-6 grid gap-4 lg:grid-cols-3;
+    }
+
+    .portal-tramites-info-card {
+        @apply flex min-w-0 items-center gap-4 rounded-[1.35rem] border border-neutral-200 bg-white/90 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-950/45;
+    }
+
+    .portal-tramites-info-card__icon {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-300;
+    }
+
+    .portal-tramites-info-card small,
+    .portal-tramites-asset-card small {
+        @apply block text-[0.68rem] font-bold uppercase tracking-[0.14em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-tramites-info-card strong,
+    .portal-tramites-asset-card strong {
+        @apply mt-1 block text-base font-semibold text-neutral-950 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-tramites-timeline {
+        @apply mt-7 grid gap-4 overflow-x-auto pb-2 md:grid-cols-4 md:overflow-visible md:pb-0;
+    }
+
+    .portal-tramites-timeline__step {
+        @apply min-w-36;
+    }
+
+    .portal-tramites-timeline__track {
+        @apply flex items-center;
+    }
+
+    .portal-tramites-timeline__circle {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-neutral-300 bg-white text-sm font-bold text-neutral-500 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300;
+    }
+
+    .portal-tramites-timeline__step--completed .portal-tramites-timeline__circle {
+        @apply border-emerald-500 bg-emerald-500 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950;
+    }
+
+    .portal-tramites-timeline__line {
+        @apply ml-2 h-0.5 flex-1 rounded-full bg-neutral-200 dark:bg-neutral-700;
+    }
+
+    .portal-tramites-timeline__step--completed .portal-tramites-timeline__line {
+        @apply bg-emerald-500 dark:bg-emerald-400;
+    }
+
+    .portal-tramites-timeline__content {
+        @apply mt-3;
+    }
+
+    .portal-tramites-timeline__content strong {
+        @apply block text-sm font-bold text-neutral-900 dark:text-white;
+    }
+
+    .portal-tramites-timeline__content small {
+        @apply mt-1 block text-sm font-medium text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-tramites-asset-grid {
+        @apply mt-5 grid gap-4 lg:grid-cols-2;
+    }
+
+    .portal-tramites-asset-card {
+        @apply flex min-w-0 flex-wrap items-center gap-4 rounded-[1.35rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
+    }
+
+    .portal-tramites-asset-card__content {
+        @apply min-w-0 flex-1;
+    }
+
+    .portal-tramites-asset-card__icon {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/35 dark:text-emerald-300;
+    }
+
+    .portal-tramites-panel {
+        @apply mt-5 rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900 md:p-6;
+    }
+
+    .portal-tramites-panel__header {
+        @apply flex flex-wrap items-start justify-between gap-4;
+    }
+
+    .portal-tramites-panel__header h2 {
+        @apply text-2xl font-semibold tracking-tight text-neutral-950 dark:text-white;
+    }
+
+    .portal-tramites-panel__header p {
+        @apply mt-2 text-sm font-medium text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-tramites-summary {
+        @apply grid w-full gap-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-2 dark:border-neutral-700 dark:bg-neutral-950/35 sm:grid-cols-2 xl:w-auto xl:grid-cols-4;
+    }
+
+    .portal-tramites-summary__item {
+        @apply inline-flex min-h-11 items-center justify-between gap-4 rounded-xl border bg-white px-4 text-sm font-semibold shadow-sm dark:bg-neutral-900;
+    }
+
+    .portal-tramites-summary__item strong {
+        @apply text-2xl font-semibold leading-none;
+    }
+
+    .portal-tramites-summary__item--pending {
+        @apply border-sky-200 text-sky-700 dark:border-sky-800 dark:text-sky-300;
+    }
+
+    .portal-tramites-summary__item--processed {
+        @apply border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300;
+    }
+
+    .portal-tramites-summary__item--denied {
+        @apply border-red-200 text-red-700 dark:border-red-800 dark:text-red-300;
+    }
+
+    .portal-tramites-summary__item--approved {
+        @apply border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300;
+    }
+
+    .portal-tramites-list {
+        @apply mt-5 grid gap-4;
+    }
+
+    .portal-tramites-row {
+        @apply grid gap-4 rounded-[1.35rem] border bg-white p-4 shadow-sm dark:bg-neutral-950/40 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.2fr)];
+    }
+
+    .portal-tramites-row--pending {
+        @apply border-sky-200 bg-sky-50/65 dark:border-sky-800 dark:bg-sky-950/15;
+    }
+
+    .portal-tramites-row--processed {
+        @apply border-amber-200 bg-amber-50/65 dark:border-amber-800 dark:bg-amber-950/15;
+    }
+
+    .portal-tramites-row--denied {
+        @apply border-red-200 bg-red-50/70 dark:border-red-800 dark:bg-red-950/15;
+    }
+
+    .portal-tramites-row--approved {
+        @apply border-emerald-200 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-950/15;
+    }
+
+    .portal-tramites-row__main {
+        @apply flex min-w-0 items-start gap-4;
+    }
+
+    .portal-tramites-row__icon {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full border bg-white shadow-sm dark:bg-neutral-900;
+    }
+
+    .portal-tramites-row--pending .portal-tramites-row__icon {
+        @apply border-sky-200 text-sky-700 dark:border-sky-800 dark:text-sky-300;
+    }
+
+    .portal-tramites-row--processed .portal-tramites-row__icon {
+        @apply border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300;
+    }
+
+    .portal-tramites-row--denied .portal-tramites-row__icon {
+        @apply border-red-200 text-red-700 dark:border-red-800 dark:text-red-300;
+    }
+
+    .portal-tramites-row--approved .portal-tramites-row__icon {
+        @apply border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300;
+    }
+
+    .portal-tramites-row__copy {
+        @apply min-w-0 pt-1;
+    }
+
+    .portal-tramites-row__title-line {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .portal-tramites-row__title-line h3 {
+        @apply text-xl font-semibold tracking-tight text-neutral-950 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-tramites-row__copy p {
+        @apply mt-3 text-sm font-medium leading-6 text-neutral-600 dark:text-neutral-300;
+    }
+
+    .portal-tramites-row__documents {
+        @apply min-w-0;
+    }
+
+    .portal-tramites-file-list {
+        @apply grid gap-2;
+    }
+
+    .portal-tramites-file {
+        @apply flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-neutral-200 bg-white/85 p-3 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/75;
+    }
+
+    .portal-tramites-file__icon {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-[0.62rem] font-black text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-tramites-file strong {
+        @apply min-w-0 flex-1 text-sm font-semibold text-neutral-950 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-tramites-file__actions {
+        @apply flex flex-wrap gap-2;
+    }
+
+    .portal-tramites-file-action {
+        @apply inline-flex min-h-10 items-center justify-center rounded-lg border px-4 text-sm font-bold transition;
+    }
+
+    .portal-tramites-file-action--ghost {
+        @apply border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-200;
+    }
+
+    .portal-tramites-file-action--primary {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-tramites-empty-doc {
+        @apply flex min-w-0 items-start gap-3 rounded-xl border border-dashed border-neutral-300 bg-white/70 p-4 dark:border-neutral-700 dark:bg-neutral-950/35;
+    }
+
+    .portal-tramites-empty-doc > span {
+        @apply flex size-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-300;
+    }
+
+    .portal-tramites-empty-doc strong {
+        @apply text-sm font-semibold text-neutral-900 dark:text-white;
+    }
+
+    .portal-tramites-empty-doc p {
+        @apply mt-1 text-sm font-medium leading-5 text-neutral-600 dark:text-neutral-300;
+    }
+
     .portal-toolbar {
         @apply flex flex-wrap items-start justify-between gap-4;
     }
@@ -1874,6 +2301,478 @@ select:focus[data-flux-control] {
 
     .portal-filter-reset {
         @apply inline-flex h-14 w-full items-center justify-center rounded-2xl border border-neutral-200 bg-white px-5 text-base font-medium text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950/50 dark:text-neutral-200 lg:w-auto;
+    }
+
+    .portal-operation-summary-grid {
+        @apply mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .portal-operation-summary-card {
+        @apply flex min-w-0 items-center gap-5 rounded-[1.35rem] border bg-white p-5 shadow-sm dark:bg-neutral-900;
+    }
+
+    .portal-operation-summary-card--total {
+        @apply border-blue-200 dark:border-blue-900/70;
+    }
+
+    .portal-operation-summary-card--pending {
+        @apply border-amber-200 dark:border-amber-900/70;
+    }
+
+    .portal-operation-summary-card--confirmed {
+        @apply border-emerald-200 dark:border-emerald-900/70;
+    }
+
+    .portal-operation-summary-card--rejected {
+        @apply border-red-200 dark:border-red-900/70;
+    }
+
+    .portal-operation-summary-card__icon {
+        @apply flex size-14 shrink-0 items-center justify-center rounded-full border;
+    }
+
+    .portal-operation-summary-card--total .portal-operation-summary-card__icon {
+        @apply border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300;
+    }
+
+    .portal-operation-summary-card--pending .portal-operation-summary-card__icon {
+        @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300;
+    }
+
+    .portal-operation-summary-card--confirmed .portal-operation-summary-card__icon {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-operation-summary-card--rejected .portal-operation-summary-card__icon {
+        @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-operation-summary-card small {
+        @apply block text-sm font-medium text-neutral-700 dark:text-neutral-200;
+    }
+
+    .portal-operation-summary-card strong {
+        @apply mt-1 block text-3xl font-semibold leading-none text-neutral-950 dark:text-white;
+    }
+
+    .portal-operation-summary-card em {
+        @apply mt-2 block text-xs font-medium not-italic text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-operations-filter {
+        @apply mt-4 grid gap-4 rounded-[1.35rem] border border-neutral-200 bg-white/95 p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/80 lg:grid-cols-2 xl:grid-cols-12 xl:items-end;
+    }
+
+    .portal-operations-filter__search {
+        @apply xl:col-span-3;
+    }
+
+    .portal-operations-filter__status {
+        @apply flex flex-col gap-2 lg:col-span-2 xl:col-span-5;
+    }
+
+    .portal-operations-filter__label,
+    .portal-operations-filter__field > span {
+        @apply text-xs font-semibold uppercase tracking-[0.12em] text-neutral-700 dark:text-neutral-300;
+    }
+
+    .portal-operations-filter__field {
+        @apply flex min-w-0 flex-col gap-2;
+    }
+
+    .portal-operations-filter__input {
+        @apply h-12 min-w-0 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-medium text-neutral-700 shadow-sm outline-hidden transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:focus:border-white dark:focus:ring-white/10;
+    }
+
+    .portal-operations-filter__field--pilot,
+    .portal-operations-filter__field--dron {
+        @apply xl:col-span-2;
+    }
+
+    .portal-operations-filter__field--date-from,
+    .portal-operations-filter__field--date-to {
+        @apply xl:col-span-3;
+    }
+
+    .portal-operations-filter__status-grid {
+        @apply grid gap-3 sm:grid-cols-2 lg:grid-cols-4;
+    }
+
+    .portal-operation-filter-pill {
+        @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950/60 dark:text-neutral-200;
+    }
+
+    .portal-operation-filter-pill span {
+        @apply size-2.5 rounded-full bg-neutral-400;
+    }
+
+    .portal-operation-filter-pill--all span {
+        @apply bg-neutral-900 dark:bg-white;
+    }
+
+    .portal-operation-filter-pill--pending span {
+        @apply bg-amber-500;
+    }
+
+    .portal-operation-filter-pill--rejected span {
+        @apply bg-red-500;
+    }
+
+    .portal-operation-filter-pill--confirmed span {
+        @apply bg-emerald-500;
+    }
+
+    .portal-operation-filter-pill--active {
+        @apply border-neutral-950 bg-neutral-950 text-white dark:border-white dark:bg-white dark:text-neutral-950;
+    }
+
+    .portal-operation-filter-pill--active span {
+        @apply bg-white dark:bg-neutral-950;
+    }
+
+    .portal-operations-filter__actions {
+        @apply flex min-h-12 items-end lg:col-span-2 xl:col-span-3 xl:col-start-10;
+    }
+
+    .portal-operations-filter__reset {
+        @apply inline-flex h-12 w-full items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-950/60 dark:text-neutral-200;
+    }
+
+    .portal-operation-card-list {
+        @apply mt-5 grid gap-4;
+    }
+
+    .portal-operation-list-card {
+        @apply overflow-hidden rounded-[1.35rem] border bg-white shadow-sm dark:bg-neutral-900;
+    }
+
+    .portal-operation-list-card--approved {
+        @apply border-emerald-300 bg-emerald-50/70 dark:border-emerald-700 dark:bg-emerald-950/20;
+        box-shadow: 0 20px 42px -32px rgba(16, 185, 129, 0.34);
+    }
+
+    .portal-operation-list-card--confirmed {
+        @apply border-emerald-300 bg-amber-50/65 dark:border-emerald-800 dark:bg-amber-950/10;
+        box-shadow: 0 20px 42px -32px rgba(245, 158, 11, 0.2);
+    }
+
+    .portal-operation-list-card--pending {
+        @apply border-amber-300 bg-amber-50/75 dark:border-amber-800 dark:bg-amber-950/15;
+        box-shadow: 0 20px 42px -32px rgba(245, 158, 11, 0.28);
+    }
+
+    .portal-operation-list-card--rejected {
+        @apply border-red-300 bg-red-50/75 dark:border-red-800 dark:bg-red-950/15;
+        box-shadow: 0 20px 42px -32px rgba(239, 68, 68, 0.26);
+    }
+
+    .portal-operation-list-card__header {
+        @apply flex cursor-pointer list-none flex-wrap items-start justify-between gap-4 border-neutral-200 bg-white/80 px-5 py-4 transition dark:border-neutral-800 dark:bg-neutral-900/80;
+    }
+
+    .portal-operation-list-card__header::-webkit-details-marker {
+        display: none;
+    }
+
+    .portal-operation-list-card__header::marker {
+        content: "";
+    }
+
+    .portal-operation-list-card[open] > .portal-operation-list-card__header {
+        @apply border-b;
+    }
+
+    .portal-operation-list-card--approved .portal-operation-list-card__header {
+        @apply border-emerald-200 bg-emerald-50/90 dark:border-emerald-800 dark:bg-emerald-950/30;
+    }
+
+    .portal-operation-list-card--confirmed .portal-operation-list-card__header {
+        @apply border-emerald-200 bg-emerald-50/90 dark:border-emerald-800 dark:bg-emerald-950/30;
+    }
+
+    .portal-operation-list-card--pending .portal-operation-list-card__header {
+        @apply border-amber-200 bg-amber-50/90 dark:border-amber-800 dark:bg-amber-950/30;
+    }
+
+    .portal-operation-list-card--rejected .portal-operation-list-card__header {
+        @apply border-red-200 bg-red-50/90 dark:border-red-800 dark:bg-red-950/30;
+    }
+
+    .portal-operation-list-card__title-wrap {
+        @apply min-w-0 flex flex-1 flex-wrap items-center gap-x-4 gap-y-2;
+    }
+
+    .portal-operation-list-card__title-wrap h2 {
+        @apply text-2xl font-semibold uppercase tracking-tight text-neutral-950 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-list-card__summary-actions {
+        @apply ml-auto flex max-w-full shrink-0 flex-wrap items-center justify-end gap-3;
+    }
+
+    .portal-operation-toggle-indicator {
+        @apply inline-flex size-9 shrink-0 items-center justify-center rounded-full border bg-white text-xl font-bold leading-none shadow-sm transition dark:bg-neutral-950/60;
+    }
+
+    .portal-operation-toggle-indicator::before {
+        content: "+";
+        transform: translateY(-1px);
+    }
+
+    .portal-operation-list-card[open] .portal-operation-toggle-indicator::before {
+        content: "-";
+        transform: translateY(-2px);
+    }
+
+    .portal-operation-list-card--approved .portal-operation-toggle-indicator,
+    .portal-operation-list-card--confirmed .portal-operation-toggle-indicator {
+        @apply border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300;
+    }
+
+    .portal-operation-list-card--pending .portal-operation-toggle-indicator {
+        @apply border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-300;
+    }
+
+    .portal-operation-list-card--rejected .portal-operation-toggle-indicator {
+        @apply border-red-200 text-red-700 dark:border-red-800 dark:text-red-300;
+    }
+
+    .portal-operation-status-pill,
+    .portal-operation-doc-pill {
+        @apply inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-bold uppercase tracking-[0.08em];
+    }
+
+    .portal-operation-status-pill--approved,
+    .portal-operation-status-pill--confirmed,
+    .portal-operation-doc-pill--approved {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-operation-status-pill--pending,
+    .portal-operation-doc-pill--pending {
+        @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300;
+    }
+
+    .portal-operation-doc-pill--partial {
+        @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300;
+    }
+
+    .portal-operation-status-pill--rejected,
+    .portal-operation-doc-pill--rejected,
+    .portal-operation-doc-pill--danger {
+        @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-operation-list-card__body {
+        @apply grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_minmax(20rem,24rem)];
+    }
+
+    .portal-operation-list-card--approved .portal-operation-list-card__body {
+        @apply bg-emerald-50/45 dark:bg-emerald-950/10;
+    }
+
+    .portal-operation-list-card--confirmed .portal-operation-list-card__body {
+        @apply bg-amber-50/50 dark:bg-amber-950/10;
+    }
+
+    .portal-operation-list-card--pending .portal-operation-list-card__body {
+        @apply bg-amber-50/55 dark:bg-amber-950/10;
+    }
+
+    .portal-operation-list-card--rejected .portal-operation-list-card__body {
+        @apply bg-red-50/55 dark:bg-red-950/10;
+    }
+
+    .portal-operation-list-card__main {
+        @apply min-w-0 space-y-4;
+    }
+
+    .portal-operation-doc-strip {
+        @apply grid min-w-0 items-center gap-3 rounded-xl border p-3 md:grid-cols-[auto_minmax(0,1fr)_repeat(4,auto)];
+    }
+
+    .portal-operation-doc-strip--approved {
+        @apply border-emerald-200 bg-emerald-50/80 dark:border-emerald-800 dark:bg-emerald-950/20;
+    }
+
+    .portal-operation-doc-strip--pending,
+    .portal-operation-doc-strip--partial {
+        @apply border-amber-200 bg-amber-50/80 dark:border-amber-800 dark:bg-amber-950/20;
+    }
+
+    .portal-operation-doc-strip--danger,
+    .portal-operation-doc-strip--rejected {
+        @apply border-red-200 bg-red-50/80 dark:border-red-800 dark:bg-red-950/20;
+    }
+
+    .portal-operation-doc-strip__icon {
+        @apply flex size-10 items-center justify-center rounded-lg bg-white text-neutral-700 shadow-sm dark:bg-neutral-900 dark:text-neutral-200;
+    }
+
+    .portal-operation-doc-strip__text {
+        @apply min-w-0 text-sm font-semibold leading-5 text-neutral-800 dark:text-neutral-100;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-count-pill {
+        @apply inline-flex min-h-8 items-center justify-center gap-2 whitespace-nowrap rounded-full border px-3 text-xs font-semibold;
+    }
+
+    .portal-operation-count-pill b {
+        @apply rounded-full bg-white/80 px-2 py-0.5 text-xs dark:bg-neutral-950/60;
+    }
+
+    .portal-operation-count-pill--pending {
+        @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300;
+    }
+
+    .portal-operation-count-pill--processed {
+        @apply border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300;
+    }
+
+    .portal-operation-count-pill--denied {
+        @apply border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-operation-count-pill--approved {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300;
+    }
+
+    .portal-operation-meta-row {
+        @apply grid gap-3 md:grid-cols-3;
+    }
+
+    .portal-operation-meta-item {
+        @apply flex min-w-0 items-start gap-3 border-r border-neutral-200 pr-3 text-neutral-500 last:border-r-0 dark:border-neutral-800 dark:text-neutral-400;
+    }
+
+    .portal-operation-meta-item--wide {
+        @apply md:col-span-1;
+    }
+
+    .portal-operation-meta-item small,
+    .portal-operation-side-card small {
+        @apply block text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-operation-meta-item strong,
+    .portal-operation-side-card strong {
+        @apply mt-1 block text-sm font-semibold text-neutral-900 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-admin-note {
+        @apply grid gap-3 md:grid-cols-[minmax(10rem,14rem)_minmax(0,1fr)];
+    }
+
+    .portal-operation-admin-note__item {
+        @apply flex min-w-0 items-start gap-3 rounded-xl border border-neutral-200 bg-white/85 p-3 text-neutral-500 shadow-sm dark:border-neutral-800 dark:bg-neutral-950/40 dark:text-neutral-400;
+    }
+
+    .portal-operation-admin-note__icon {
+        @apply flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[0.65rem] font-black tracking-tight text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
+    }
+
+    .portal-operation-admin-note__item small {
+        @apply block text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-operation-admin-note__item strong {
+        @apply mt-1 block text-sm font-semibold leading-5 text-neutral-900 dark:text-white;
+        overflow-wrap: anywhere;
+    }
+
+    .portal-operation-admin-note__item--comment {
+        @apply block;
+    }
+
+    .portal-operation-admin-note__item--comment strong {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+
+    .portal-operation-card-timeline {
+        @apply grid gap-3 rounded-xl border border-neutral-200 bg-neutral-50/70 p-3 dark:border-neutral-800 dark:bg-neutral-950/35 md:grid-cols-4;
+    }
+
+    .portal-operation-list-card--approved .portal-operation-card-timeline,
+    .portal-operation-list-card--approved .portal-operation-side-card,
+    .portal-operation-list-card--approved .portal-operation-admin-note__item {
+        @apply border-emerald-200 bg-white/80 dark:border-emerald-800 dark:bg-emerald-950/25;
+    }
+
+    .portal-operation-list-card--confirmed .portal-operation-card-timeline,
+    .portal-operation-list-card--confirmed .portal-operation-side-card,
+    .portal-operation-list-card--confirmed .portal-operation-admin-note__item,
+    .portal-operation-list-card--pending .portal-operation-card-timeline,
+    .portal-operation-list-card--pending .portal-operation-side-card,
+    .portal-operation-list-card--pending .portal-operation-admin-note__item {
+        @apply border-amber-200 bg-white/80 dark:border-amber-800 dark:bg-amber-950/20;
+    }
+
+    .portal-operation-list-card--rejected .portal-operation-card-timeline,
+    .portal-operation-list-card--rejected .portal-operation-side-card,
+    .portal-operation-list-card--rejected .portal-operation-admin-note__item {
+        @apply border-red-200 bg-white/80 dark:border-red-800 dark:bg-red-950/20;
+    }
+
+    .portal-operation-card-timeline__step {
+        @apply relative flex min-w-0 items-center gap-3 text-neutral-500 dark:text-neutral-400;
+    }
+
+    .portal-operation-card-timeline__step span {
+        @apply flex size-8 shrink-0 items-center justify-center rounded-full border border-neutral-300 bg-white text-xs font-bold dark:border-neutral-700 dark:bg-neutral-900;
+    }
+
+    .portal-operation-card-timeline__step--completed {
+        @apply text-emerald-700 dark:text-emerald-300;
+    }
+
+    .portal-operation-card-timeline__step--completed span {
+        @apply border-emerald-500 bg-emerald-500 text-white;
+    }
+
+    .portal-operation-card-timeline__step strong {
+        @apply block text-xs font-bold text-neutral-900 dark:text-white;
+    }
+
+    .portal-operation-card-timeline__step small {
+        @apply mt-0.5 block text-xs font-medium;
+    }
+
+    .portal-operation-list-card__side {
+        @apply flex min-w-0 flex-col justify-between gap-4;
+    }
+
+    .portal-operation-side-grid {
+        @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-2;
+    }
+
+    .portal-operation-side-card {
+        @apply flex min-w-0 items-start gap-3 rounded-xl border border-neutral-200 bg-white/85 p-3 text-neutral-500 shadow-sm dark:border-neutral-800 dark:bg-neutral-950/40 dark:text-neutral-400;
+    }
+
+    .portal-operation-card-actions {
+        @apply flex flex-wrap justify-end gap-2;
+    }
+
+    .portal-operation-card-action {
+        @apply inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-bold transition;
+    }
+
+    .portal-operation-card-action--primary {
+        @apply bg-neutral-950 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-neutral-200;
+    }
+
+    .portal-operation-card-action--danger {
+        @apply border border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300;
+    }
+
+    .portal-operation-card-action--muted {
+        @apply border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-950/40 dark:text-neutral-400;
     }
 
     .portal-record-card {

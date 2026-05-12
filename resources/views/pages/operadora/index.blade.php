@@ -91,12 +91,10 @@ new #[Title('Operadora')] class extends Component {
     public function displayedRequirements()
     {
         $requirements = match ($this->requirementFilter) {
-            'pending' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => in_array($requirement->status, [
-                OperadoraRequirement::STATUS_PENDING,
-                OperadoraRequirement::STATUS_NEEDS_CHANGES,
-            ], true))->values(),
+            'pending' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_PENDING)->values(),
             'review' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_IN_REVIEW)->values(),
             'approved' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_APPROVED)->values(),
+            'changes' => $this->requirements->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_NEEDS_CHANGES)->values(),
             default => $this->requirements,
         };
 
@@ -119,10 +117,15 @@ new #[Title('Operadora')] class extends Component {
     public function pendingCount(): int
     {
         return $this->requirements
-            ->filter(fn (OperadoraRequirement $requirement): bool => in_array($requirement->status, [
-                OperadoraRequirement::STATUS_PENDING,
-                OperadoraRequirement::STATUS_NEEDS_CHANGES,
-            ], true))
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_PENDING)
+            ->count();
+    }
+
+    #[Computed]
+    public function needsChangesCount(): int
+    {
+        return $this->requirements
+            ->filter(fn (OperadoraRequirement $requirement): bool => $requirement->status === OperadoraRequirement::STATUS_NEEDS_CHANGES)
             ->count();
     }
 
@@ -185,7 +188,7 @@ new #[Title('Operadora')] class extends Component {
 
     public function setRequirementFilter(string $filter): void
     {
-        if (! in_array($filter, ['all', 'pending', 'review', 'approved'], true)) {
+        if (! in_array($filter, ['all', 'pending', 'review', 'approved', 'changes'], true)) {
             return;
         }
 
@@ -416,11 +419,6 @@ new #[Title('Operadora')] class extends Component {
                             Completa y gestiona los datos del certificado operador y la documentacion requerida por el gestor.
                         </p>
 
-                        <div class="operadora-dashboard-hero__badges">
-                            <span class="operadora-status-pill operadora-status-pill--pending">Pendientes: {{ $this->pendingCount }}</span>
-                            <span class="operadora-status-pill operadora-status-pill--review">En revision: {{ $this->inReviewCount }}</span>
-                            <span class="operadora-status-pill operadora-status-pill--approved">Completados: {{ $this->completedCount }}</span>
-                        </div>
                     </div>
 
                     <div class="portal-hero__aside">
@@ -435,23 +433,96 @@ new #[Title('Operadora')] class extends Component {
                 </div>
             </section>
 
-            <section class="operadora-section-card operadora-section-card--profile">
-                <div class="operadora-section-card__header">
-                    <div class="operadora-section-card__icon">
-                        <flux:icon icon="briefcase" variant="mini" class="size-5" />
+            <section class="operadora-status-summary-grid" aria-label="Resumen de requisitos de operadora">
+                <div class="operadora-status-summary-card operadora-status-summary-card--total">
+                    <span class="operadora-status-summary-card__icon">
+                        <flux:icon icon="document" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Aprobados / Total</small>
+                        <strong>{{ $this->completedCount }}/{{ $totalRequirements }}</strong>
+                        <em>Aprobados del total</em>
+                    </span>
+                </div>
+
+                <div class="operadora-status-summary-card operadora-status-summary-card--pending">
+                    <span class="operadora-status-summary-card__icon">
+                        <flux:icon icon="clock" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Pendientes</small>
+                        <strong>{{ $this->pendingCount }}</strong>
+                        <em>Por subir</em>
+                    </span>
+                </div>
+
+                <div class="operadora-status-summary-card operadora-status-summary-card--review">
+                    <span class="operadora-status-summary-card__icon">
+                        <flux:icon icon="information-circle" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>En revision</small>
+                        <strong>{{ $this->inReviewCount }}</strong>
+                        <em>Pendientes del gestor</em>
+                    </span>
+                </div>
+
+                <div class="operadora-status-summary-card operadora-status-summary-card--approved">
+                    <span class="operadora-status-summary-card__icon">
+                        <flux:icon icon="check-circle" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Aprobados</small>
+                        <strong>{{ $this->completedCount }}</strong>
+                        <em>Con visto bueno</em>
+                    </span>
+                </div>
+
+                <div class="operadora-status-summary-card operadora-status-summary-card--changes">
+                    <span class="operadora-status-summary-card__icon">
+                        <flux:icon icon="exclamation-triangle" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Correccion</small>
+                        <strong>{{ $this->needsChangesCount }}</strong>
+                        <em>Requieren cambios</em>
+                    </span>
+                </div>
+            </section>
+
+            <section class="operadora-certificate-card operadora-certificate-card--{{ $certificateTone }}">
+                <div class="operadora-certificate-card__header">
+                    <div class="operadora-certificate-card__title">
+                        <span class="operadora-certificate-card__icon">
+                            <flux:icon icon="document-text" variant="mini" class="size-5" />
+                        </span>
+                        <div>
+                            <h2>Certificado de Operador: datos y PDF</h2>
+                            <p>Completa los datos del certificado y adjunta el PDF que los acredita.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 class="operadora-section-card__title">Certificado de Operador</h2>
-                        <p class="operadora-section-card__text">Introduce los datos tal y como aparecen en tu certificado de operador.</p>
+
+                    <div class="operadora-card-heading__badges">
+                        @if ($certificateRequirement)
+                            <span class="operadora-status-pill operadora-status-pill--{{ $certificateTone }}">
+                                {{ $this->requirementStatusLabel($certificateRequirement) }}
+                            </span>
+                        @endif
+                        <span class="operadora-status-pill operadora-status-pill--required">Obligatorio</span>
                     </div>
                 </div>
 
-                <div class="operadora-profile-grid">
-                    <form wire:submit="saveProfile" class="operadora-profile-card">
+                <div class="operadora-certificate-guide">
+                    <flux:icon icon="information-circle" variant="mini" class="size-5" />
+                    <span>Los datos introducidos deben coincidir exactamente con el PDF del certificado. El gestor revisara ambos antes de aprobarlo.</span>
+                </div>
+
+                <div class="operadora-certificate-steps">
+                    <form wire:submit="saveProfile" class="operadora-certificate-step">
                         <div class="operadora-card-heading">
                             <div>
-                                <h3>Datos del operador</h3>
-                                <p>Rellena los campos exactamente como figuran en el certificado.</p>
+                                <h3><span>1</span> Paso 1 - Datos del certificado</h3>
+                                <p>Rellena los campos exactamente como figuran en el certificado de operador.</p>
                             </div>
                             <span class="operadora-status-pill operadora-status-pill--info">Datos base</span>
                         </div>
@@ -466,7 +537,7 @@ new #[Title('Operadora')] class extends Component {
 
                         <div class="operadora-info-callout">
                             <flux:icon icon="information-circle" variant="mini" class="size-5" />
-                            <span>Asegurate de que los datos coinciden exactamente con los que aparecen en tu certificado de operador.</span>
+                            <span>Revisa nombre, apellidos, numero de registro y fecha de caducidad antes de subir el PDF.</span>
                         </div>
 
                         <div class="operadora-actions">
@@ -475,19 +546,11 @@ new #[Title('Operadora')] class extends Component {
                         </div>
                     </form>
 
-                    <div class="operadora-profile-card">
+                    <div class="operadora-certificate-step">
                         <div class="operadora-card-heading">
                             <div>
-                                <h3>Certificado de operador</h3>
-                                <p>Sube el PDF de tu certificado de operador emitido por AESA.</p>
-                            </div>
-                            <div class="operadora-card-heading__badges">
-                                @if ($certificateRequirement)
-                                    <span class="operadora-status-pill operadora-status-pill--{{ $certificateTone }}">
-                                        {{ $this->requirementStatusLabel($certificateRequirement) }}
-                                    </span>
-                                @endif
-                                <span class="operadora-status-pill operadora-status-pill--required">Obligatorio</span>
+                                <h3><span>2</span> Paso 2 - PDF del certificado</h3>
+                                <p>Sube el PDF del certificado de operador emitido por AESA.</p>
                             </div>
                         </div>
 
@@ -617,9 +680,14 @@ new #[Title('Operadora')] class extends Component {
                                 <span>En revision</span>
                                 <strong>{{ $this->inReviewCount }}</strong>
                             </button>
+                            <button type="button" wire:click="setRequirementFilter('changes')" class="portal-filter-option operadora-filter-option operadora-filter-option--changes {{ $requirementFilter === 'changes' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementFilter === 'changes' ? 'true' : 'false' }}">
+                                <span class="portal-filter-option__dot"></span>
+                                <span>Corregir</span>
+                                <strong>{{ $this->needsChangesCount }}</strong>
+                            </button>
                             <button type="button" wire:click="setRequirementFilter('approved')" class="portal-filter-option operadora-filter-option operadora-filter-option--approved {{ $requirementFilter === 'approved' ? 'portal-filter-option--active' : '' }}" aria-pressed="{{ $requirementFilter === 'approved' ? 'true' : 'false' }}">
                                 <span class="portal-filter-option__dot"></span>
-                                <span>Completados</span>
+                                <span>Aprobados</span>
                                 <strong>{{ $this->completedCount }}</strong>
                             </button>
                         </div>

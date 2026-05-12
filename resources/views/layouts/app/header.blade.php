@@ -12,6 +12,15 @@
                 $canAccessPilotos = $isClientePortal && $cliente?->isUnblocked();
                 $canAccessOperaciones = $isClientePortal && $cliente?->isUnblocked();
                 $canAccessOperadora = $isClientePortal && $cliente?->isUnblocked();
+                $operadoraAttentionCount = $canAccessOperadora
+                    ? $cliente->operadoraRequirements()
+                        ->where('is_required', true)
+                        ->whereIn('status', [
+                            \App\Models\OperadoraRequirement::STATUS_PENDING,
+                            \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES,
+                        ])
+                        ->count()
+                    : 0;
             @endphp
 
             <flux:sidebar.toggle class="lg:hidden mr-2" icon="bars-2" inset="left" />
@@ -22,9 +31,21 @@
                 <flux:navbar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                     {{ __('Dashboard') }}
                 </flux:navbar.item>
-                @if ($isClientePortal)
-                    <flux:navbar.item icon="identification" :href="route('profile.edit')" :current="request()->routeIs('profile.edit')" wire:navigate>
-                        Mi ficha
+                @if ($canAccessOperaciones)
+                    <flux:navbar.item icon="clipboard-document-list" :href="route('operaciones.index')" :current="request()->routeIs('operaciones.*')" wire:navigate>
+                        Operaciones
+                    </flux:navbar.item>
+                @endif
+                @if ($canAccessOperadora)
+                    <flux:navbar.item icon="folder" :href="route('operadora.index')" :current="request()->routeIs('operadora.*')" wire:navigate>
+                        <span class="inline-flex items-center gap-2">
+                            <span>Operadora</span>
+                            @if ($operadoraAttentionCount > 0)
+                                <span class="inline-flex min-w-5 justify-center rounded-full bg-amber-500 px-1.5 text-[0.68rem] font-bold leading-5 text-white">
+                                    {{ $operadoraAttentionCount }}
+                                </span>
+                            @endif
+                        </span>
                     </flux:navbar.item>
                 @endif
                 @if ($canAccessDrones)
@@ -37,43 +58,14 @@
                         Pilotos
                     </flux:navbar.item>
                 @endif
-                @if ($canAccessOperaciones)
-                    <flux:navbar.item icon="clipboard-document-list" :href="route('operaciones.index')" :current="request()->routeIs('operaciones.*')" wire:navigate>
-                        Operaciones
-                    </flux:navbar.item>
-                @endif
-                @if ($canAccessOperadora)
-                    <flux:navbar.item icon="folder" :href="route('operadora.index')" :current="request()->routeIs('operadora.*')" wire:navigate>
-                        Operadora
+                @if ($isClientePortal)
+                    <flux:navbar.item icon="identification" :href="route('profile.edit')" :current="request()->routeIs('profile.edit')" wire:navigate>
+                        Mi ficha
                     </flux:navbar.item>
                 @endif
             </flux:navbar>
 
             <flux:spacer />
-
-            <flux:navbar class="me-1.5 space-x-0.5 rtl:space-x-reverse py-0!">
-                <flux:tooltip :content="__('Search')" position="bottom">
-                    <flux:navbar.item class="!h-10 [&>div>svg]:size-5" icon="magnifying-glass" href="#" :label="__('Search')" />
-                </flux:tooltip>
-                <flux:tooltip :content="__('Repository')" position="bottom">
-                    <flux:navbar.item
-                        class="h-10 max-lg:hidden [&>div>svg]:size-5"
-                        icon="folder-git-2"
-                        href="https://github.com/laravel/livewire-starter-kit"
-                        target="_blank"
-                        :label="__('Repository')"
-                    />
-                </flux:tooltip>
-                <flux:tooltip :content="__('Documentation')" position="bottom">
-                    <flux:navbar.item
-                        class="h-10 max-lg:hidden [&>div>svg]:size-5"
-                        icon="book-open-text"
-                        href="https://laravel.com/docs/starter-kits#livewire"
-                        target="_blank"
-                        :label="__('Documentation')"
-                    />
-                </flux:tooltip>
-            </flux:navbar>
 
             <x-desktop-user-menu />
         </flux:header>
@@ -86,13 +78,25 @@
             </flux:sidebar.header>
 
             <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')">
+                <flux:sidebar.group :heading="$isClientePortal ? 'Portal cliente' : __('Platform')">
                     <flux:sidebar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard')  }}
+                        {{ __('Dashboard') }}
                     </flux:sidebar.item>
-                    @if ($isClientePortal)
-                        <flux:sidebar.item icon="identification" :href="route('profile.edit')" :current="request()->routeIs('profile.edit')" wire:navigate>
-                            Mi ficha
+                    @if ($canAccessOperaciones)
+                        <flux:sidebar.item icon="clipboard-document-list" :href="route('operaciones.index')" :current="request()->routeIs('operaciones.*')" wire:navigate>
+                            Operaciones
+                        </flux:sidebar.item>
+                    @endif
+                    @if ($canAccessOperadora)
+                        <flux:sidebar.item icon="folder" :href="route('operadora.index')" :current="request()->routeIs('operadora.*')" wire:navigate>
+                            <span class="flex w-full items-center justify-between gap-2">
+                                <span>Operadora</span>
+                                @if ($operadoraAttentionCount > 0)
+                                    <span class="inline-flex min-w-5 justify-center rounded-full bg-amber-500 px-1.5 text-[0.68rem] font-bold leading-5 text-white">
+                                        {{ $operadoraAttentionCount }}
+                                    </span>
+                                @endif
+                            </span>
                         </flux:sidebar.item>
                     @endif
                     @if ($canAccessDrones)
@@ -105,29 +109,15 @@
                             Pilotos
                         </flux:sidebar.item>
                     @endif
-                    @if ($canAccessOperaciones)
-                        <flux:sidebar.item icon="clipboard-document-list" :href="route('operaciones.index')" :current="request()->routeIs('operaciones.*')" wire:navigate>
-                            Operaciones
-                        </flux:sidebar.item>
-                    @endif
-                    @if ($canAccessOperadora)
-                        <flux:sidebar.item icon="folder" :href="route('operadora.index')" :current="request()->routeIs('operadora.*')" wire:navigate>
-                            Operadora
+                    @if ($isClientePortal)
+                        <flux:sidebar.item icon="identification" :href="route('profile.edit')" :current="request()->routeIs('profile.edit')" wire:navigate>
+                            Mi ficha
                         </flux:sidebar.item>
                     @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
             <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
-                </flux:sidebar.item>
-            </flux:sidebar.nav>
         </flux:sidebar>
 
         {{ $slot }}

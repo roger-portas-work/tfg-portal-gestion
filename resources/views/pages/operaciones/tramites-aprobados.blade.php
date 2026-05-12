@@ -76,41 +76,6 @@ new #[Title('Tramites aprobados')] class extends Component {
         return $dronName;
     }
 
-    protected function pilotoVerified(): bool
-    {
-        $piloto = $this->operacion->piloto;
-
-        return filled($piloto?->fullName()) && filled($piloto?->pilot_identification_number);
-    }
-
-    /**
-     * @return array{label: string, class: string}|null
-     */
-    protected function dronChip(): ?array
-    {
-        $dron = $this->operacion->dron;
-
-        if (! $dron) {
-            return null;
-        }
-
-        if ($dron->registration_not_applicable) {
-            return [
-                'label' => 'Matricula: No aplica',
-                'class' => 'portal-chip portal-chip--neutral',
-            ];
-        }
-
-        if (filled($dron->registration_number)) {
-            return [
-                'label' => 'Matricula: '.$dron->registrationLabel(),
-                'class' => 'portal-chip portal-chip--success',
-            ];
-        }
-
-        return null;
-    }
-
     protected function allTramitesApproved(): bool
     {
         return $this->tramites->isNotEmpty()
@@ -123,31 +88,51 @@ new #[Title('Tramites aprobados')] class extends Component {
     }
 
     /**
-     * @return array<int, array{label: string, date: ?string, completed: bool}>
+     * @return array<int, array{label: string, meta: string, completed: bool}>
      */
     protected function timelineSteps(): array
     {
+        $tramitesCount = $this->tramites->count();
+        $approvedCount = $this->tramites->where('status', OperacionTramite::STATUS_APPROVED)->count();
+
         return [
             [
                 'label' => 'Solicitud creada',
-                'date' => optional($this->operacion->created_at)->format('d/m/Y'),
+                'meta' => optional($this->operacion->created_at)->format('d/m/Y') ?: 'Creada',
                 'completed' => true,
             ],
             [
                 'label' => 'Confirmacion gestor',
-                'date' => null,
+                'meta' => $this->operacion->isConfirmed() ? 'Operacion confirmada' : 'Pendiente',
                 'completed' => $this->operacion->isConfirmed(),
             ],
             [
                 'label' => 'Tramitando tramites',
-                'date' => null,
+                'meta' => $tramitesCount > 0
+                    ? $tramitesCount.' '.($tramitesCount === 1 ? 'tramite creado' : 'tramites creados')
+                    : 'Pendiente',
                 'completed' => $this->hasTramitesCreated(),
             ],
             [
                 'label' => 'Tramites aprobados',
-                'date' => null,
+                'meta' => $this->allTramitesApproved()
+                    ? 'Todos aprobados'
+                    : ($tramitesCount > 0 ? $approvedCount.' / '.$tramitesCount.' aprobados' : 'Pendiente'),
                 'completed' => $this->allTramitesApproved(),
             ],
+        ];
+    }
+
+    /**
+     * @return array{pending: int, processed: int, denied: int, approved: int}
+     */
+    protected function tramiteStatusCounts(): array
+    {
+        return [
+            'pending' => $this->tramites->where('status', OperacionTramite::STATUS_PENDING)->count(),
+            'processed' => $this->tramites->where('status', OperacionTramite::STATUS_PROCESSED)->count(),
+            'denied' => $this->tramites->where('status', OperacionTramite::STATUS_DENIED)->count(),
+            'approved' => $this->tramites->where('status', OperacionTramite::STATUS_APPROVED)->count(),
         ];
     }
 
@@ -176,11 +161,11 @@ new #[Title('Tramites aprobados')] class extends Component {
     protected function tramiteCardClass(OperacionTramite $tramite): string
     {
         return match ($tramite->status) {
-            OperacionTramite::STATUS_PENDING => 'portal-record-card portal-tramite-card portal-tramite-card--pending',
-            OperacionTramite::STATUS_PROCESSED => 'portal-record-card portal-tramite-card portal-tramite-card--processed',
-            OperacionTramite::STATUS_DENIED => 'portal-record-card portal-tramite-card portal-tramite-card--denied',
-            OperacionTramite::STATUS_APPROVED => 'portal-record-card portal-tramite-card portal-tramite-card--approved',
-            default => 'portal-record-card portal-tramite-card',
+            OperacionTramite::STATUS_PENDING => 'portal-tramites-row portal-tramites-row--pending',
+            OperacionTramite::STATUS_PROCESSED => 'portal-tramites-row portal-tramites-row--processed',
+            OperacionTramite::STATUS_DENIED => 'portal-tramites-row portal-tramites-row--denied',
+            OperacionTramite::STATUS_APPROVED => 'portal-tramites-row portal-tramites-row--approved',
+            default => 'portal-tramites-row',
         };
     }
 
@@ -216,62 +201,89 @@ new #[Title('Tramites aprobados')] class extends Component {
 
 <section class="portal-page portal-page--wide">
     <x-pages::settings.layout heading="" subheading="">
-        <div class="flex justify-end">
-            <flux:button as="a" variant="primary" :href="route('operaciones.index')" wire:navigate>
-                Volver a operaciones
-            </flux:button>
+        @php
+            $allApproved = $this->allTramitesApproved();
+            $tramiteCounts = $this->tramiteStatusCounts();
+        @endphp
+
+        <div class="portal-hero portal-hero--client">
+            <div class="portal-hero__row">
+                <div class="portal-operations-hero__copy">
+                    <p class="portal-hero__eyebrow text-sky-700 dark:text-sky-300">Portal cliente</p>
+                    <h1 class="portal-hero__title">Tramites de operacion</h1>
+                    <p class="portal-hero__text">
+                        Consulta el estado documental de {{ $operacion->reference }} y descarga los PDFs disponibles.
+                    </p>
+
+                    <div class="portal-hero__actions">
+                        <flux:button as="a" variant="primary" :href="route('operaciones.index')" wire:navigate>
+                            Volver a operaciones
+                        </flux:button>
+                    </div>
+                </div>
+
+                <div class="portal-operations-hero__aside">
+                    <div class="portal-hero__brand">
+                        <img
+                            src="{{ asset('images/logo-idronlex.png') }}"
+                            alt="Idron Lex & Consulting"
+                            class="portal-hero__logo"
+                        >
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="portal-panel portal-operation-overview mt-4">
-            <div class="portal-operation-overview__header">
-                <span class="portal-operation-overview__status">
+        <div class="portal-tramites-hero {{ $allApproved ? 'portal-tramites-hero--approved' : 'portal-tramites-hero--active' }}">
+            <div class="portal-tramites-hero__header">
+                <span class="portal-tramites-status">
                     <flux:icon icon="check-circle" variant="mini" class="size-4" />
                     Operacion confirmada
                 </span>
 
-                    <h1 class="portal-operation-overview__title">
-                        <span class="block">Tramites aprobados para la operacion:</span>
-                        <span class="block">{{ $operacion->reference }}</span>
-                    </h1>
+                <h1 class="portal-tramites-hero__title">
+                    <span>{{ $allApproved ? 'Tramites aprobados para la operacion:' : 'Tramites para la operacion:' }}</span>
+                    {{ $operacion->reference }}
+                </h1>
             </div>
 
-            <div class="portal-operation-overview__stats">
-                <div class="portal-operation-overview__stat">
-                    <div class="portal-operation-overview__icon-wrap">
-                        <flux:icon icon="calendar-days" variant="mini" class="portal-operation-overview__icon" />
-                    </div>
-                    <div>
-                        <p class="portal-operation-overview__label">Fecha</p>
-                        <p class="portal-operation-overview__value">{{ $this->formatDateValue($operacion->operation_date) }}</p>
-                    </div>
+            <div class="portal-tramites-info-grid">
+                <div class="portal-tramites-info-card">
+                    <span class="portal-tramites-info-card__icon">
+                        <flux:icon icon="calendar-days" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Fecha</small>
+                        <strong>{{ $this->formatDateValue($operacion->operation_date) }}</strong>
+                    </span>
                 </div>
 
-                <div class="portal-operation-overview__stat">
-                    <div class="portal-operation-overview__icon-wrap">
-                        <flux:icon icon="clock" variant="mini" class="portal-operation-overview__icon" />
-                    </div>
-                    <div>
-                        <p class="portal-operation-overview__label">Hora / rodaje estimado</p>
-                        <p class="portal-operation-overview__value">{{ $operacion->estimated_filming_schedule ?: 'Sin definir' }}</p>
-                    </div>
+                <div class="portal-tramites-info-card">
+                    <span class="portal-tramites-info-card__icon">
+                        <flux:icon icon="clock" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Hora / rodaje estimado</small>
+                        <strong>{{ $operacion->estimated_filming_schedule ?: 'Sin definir' }}</strong>
+                    </span>
                 </div>
 
-                <div class="portal-operation-overview__stat">
-                    <div class="portal-operation-overview__icon-wrap">
-                        <flux:icon icon="map-pin" variant="mini" class="portal-operation-overview__icon" />
-                    </div>
-                    <div>
-                        <p class="portal-operation-overview__label">Direccion</p>
-                        <p class="portal-operation-overview__value">{{ $this->operationAddressLabel() }}</p>
-                    </div>
+                <div class="portal-tramites-info-card">
+                    <span class="portal-tramites-info-card__icon">
+                        <flux:icon icon="map-pin" variant="mini" class="size-5" />
+                    </span>
+                    <span>
+                        <small>Direccion</small>
+                        <strong>{{ $this->operationAddressLabel() }}</strong>
+                    </span>
                 </div>
             </div>
 
-            <div class="portal-operation-progress">
+            <div class="portal-tramites-timeline">
                 @foreach ($this->timelineSteps() as $step)
-                    <div class="portal-operation-progress__step">
-                        <div class="portal-operation-progress__track">
-                            <span class="portal-operation-progress__circle {{ $step['completed'] ? 'portal-operation-progress__circle--completed' : '' }}">
+                    <div class="portal-tramites-timeline__step {{ $step['completed'] ? 'portal-tramites-timeline__step--completed' : '' }}">
+                        <div class="portal-tramites-timeline__track">
+                            <span class="portal-tramites-timeline__circle">
                                 @if ($step['completed'])
                                     <flux:icon icon="check" variant="micro" class="size-3.5" />
                                 @else
@@ -280,61 +292,55 @@ new #[Title('Tramites aprobados')] class extends Component {
                             </span>
 
                             @if (! $loop->last)
-                                <span class="portal-operation-progress__line {{ $step['completed'] ? 'portal-operation-progress__line--completed' : '' }}"></span>
+                                <span class="portal-tramites-timeline__line"></span>
                             @endif
                         </div>
 
-                        <div class="portal-operation-progress__content">
-                            <p class="portal-operation-progress__label">{{ $step['label'] }}</p>
-                            @if ($step['date'])
-                                <p class="portal-operation-progress__meta">{{ $step['date'] }}</p>
-                            @endif
+                        <div class="portal-tramites-timeline__content">
+                            <strong>{{ $step['label'] }}</strong>
+                            <small>{{ $step['meta'] }}</small>
                         </div>
                     </div>
                 @endforeach
             </div>
         </div>
 
-        <div class="portal-panel portal-panel--soft mt-6">
-            <div class="portal-operation-assets">
-                <div class="portal-operation-asset">
-                    <div class="portal-operation-asset__icon-wrap">
-                        <flux:icon icon="user" variant="mini" class="portal-operation-asset__icon" />
-                    </div>
+        <div class="portal-tramites-asset-grid">
+            <div class="portal-tramites-asset-card">
+                <span class="portal-tramites-asset-card__icon">
+                    <flux:icon icon="user" variant="mini" class="size-5" />
+                </span>
 
-                    <div class="portal-operation-asset__content">
-                        <p class="portal-operation-overview__label">Piloto</p>
-                        <p class="portal-operation-overview__value">{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</p>
-                    </div>
+                <span class="portal-tramites-asset-card__content">
+                    <small>Piloto</small>
+                    <strong>{{ $operacion->piloto?->displayNameWithIdentification() ?? 'Sin piloto' }}</strong>
+                </span>
+            </div>
 
-                    @if ($this->pilotoVerified())
-                        <span class="portal-chip portal-chip--success">Verificado</span>
-                    @endif
-                </div>
+            <div class="portal-tramites-asset-card">
+                <span class="portal-tramites-asset-card__icon">
+                    <flux:icon icon="paper-airplane" variant="mini" class="size-5" />
+                </span>
 
-                <div class="portal-operation-asset">
-                    <div class="portal-operation-asset__icon-wrap">
-                        <flux:icon icon="paper-airplane" variant="mini" class="portal-operation-asset__icon" />
-                    </div>
-
-                    <div class="portal-operation-asset__content">
-                        <p class="portal-operation-overview__label">Dron</p>
-                        <p class="portal-operation-overview__value">{{ $this->operationDronLabel() }}</p>
-                    </div>
-
-                    @if ($this->dronChip())
-                        <span class="{{ $this->dronChip()['class'] }}">{{ $this->dronChip()['label'] }}</span>
-                    @endif
-                </div>
+                <span class="portal-tramites-asset-card__content">
+                    <small>Dron</small>
+                    <strong>{{ $this->operationDronLabel() }}</strong>
+                </span>
             </div>
         </div>
 
-        <div class="portal-panel mt-6">
-            <div class="portal-operation-tramites__header">
+        <div class="portal-tramites-panel">
+            <div class="portal-tramites-panel__header">
                 <div>
-                    <p class="portal-hero__eyebrow text-emerald-700 dark:text-emerald-300">Seguimiento de tramites</p>
-                    <h2 class="portal-form-title">Tramites de la operacion</h2>
-                    <p class="portal-form-text">Aqui puedes consultar el estado de cada tramite y descargar la documentacion disponible.</p>
+                    <h2>Seguimiento de tramites</h2>
+                    <p>Aqui puedes consultar el estado de cada tramite y descargar la documentacion disponible.</p>
+                </div>
+
+                <div class="portal-tramites-summary">
+                    <span class="portal-tramites-summary__item portal-tramites-summary__item--pending">Pendientes <strong>{{ $tramiteCounts['pending'] }}</strong></span>
+                    <span class="portal-tramites-summary__item portal-tramites-summary__item--processed">Tramitados <strong>{{ $tramiteCounts['processed'] }}</strong></span>
+                    <span class="portal-tramites-summary__item portal-tramites-summary__item--denied">Denegados <strong>{{ $tramiteCounts['denied'] }}</strong></span>
+                    <span class="portal-tramites-summary__item portal-tramites-summary__item--approved">Aprobados <strong>{{ $tramiteCounts['approved'] }}</strong></span>
                 </div>
             </div>
 
@@ -349,53 +355,82 @@ new #[Title('Tramites aprobados')] class extends Component {
                     </p>
                 </div>
             @else
-                <div class="portal-record-list portal-record-list--relaxed">
+                <div class="portal-tramites-list">
                     @foreach ($this->tramites as $tramite)
                         @php
                             $attachments = $this->attachmentLinks($tramite);
+                            $missingDocumentTitle = match ($tramite->status) {
+                                OperacionTramite::STATUS_DENIED => 'Tramite denegado',
+                                OperacionTramite::STATUS_APPROVED => 'La documentacion aparecera aqui',
+                                default => 'Falta colgar documentacion',
+                            };
+                            $missingDocumentText = $tramite->status === OperacionTramite::STATUS_DENIED
+                                ? 'Este tramite ha sido denegado por el gestor. Si hay documentacion asociada, aparecera aqui cuando este disponible.'
+                                : 'Cuando el gestor suba la documentacion de este tramite, podras verla y descargarla aqui.';
                         @endphp
 
-                        <div class="{{ $this->tramiteCardClass($tramite) }}">
-                            <div class="portal-record-card__header">
-                                <div class="w-full">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h2 class="portal-record-card__title">{{ $tramite->title }}</h2>
+                        <article class="{{ $this->tramiteCardClass($tramite) }}">
+                            <div class="portal-tramites-row__main">
+                                <span class="portal-tramites-row__icon">
+                                    @switch($tramite->status)
+                                        @case(OperacionTramite::STATUS_APPROVED)
+                                            <flux:icon icon="check-circle" variant="mini" class="size-5" />
+                                            @break
+
+                                        @case(OperacionTramite::STATUS_DENIED)
+                                            <flux:icon icon="x-circle" variant="mini" class="size-5" />
+                                            @break
+
+                                        @case(OperacionTramite::STATUS_PROCESSED)
+                                            <flux:icon icon="clock" variant="mini" class="size-5" />
+                                            @break
+
+                                        @default
+                                            <flux:icon icon="clock" variant="mini" class="size-5" />
+                                    @endswitch
+                                </span>
+
+                                <div class="portal-tramites-row__copy">
+                                    <div class="portal-tramites-row__title-line">
+                                        <h3>{{ $tramite->title }}</h3>
                                         <span class="{{ $this->tramiteBadgeClass($tramite) }}">{{ $this->tramiteStatusLabel($tramite) }}</span>
                                     </div>
-
-                                    <p class="portal-record-card__text">{{ $this->tramiteStatusMessage($tramite) }}</p>
-
-                                    @if ($attachments)
-                                        <div class="mt-5 grid gap-4">
-                                            @foreach ($attachments as $attachment)
-                                                <div class="portal-file-card">
-                                                    <div>
-                                                        <p class="text-sm font-semibold text-neutral-900 dark:text-white">{{ $attachment['name'] }}</p>
-                                                        <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">Documento adjunto del tramite para esta operacion.</p>
-                                                    </div>
-
-                                                    <div class="flex flex-wrap gap-3">
-                                                        <flux:button as="a" variant="ghost" :href="$attachment['url']" target="_blank">
-                                                            Ver PDF
-                                                        </flux:button>
-                                                        <flux:button as="a" variant="filled" :href="$attachment['url']" download>
-                                                            Descargar
-                                                        </flux:button>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <div class="portal-file-card mt-5">
-                                            <div>
-                                                <p class="text-sm font-semibold text-neutral-900 dark:text-white">Falta colgar documentacion</p>
-                                                <p class="mt-1 text-sm text-neutral-600 dark:text-neutral-300">Cuando el gestor suba la documentacion de este tramite, podras verla y descargarla aqui.</p>
-                                            </div>
-                                        </div>
-                                    @endif
+                                    <p>{{ $this->tramiteStatusMessage($tramite) }}</p>
                                 </div>
                             </div>
-                        </div>
+
+                            <div class="portal-tramites-row__documents">
+                                @if ($attachments)
+                                    <div class="portal-tramites-file-list">
+                                        @foreach ($attachments as $attachment)
+                                            <div class="portal-tramites-file">
+                                                <span class="portal-tramites-file__icon">PDF</span>
+                                                <strong>{{ $attachment['name'] }}</strong>
+
+                                                <div class="portal-tramites-file__actions">
+                                                    <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener noreferrer" class="portal-tramites-file-action portal-tramites-file-action--ghost">
+                                                        Ver PDF
+                                                    </a>
+                                                    <a href="{{ $attachment['url'] }}" download class="portal-tramites-file-action portal-tramites-file-action--primary">
+                                                        Descargar
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="portal-tramites-empty-doc">
+                                        <span>
+                                            <flux:icon icon="folder-open" variant="mini" class="size-5" />
+                                        </span>
+                                        <div>
+                                            <strong>{{ $missingDocumentTitle }}</strong>
+                                            <p>{{ $missingDocumentText }}</p>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </article>
                     @endforeach
                 </div>
             @endif

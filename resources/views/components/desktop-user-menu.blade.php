@@ -1,4 +1,12 @@
-<flux:dropdown position="bottom" align="start">
+@props([
+    'name' => null,
+])
+
+<flux:dropdown {{ $attributes }} position="bottom" align="start">
+    @php
+        $isClientePortal = auth()->user()?->role === \App\Models\User::ROLE_CLIENTE;
+    @endphp
+
     <flux:sidebar.profile
         :name="auth()->user()->name"
         :initials="auth()->user()->initials()"
@@ -20,7 +28,7 @@
         <flux:menu.separator />
         <flux:menu.radio.group>
             <flux:menu.item :href="route('profile.edit')" icon="cog" wire:navigate>
-                {{ __('Settings') }}
+                {{ $isClientePortal ? 'Mi ficha' : 'Configuracion' }}
             </flux:menu.item>
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf
@@ -31,7 +39,7 @@
                     class="w-full cursor-pointer"
                     data-test="logout-button"
                 >
-                    {{ __('Log out') }}
+                    Cerrar sesion
                 </flux:menu.item>
             </form>
         </flux:menu.radio.group>
