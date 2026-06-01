@@ -17,13 +17,17 @@
             $confirmedOperaciones = $cliente->confirmedOperacionesCount();
             $operadoraRequirements = $cliente->operadoraRequirements()->get();
             $requiredOperadoraRequirements = $operadoraRequirements->filter(fn ($requirement): bool => (bool) $requirement->is_required);
-            $pendingOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
-            $pendingRequiredOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
-            $pendingOptionalOperadora = $operadoraRequirements->filter(fn ($requirement): bool => ! $requirement->is_required && $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
-            $pendingUploadOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_PENDING)->count();
-            $inReviewOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_IN_REVIEW)->count();
-            $needsChangesOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES)->count();
-            $completedOperadora = $operadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
+            $operadoraClientActionStatuses = [
+                \App\Models\OperadoraRequirement::STATUS_PENDING,
+                \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES,
+            ];
+            $pendingOperadora = $operadoraRequirements->filter(fn ($requirement): bool => in_array($requirement->status, $operadoraClientActionStatuses, true))->count();
+            $pendingRequiredOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => in_array($requirement->status, $operadoraClientActionStatuses, true))->count();
+            $pendingOptionalOperadora = $operadoraRequirements->filter(fn ($requirement): bool => ! $requirement->is_required && in_array($requirement->status, $operadoraClientActionStatuses, true))->count();
+            $pendingUploadOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_PENDING)->count();
+            $inReviewOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_IN_REVIEW)->count();
+            $needsChangesOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES)->count();
+            $completedOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
             $completedRequiredOperadora = $requiredOperadoraRequirements->filter(fn ($requirement): bool => $requirement->status === \App\Models\OperadoraRequirement::STATUS_APPROVED)->count();
             $completedOnboardingSteps = collect([$profileCompleted, $hasDrones])->filter()->count();
             $onboardingProgress = (int) (($completedOnboardingSteps / 2) * 100);
@@ -83,12 +87,11 @@
             $createDronHref = route('drones.index', ['crear' => 1]);
             $createPilotoHref = route('pilotos.index', ['crear' => 1]);
             $requiredOperadoraAttentionTasks = $requiredOperadoraRequirements
-                ->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)
+                ->filter(fn ($requirement): bool => in_array($requirement->status, $operadoraClientActionStatuses, true))
                 ->sortBy(function ($requirement): string {
                     $statusOrder = [
                         \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES => 0,
                         \App\Models\OperadoraRequirement::STATUS_PENDING => 1,
-                        \App\Models\OperadoraRequirement::STATUS_IN_REVIEW => 2,
                     ];
 
                     return sprintf(
@@ -98,13 +101,12 @@
                     );
                 })
                 ->values();
-            $dashboardOperadoraTasks = $operadoraRequirements
-                ->filter(fn ($requirement): bool => $requirement->status !== \App\Models\OperadoraRequirement::STATUS_APPROVED)
+            $dashboardOperadoraTasks = $requiredOperadoraRequirements
+                ->filter(fn ($requirement): bool => in_array($requirement->status, $operadoraClientActionStatuses, true))
                 ->sortBy(function ($requirement): string {
                     $statusOrder = [
                         \App\Models\OperadoraRequirement::STATUS_NEEDS_CHANGES => 0,
                         \App\Models\OperadoraRequirement::STATUS_PENDING => 1,
-                        \App\Models\OperadoraRequirement::STATUS_IN_REVIEW => 2,
                     ];
 
                     return sprintf(
@@ -599,8 +601,8 @@
                                             <flux:icon icon="check-circle" variant="mini" class="size-4" />
                                         </span>
                                         <span>
-                                            <strong>Sin documentos pendientes</strong>
-                                            <small>Los requisitos de operadora estan al dia.</small>
+                                            <strong>Sin acciones pendientes</strong>
+                                            <small>Los obligatorios no requieren accion ahora.</small>
                                         </span>
                                         <em>Al dia</em>
                                     </div>
