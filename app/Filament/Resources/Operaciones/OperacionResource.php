@@ -58,7 +58,13 @@ class OperacionResource extends Resource
                 ]);
 
                 if ($onlyUpcoming) {
-                    $query->whereDate('operation_date', '>=', $activeFrom);
+                    $query
+                        ->whereDate('operation_date', '>=', $activeFrom)
+                        ->where(function (Builder $query): void {
+                            $query
+                                ->whereNull('status')
+                                ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
+                        });
                 }
             })
             ->heading($heading)
@@ -177,6 +183,24 @@ class OperacionResource extends Resource
         return $schema
             ->columns(2)
             ->components([
+                Section::make('Incidencia destacada')
+                    ->description('Has llegado desde el dashboard del gestor. Revisa el punto indicado antes de cerrar esta operacion.')
+                    ->visible(fn (): bool => filled(request()->query('focus')))
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('dashboard_focus')
+                            ->label('Prioridad')
+                            ->state(fn (Operacion $record): string => static::dashboardFocusMessage($record))
+                            ->badge()
+                            ->color(fn (): string => match (request()->query('focus')) {
+                                'documentacion-completa' => 'success',
+                                'operacion-hoy', 'tramites-7-dias', 'tramite-7-dias' => 'warning',
+                                'pendiente-confirmar' => 'warning',
+                                'sin-tramites', 'tramites-vencidos' => 'danger',
+                                default => 'info',
+                            }),
+                    ]),
+
                 Section::make('Resumen de la operacion')
                     ->description('Informacion principal de la operacion que el gestor necesita revisar primero.')
                     ->columnSpanFull()
@@ -537,6 +561,32 @@ class OperacionResource extends Resource
         return [
             OperacionTramitesRelationManager::class,
         ];
+    }
+
+    protected static function dashboardFocusMessage(Operacion $record): string
+    {
+        $tramiteId = request()->query('tramite');
+
+        if ($tramiteId) {
+            $tramite = $record->tramites()->find($tramiteId);
+
+            if ($tramite) {
+                $deadline = $tramite->deadline_date?->format('d/m/Y') ?? 'sin fecha límite';
+
+                return "Trámite a gestionar: {$tramite->title}. Fecha límite para tramitar: {$deadline}.";
+            }
+        }
+
+        return match (request()->query('focus')) {
+            'sin-tramites' => 'Operación confirmada sin trámites. Crea los trámites necesarios en el bloque Trámites de operación.',
+            'tramites-vencidos' => 'Hay trámites vencidos sin fecha de tramitación. Revisa el bloque Trámites de operación.',
+            'tramites-7-dias', 'tramite-7-dias' => 'Hay trámites con fecha límite dentro de los próximos 7 días.',
+            'tramites-pendientes' => 'Hay trámites pendientes de tramitar.',
+            'operacion-hoy' => 'Esta operación está programada para hoy. Revisa horario, piloto, dron y trámites antes de cerrarla.',
+            'pendiente-confirmar' => 'Esta operación está pendiente de decisión. Revisa los datos y cambia el estado cuando el gestor la cierre con el cliente.',
+            'documentacion-completa' => 'La documentación de esta operación aparece completa.',
+            default => 'Revisa esta operación desde el dashboard del gestor.',
+        };
     }
 
     public static function getPages(): array

@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -27,6 +28,10 @@ class OperadoraRequirementsRelationManager extends RelationManager
 
     protected static ?string $title = 'Expediente Operadora';
 
+    protected static bool $isLazy = false;
+
+    protected string $view = 'filament.resources.clientes.relation-managers.operadora-requirements-relation-manager';
+
     protected function buildDownloadFileName(OperadoraRequirement $record): string
     {
         $clienteName = Str::slug($record->cliente?->fullName() ?: 'cliente');
@@ -35,6 +40,56 @@ class OperadoraRequirementsRelationManager extends RelationManager
         $extension = pathinfo($record->original_file_name ?? $record->file_path ?? 'pdf', PATHINFO_EXTENSION) ?: 'pdf';
 
         return "operadora-{$clienteName}-{$requirementName}-{$date}.{$extension}";
+    }
+
+    protected function downloadRequirementFile(OperadoraRequirement $record)
+    {
+        if (blank($record->file_path) || ! Storage::disk('public')->exists($record->file_path)) {
+            Notification::make()
+                ->title('Archivo no encontrado')
+                ->body('La entrega del cliente ya no existe en el almacenamiento.')
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        return response()->download(
+            Storage::disk('public')->path($record->file_path),
+            $this->buildDownloadFileName($record)
+        );
+    }
+
+    protected function requestedRequirementId(): ?string
+    {
+        return $this->queryParameter('requirement');
+    }
+
+    protected function queryParameter(string $key): ?string
+    {
+        $value = request()->query($key);
+
+        if (! is_array($value) && filled($value)) {
+            return (string) $value;
+        }
+
+        $referer = request()->headers->get('referer');
+
+        if (blank($referer)) {
+            return null;
+        }
+
+        $query = parse_url((string) $referer, PHP_URL_QUERY);
+
+        if (blank($query)) {
+            return null;
+        }
+
+        parse_str($query, $parameters);
+
+        $value = $parameters[$key] ?? null;
+
+        return (! is_array($value) && filled($value)) ? (string) $value : null;
     }
 
     public function form(Schema $schema): Schema
@@ -281,11 +336,19 @@ class OperadoraRequirementsRelationManager extends RelationManager
                     ->toggleable(),
             ])
             ->defaultSort('id', 'desc')
-            ->recordClasses(fn (OperadoraRequirement $record): string => match ($record->status) {
-                OperadoraRequirement::STATUS_IN_REVIEW => 'border-s-4 border-amber-400 bg-amber-50/40 dark:bg-amber-500/5',
-                OperadoraRequirement::STATUS_APPROVED => 'border-s-4 border-emerald-400 bg-emerald-50/40 dark:bg-emerald-500/5',
-                OperadoraRequirement::STATUS_NEEDS_CHANGES => 'border-s-4 border-slate-400 bg-slate-50/70 dark:bg-slate-500/5',
-                default => 'border-s-4 border-rose-300 bg-rose-50/40 dark:bg-rose-500/5',
+            ->recordClasses(function (OperadoraRequirement $record): string {
+                $classes = match ($record->status) {
+                    OperadoraRequirement::STATUS_IN_REVIEW => 'border-s-4 border-amber-400 bg-amber-50/40 dark:bg-amber-500/5',
+                    OperadoraRequirement::STATUS_APPROVED => 'border-s-4 border-emerald-400 bg-emerald-50/40 dark:bg-emerald-500/5',
+                    OperadoraRequirement::STATUS_NEEDS_CHANGES => 'border-s-4 border-slate-400 bg-slate-50/70 dark:bg-slate-500/5',
+                    default => 'border-s-4 border-rose-300 bg-rose-50/40 dark:bg-rose-500/5',
+                };
+
+                if ($this->requestedRequirementId() === (string) $record->getKey()) {
+                    return $classes.' idrx-highlighted-requirement-row';
+                }
+
+                return $classes;
             })
             ->emptyStateHeading('Todavia no hay requisitos de operadora')
             ->emptyStateDescription('Crea los requisitos que el cliente debera completar para este expediente.')
@@ -302,12 +365,7 @@ class OperadoraRequirementsRelationManager extends RelationManager
                     ->size('sm')
                     ->tooltip('Descargar la entrega actual del cliente')
                     ->visible(fn (OperadoraRequirement $record): bool => filled($record->file_path))
-                    ->action(function (OperadoraRequirement $record) {
-                        return response()->download(
-                            Storage::disk('public')->path($record->file_path),
-                            $this->buildDownloadFileName($record)
-                        );
-                    }),
+                    ->action(fn (OperadoraRequirement $record) => $this->downloadRequirementFile($record)),
                 EditAction::make()
                     ->label('Editar')
                     ->hiddenLabel()

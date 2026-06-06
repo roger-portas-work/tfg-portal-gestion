@@ -27,6 +27,8 @@ class EditCliente extends EditRecord
             // asi que no deben terminar guardados sobre la ficha cliente.
             unset($data['new_password'], $data['new_password_confirmation']);
 
+            $data['profile_completed'] = $record->profileIsComplete($data);
+
             $record->update($data);
 
             if ($record->user) {

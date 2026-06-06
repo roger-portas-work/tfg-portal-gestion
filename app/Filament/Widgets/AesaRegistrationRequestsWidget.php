@@ -14,6 +14,8 @@ class AesaRegistrationRequestsWidget extends TableWidget
 {
     protected int | string | array $columnSpan = 'full';
 
+    protected static ?int $sort = 60;
+
     protected static ?string $heading = 'Solicitudes de registro AESA';
 
     public function table(Table $table): Table

@@ -1,0 +1,517 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+.idrx-widget-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+    overflow: hidden;
+}
+
+.idrx-widget-card:target {
+    outline: 3px solid #f97316;
+    outline-offset: 3px;
+}
+
+.fi-ta-table tr.idrx-highlighted-table-row > * {
+    background: #fff7ed !important;
+    border-bottom-color: #fb923c !important;
+    border-top: 1px solid #fb923c !important;
+}
+
+.fi-ta-table tr.idrx-highlighted-table-row > *:first-child {
+    border-left: 5px solid #f97316 !important;
+    box-shadow: inset 0 0 0 9999px rgba(249, 115, 22, .08);
+}
+
+.fi-ta-table tr.idrx-highlighted-table-row > *:first-child::after {
+    content: "Tramite indicado";
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    margin-left: .75rem;
+    border: 1px solid #fed7aa;
+    border-radius: 999px;
+    background: #ffedd5;
+    color: #c2410c;
+    padding: .2rem .55rem;
+    font-size: .72rem;
+    font-weight: 750;
+    line-height: 1.25;
+    vertical-align: middle;
+}
+
+.fi-ta-table tr.idrx-highlighted-table-row > *:last-child {
+    border-right: 1px solid #fb923c !important;
+}
+
+.fi-ta-table tr.idrx-highlighted-requirement-row > * {
+    background: #fff7ed !important;
+    border-bottom-color: #fb923c !important;
+    border-top: 1px solid #fb923c !important;
+}
+
+.fi-ta-table tr.idrx-highlighted-requirement-row > *:first-child {
+    border-left: 5px solid #f97316 !important;
+    box-shadow: inset 0 0 0 9999px rgba(249, 115, 22, .08);
+}
+
+.fi-ta-table tr.idrx-highlighted-requirement-row > *:first-child::after {
+    content: "Requisito indicado";
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    margin-left: .75rem;
+    border: 1px solid #fed7aa;
+    border-radius: 999px;
+    background: #ffedd5;
+    color: #c2410c;
+    padding: .2rem .55rem;
+    font-size: .72rem;
+    font-weight: 750;
+    line-height: 1.25;
+    vertical-align: middle;
+}
+
+.fi-ta-table tr.idrx-highlighted-requirement-row > *:last-child {
+    border-right: 1px solid #fb923c !important;
+}
+
+.idrx-anchor {
+    scroll-margin-top: 6rem;
+}
+
+.idrx-widget-padded {
+    padding: 1rem;
+}
+
+.idrx-widget-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.idrx-widget-header-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.idrx-widget-title {
+    margin: 0;
+    color: #111827;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.idrx-widget-description {
+    margin: .25rem 0 0;
+    color: #6b7280;
+    font-size: .875rem;
+    line-height: 1.5;
+}
+
+.idrx-filter-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .85rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f9fafb;
+    padding: .85rem 1rem;
+}
+
+.idrx-filter-title {
+    color: #111827;
+    font-size: .875rem;
+    font-weight: 750;
+    line-height: 1.35;
+}
+
+.idrx-filter-description {
+    margin-top: .15rem;
+    color: #6b7280;
+    font-size: .82rem;
+    line-height: 1.4;
+}
+
+.idrx-filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+.idrx-filter-option {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #374151;
+    padding: .38rem .8rem;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-decoration: none;
+    transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.idrx-filter-option:hover,
+.idrx-filter-option-active {
+    border-color: #f97316;
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.idrx-priority-grid,
+.idrx-card-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.idrx-priority-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.idrx-card-grid {
+    padding: 1.25rem;
+}
+
+.idrx-priority-card,
+.idrx-action-card,
+.idrx-row-card {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.idrx-priority-card:hover,
+.idrx-action-card:hover,
+.idrx-row-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, .08);
+}
+
+.idrx-priority-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: .9rem 1rem;
+}
+
+.idrx-priority-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    line-height: 1.35;
+    text-transform: uppercase;
+    opacity: .82;
+}
+
+.idrx-priority-value {
+    margin-top: .45rem;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.idrx-priority-description {
+    margin-top: .4rem;
+    font-size: .875rem;
+    line-height: 1.35;
+    opacity: .9;
+}
+
+.idrx-action-card,
+.idrx-row-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1rem;
+}
+
+.idrx-list {
+    display: grid;
+    gap: 0;
+}
+
+.idrx-list .idrx-row-card {
+    border-width: 0 0 1px;
+    border-radius: 0;
+}
+
+.idrx-list .idrx-row-card:last-child {
+    border-bottom-width: 0;
+}
+
+.idrx-card-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.idrx-card-title {
+    margin: 0;
+    color: #111827;
+    font-size: .95rem;
+    font-weight: 750;
+    line-height: 1.4;
+}
+
+.idrx-card-subtitle {
+    margin: .25rem 0 0;
+    color: #4b5563;
+    font-size: .875rem;
+    line-height: 1.45;
+}
+
+.idrx-meta-grid {
+    display: grid;
+    gap: .85rem;
+    margin-top: 1rem;
+}
+
+.idrx-meta-label {
+    color: #6b7280;
+    font-size: .75rem;
+    line-height: 1.3;
+}
+
+.idrx-meta-value {
+    color: #374151;
+    font-size: .875rem;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.idrx-muted-row,
+.idrx-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: 1rem;
+}
+
+.idrx-muted-row {
+    color: #6b7280;
+    font-size: .78rem;
+}
+
+.idrx-badge {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border-radius: 999px;
+    padding: .28rem .65rem;
+    font-size: .75rem;
+    font-weight: 700;
+    line-height: 1.3;
+    border: 1px solid transparent;
+}
+
+.idrx-pill {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #374151;
+    padding: .32rem .7rem;
+    font-size: .82rem;
+    line-height: 1.35;
+}
+
+.idrx-empty {
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    color: #6b7280;
+    font-size: .875rem;
+    padding: 1.5rem;
+}
+
+.idrx-link {
+    color: #ea580c;
+    font-size: .875rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.idrx-link:hover {
+    color: #c2410c;
+}
+
+.idrx-tone-danger,
+.idrx-card-danger {
+    border-color: #fecaca;
+    background: #fff1f2;
+    color: #b91c1c;
+}
+
+.idrx-tone-warning,
+.idrx-card-warning {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.idrx-tone-success,
+.idrx-card-success {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+    color: #047857;
+}
+
+.idrx-tone-info,
+.idrx-card-info {
+    border-color: #bae6fd;
+    background: #f0f9ff;
+    color: #0369a1;
+}
+
+.idrx-tone-neutral {
+    border-color: #e5e7eb;
+    background: #f9fafb;
+    color: #374151;
+}
+
+.idrx-badge-danger {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.idrx-badge-warning {
+    background: #fef3c7;
+    border-color: #fde68a;
+    color: #b45309;
+}
+
+.idrx-badge-success {
+    background: #dcfce7;
+    border-color: #bbf7d0;
+    color: #047857;
+}
+
+.idrx-badge-info {
+    background: #e0f2fe;
+    border-color: #bae6fd;
+    color: #0369a1;
+}
+
+.idrx-badge-neutral {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #374151;
+}
+
+@media (min-width: 768px) {
+    .idrx-meta-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .idrx-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+            .idrx-widget-card {
+        background: #111827;
+        border-color: #1f2937;
+    }
+
+    .fi-ta-table tr.idrx-highlighted-table-row > * {
+        background: #431407 !important;
+        border-bottom-color: #f97316 !important;
+        border-top-color: #f97316 !important;
+    }
+
+    .fi-ta-table tr.idrx-highlighted-table-row > *:first-child {
+        border-left-color: #fb923c !important;
+        box-shadow: inset 0 0 0 9999px rgba(251, 146, 60, .12);
+    }
+
+    .fi-ta-table tr.idrx-highlighted-table-row > *:first-child::after {
+        background: #7c2d12;
+        border-color: #fb923c;
+        color: #fed7aa;
+    }
+
+    .fi-ta-table tr.idrx-highlighted-requirement-row > * {
+        background: #431407 !important;
+        border-bottom-color: #f97316 !important;
+        border-top-color: #f97316 !important;
+    }
+
+    .fi-ta-table tr.idrx-highlighted-requirement-row > *:first-child {
+        border-left-color: #fb923c !important;
+        box-shadow: inset 0 0 0 9999px rgba(251, 146, 60, .12);
+    }
+
+    .fi-ta-table tr.idrx-highlighted-requirement-row > *:first-child::after {
+        background: #7c2d12;
+        border-color: #fb923c;
+        color: #fed7aa;
+    }
+
+    .idrx-widget-header {
+        border-bottom-color: #1f2937;
+    }
+
+    .idrx-widget-title,
+    .idrx-card-title {
+        color: #f9fafb;
+    }
+
+    .idrx-widget-description,
+    .idrx-filter-description,
+    .idrx-card-subtitle,
+    .idrx-meta-label,
+    .idrx-muted-row,
+    .idrx-empty {
+        color: #9ca3af;
+    }
+
+    .idrx-meta-value,
+    .idrx-filter-title,
+    .idrx-pill {
+        color: #d1d5db;
+    }
+
+    .idrx-filter-panel {
+        background: #030712;
+        border-color: #1f2937;
+    }
+
+    .idrx-filter-option {
+        background: #111827;
+        border-color: #374151;
+        color: #d1d5db;
+    }
+
+    .idrx-filter-option:hover,
+    .idrx-filter-option-active {
+        background: #431407;
+        border-color: #f97316;
+        color: #fed7aa;
+    }
+
+    .idrx-pill {
+        background: #030712;
+        border-color: #374151;
+    }
+
+    .idrx-empty {
+        border-color: #374151;
+    }
+}

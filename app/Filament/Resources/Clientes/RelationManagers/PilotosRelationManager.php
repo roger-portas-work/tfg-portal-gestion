@@ -8,10 +8,11 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -24,6 +25,11 @@ class PilotosRelationManager extends RelationManager
     protected static string $relationship = 'pilotos';
 
     protected static ?string $title = 'Pilotos';
+
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
 
     protected function buildDownloadFileName(Piloto $record, string $field): string
     {
@@ -40,6 +46,26 @@ class PilotosRelationManager extends RelationManager
         $extension = pathinfo($record->{$field} ?? 'pdf', PATHINFO_EXTENSION) ?: 'pdf';
 
         return "piloto-{$clienteName}-{$pilotName}-{$documentKey}.{$extension}";
+    }
+
+    protected function downloadDocument(Piloto $record, string $field)
+    {
+        $path = $record->{$field};
+
+        if (blank($path) || ! Storage::disk('public')->exists($path)) {
+            Notification::make()
+                ->title('Archivo no encontrado')
+                ->body('El documento ya no existe en el almacenamiento.')
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        return response()->download(
+            Storage::disk('public')->path($path),
+            $this->buildDownloadFileName($record, $field)
+        );
     }
 
     public function form(Schema $schema): Schema
@@ -204,10 +230,7 @@ class PilotosRelationManager extends RelationManager
                     ->button()
                     ->size('sm')
                     ->visible(fn (Piloto $record): bool => filled($record->dni_front_path))
-                    ->action(fn (Piloto $record) => response()->download(
-                        Storage::disk('public')->path($record->dni_front_path),
-                        $this->buildDownloadFileName($record, 'dni_front_path')
-                    )),
+                    ->action(fn (Piloto $record) => $this->downloadDocument($record, 'dni_front_path')),
 
                 Action::make('downloadDniBack')
                     ->label('DNI trasero')
@@ -216,10 +239,7 @@ class PilotosRelationManager extends RelationManager
                     ->button()
                     ->size('sm')
                     ->visible(fn (Piloto $record): bool => filled($record->dni_back_path))
-                    ->action(fn (Piloto $record) => response()->download(
-                        Storage::disk('public')->path($record->dni_back_path),
-                        $this->buildDownloadFileName($record, 'dni_back_path')
-                    )),
+                    ->action(fn (Piloto $record) => $this->downloadDocument($record, 'dni_back_path')),
 
                 Action::make('downloadRadiofonista')
                     ->label('Radiofonista')
@@ -228,10 +248,7 @@ class PilotosRelationManager extends RelationManager
                     ->button()
                     ->size('sm')
                     ->visible(fn (Piloto $record): bool => filled($record->radiofonista_certificate_path))
-                    ->action(fn (Piloto $record) => response()->download(
-                        Storage::disk('public')->path($record->radiofonista_certificate_path),
-                        $this->buildDownloadFileName($record, 'radiofonista_certificate_path')
-                    )),
+                    ->action(fn (Piloto $record) => $this->downloadDocument($record, 'radiofonista_certificate_path')),
 
                 Action::make('downloadTheory')
                     ->label('Teorico')
@@ -240,10 +257,7 @@ class PilotosRelationManager extends RelationManager
                     ->button()
                     ->size('sm')
                     ->visible(fn (Piloto $record): bool => filled($record->theoretical_certificate_path))
-                    ->action(fn (Piloto $record) => response()->download(
-                        Storage::disk('public')->path($record->theoretical_certificate_path),
-                        $this->buildDownloadFileName($record, 'theoretical_certificate_path')
-                    )),
+                    ->action(fn (Piloto $record) => $this->downloadDocument($record, 'theoretical_certificate_path')),
 
                 Action::make('downloadPractical')
                     ->label('Practico')
@@ -252,16 +266,10 @@ class PilotosRelationManager extends RelationManager
                     ->button()
                     ->size('sm')
                     ->visible(fn (Piloto $record): bool => filled($record->practical_certificate_path))
-                    ->action(fn (Piloto $record) => response()->download(
-                        Storage::disk('public')->path($record->practical_certificate_path),
-                        $this->buildDownloadFileName($record, 'practical_certificate_path')
-                    )),
+                    ->action(fn (Piloto $record) => $this->downloadDocument($record, 'practical_certificate_path')),
 
                 EditAction::make()
-                    ->label('Editar')
-                    ->hiddenLabel()
-                    ->icon('heroicon-m-pencil-square')
-                    ->extraAttributes(['class' => 'hidden']),
+                    ->label('Editar'),
 
                 DeleteAction::make()
                     ->visible(fn (Piloto $record): bool => ! $record->operaciones()->exists()),

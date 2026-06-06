@@ -8,11 +8,16 @@ use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -26,6 +31,10 @@ class OperacionTramitesRelationManager extends RelationManager
     protected static string $relationship = 'tramites';
 
     protected static ?string $title = 'Tramites de operacion';
+
+    protected static bool $isLazy = false;
+
+    protected string $view = 'filament.resources.operaciones.relation-managers.operacion-tramites-relation-manager';
 
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
@@ -51,6 +60,15 @@ class OperacionTramitesRelationManager extends RelationManager
         return $originalNames[0] ?? basename(($record->attachments ?? [])[0] ?? 'documento.pdf');
     }
 
+    protected function notifyMissingAttachments(): void
+    {
+        Notification::make()
+            ->title('Archivo no encontrado')
+            ->body('Uno o varios PDFs ya no existen en el almacenamiento.')
+            ->danger()
+            ->send();
+    }
+
     protected function buildArchiveName(OperacionTramite $record): string
     {
         $operationReference = Str::slug($record->operacion?->reference ?: 'operacion');
@@ -61,18 +79,38 @@ class OperacionTramitesRelationManager extends RelationManager
 
     protected function downloadAttachments(OperacionTramite $record)
     {
-        $attachments = collect($record->attachments ?? [])->filter()->values();
+        $disk = Storage::disk('public');
+        $originalNames = $record->attachment_file_names ?? [];
+        $attachments = collect($record->attachments ?? [])
+            ->filter()
+            ->map(fn (string $path, int $index): array => [
+                'path' => $path,
+                'name' => $originalNames[$index] ?? basename($path),
+            ])
+            ->values();
 
         if ($attachments->isEmpty()) {
             return null;
         }
 
-        if ($attachments->count() === 1 || ! class_exists(ZipArchive::class)) {
-            $path = (string) $attachments->first();
+        $existingAttachments = $attachments
+            ->filter(fn (array $attachment): bool => $disk->exists($attachment['path']))
+            ->values();
+
+        if ($existingAttachments->count() !== $attachments->count()) {
+            $this->notifyMissingAttachments();
+        }
+
+        if ($existingAttachments->isEmpty()) {
+            return null;
+        }
+
+        if ($existingAttachments->count() === 1 || ! class_exists(ZipArchive::class)) {
+            $attachment = $existingAttachments->first();
 
             return response()->download(
-                Storage::disk('public')->path($path),
-                $this->firstAttachmentName($record)
+                $disk->path($attachment['path']),
+                $attachment['name'] ?: $this->firstAttachmentName($record)
             );
         }
 
@@ -86,12 +124,10 @@ class OperacionTramitesRelationManager extends RelationManager
         $archive = new ZipArchive();
         $archive->open($archivePath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
-        $originalNames = $record->attachment_file_names ?? [];
-
-        foreach ($attachments as $index => $path) {
+        foreach ($existingAttachments as $attachment) {
             $archive->addFile(
-                Storage::disk('public')->path($path),
-                $originalNames[$index] ?? basename((string) $path)
+                $disk->path($attachment['path']),
+                $attachment['name']
             );
         }
 
@@ -111,8 +147,76 @@ class OperacionTramitesRelationManager extends RelationManager
         $data['title'] = trim((string) ($data['title'] ?? ''));
         $data['attachments'] = array_values(array_filter((array) ($data['attachments'] ?? [])));
         $data['attachment_file_names'] = array_values(array_filter((array) ($data['attachment_file_names'] ?? [])));
+        $data['deadline_date'] = filled($data['deadline_date'] ?? null) ? $data['deadline_date'] : null;
+        $data['processed_at'] = filled($data['processed_at'] ?? null) ? $data['processed_at'] : null;
+        $data['status'] = $this->normalizeTramiteStatus($data['status'] ?? null, $data['processed_at']);
 
         return $data;
+    }
+
+    protected function normalizeTramiteStatus(?string $status, mixed $processedAt): string
+    {
+        if (blank($processedAt)) {
+            return OperacionTramite::STATUS_PENDING;
+        }
+
+        return in_array($status, [
+            OperacionTramite::STATUS_PROCESSED,
+            OperacionTramite::STATUS_APPROVED,
+            OperacionTramite::STATUS_DENIED,
+        ], true)
+            ? $status
+            : OperacionTramite::STATUS_PROCESSED;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function statusOptionsForProcessedDate(mixed $processedAt): array
+    {
+        if (blank($processedAt)) {
+            return [
+                OperacionTramite::STATUS_PENDING => OperacionTramite::statusOptions()[OperacionTramite::STATUS_PENDING],
+            ];
+        }
+
+        return [
+            OperacionTramite::STATUS_PROCESSED => OperacionTramite::statusOptions()[OperacionTramite::STATUS_PROCESSED],
+            OperacionTramite::STATUS_APPROVED => OperacionTramite::statusOptions()[OperacionTramite::STATUS_APPROVED],
+            OperacionTramite::STATUS_DENIED => OperacionTramite::statusOptions()[OperacionTramite::STATUS_DENIED],
+        ];
+    }
+
+    protected function requestedTramiteId(): ?string
+    {
+        return $this->queryParameter('tramite');
+    }
+
+    protected function queryParameter(string $key): ?string
+    {
+        $value = request()->query($key);
+
+        if (! is_array($value) && filled($value)) {
+            return (string) $value;
+        }
+
+        $referer = request()->headers->get('referer');
+
+        if (blank($referer)) {
+            return null;
+        }
+
+        $query = parse_url((string) $referer, PHP_URL_QUERY);
+
+        if (blank($query)) {
+            return null;
+        }
+
+        parse_str($query, $parameters);
+
+        $value = $parameters[$key] ?? null;
+
+        return (! is_array($value) && filled($value)) ? (string) $value : null;
     }
 
     public function form(Schema $schema): Schema
@@ -129,20 +233,60 @@ class OperacionTramitesRelationManager extends RelationManager
                             ->placeholder('Escribe un titulo propio o usa uno sugerido')
                             ->helperText('Puedes usar uno de los titulos frecuentes o escribir otro personalizado si no aparece en la lista.'),
 
-                        \Filament\Forms\Components\Select::make('status')
+                        DatePicker::make('deadline_date')
+                            ->label('Fecha límite para tramitar')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->closeOnDateSelection()
+                            ->hintAction(
+                                Action::make('clearDeadlineDate')
+                                    ->label('Sin definir')
+                                    ->color('gray')
+                                    ->button()
+                                    ->outlined()
+                                    ->size('sm')
+                                    ->action(fn (Set $set): null => $set('deadline_date', null))
+                            )
+                            ->nullable()
+                            ->helperText('Deja este campo vacío si todavía no hay fecha límite definida.'),
+
+                        DatePicker::make('processed_at')
+                            ->label('Fecha de tramitación')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->closeOnDateSelection()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                $set('status', filled($state)
+                                    ? OperacionTramite::STATUS_PROCESSED
+                                    : OperacionTramite::STATUS_PENDING);
+                            })
+                            ->hintAction(
+                                Action::make('clearProcessedAt')
+                                    ->label('Sin definir')
+                                    ->color('gray')
+                                    ->button()
+                                    ->outlined()
+                                    ->size('sm')
+                                    ->action(function (Set $set): void {
+                                        $set('processed_at', null);
+                                        $set('status', OperacionTramite::STATUS_PENDING);
+                                    })
+                            )
+                            ->nullable()
+                            ->helperText('Deja este campo vacío si el trámite todavía no se ha tramitado.'),
+
+                        Select::make('status')
                             ->label('Estado')
-                            ->options(OperacionTramite::statusOptions())
+                            ->options(fn (Get $get): array => $this->statusOptionsForProcessedDate($get('processed_at')))
                             ->default(OperacionTramite::STATUS_PENDING)
                             ->required()
-                            ->native(false),
-
-                        TextInput::make('deadline_date')
-                            ->label('Fecha limite de tramitacion')
-                            ->type('date'),
-
-                        TextInput::make('processed_at')
-                            ->label('Fecha de tramitacion')
-                            ->type('date'),
+                            ->native(false)
+                            ->live()
+                            ->afterStateHydrated(function (Set $set, Get $get, ?string $state): void {
+                                $set('status', $this->normalizeTramiteStatus($state, $get('processed_at')));
+                            })
+                            ->helperText('Sin fecha de tramitación queda pendiente. Con fecha pasa a procesado y después se puede aprobar o denegar.'),
 
                         TextInput::make('request_code')
                             ->label('Codigo de solicitud')
@@ -187,12 +331,12 @@ class OperacionTramitesRelationManager extends RelationManager
                     ->formatStateUsing(fn (?string $state): string => OperacionTramite::statusOptions()[$state] ?? 'Sin definir'),
 
                 TextColumn::make('deadline_date')
-                    ->label('Fecha limite')
+                    ->label('Fecha límite para tramitar')
                     ->date('d/m/Y')
                     ->placeholder('Sin definir'),
 
                 TextColumn::make('processed_at')
-                    ->label('Fecha tramitacion')
+                    ->label('Fecha de tramitación')
                     ->date('d/m/Y')
                     ->placeholder('Sin definir'),
 
@@ -212,6 +356,13 @@ class OperacionTramitesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('deadline_date')
+            ->recordClasses(function (OperacionTramite $record): string {
+                if ($this->requestedTramiteId() === (string) $record->getKey()) {
+                    return 'idrx-highlighted-table-row';
+                }
+
+                return '';
+            })
             ->headerActions([
                 CreateAction::make()
                     ->label('Anadir tramite')

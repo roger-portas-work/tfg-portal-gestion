@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Clientes\Schemas;
 
 use App\Models\Cliente;
+use App\Models\OperadoraRequirement;
 use App\Models\User;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
@@ -17,6 +19,15 @@ class ClienteForm
     {
         return $schema
             ->components([
+                Section::make('Incidencia destacada')
+                    ->description('Has llegado desde el dashboard del gestor. Revisa el punto indicado antes de cerrar este cliente.')
+                    ->visible(fn (?Cliente $record): bool => $record !== null && request()->query('focus') === 'operadora-revision')
+                    ->schema([
+                        Placeholder::make('dashboard_focus')
+                            ->label('Prioridad')
+                            ->content(fn (?Cliente $record): string => self::operadoraFocusMessage($record)),
+                    ]),
+
                 Section::make('Datos basicos')
                     ->description('El gestor solo da de alta los datos minimos. El resto de la ficha la completara despues el cliente.')
                     ->schema([
@@ -150,5 +161,26 @@ class ClienteForm
                             ]),
                     ]),
             ]);
+    }
+
+    protected static function operadoraFocusMessage(?Cliente $record): string
+    {
+        if (! $record) {
+            return 'Revisa el expediente de operadora de este cliente.';
+        }
+
+        $requirementId = request()->query('requirement');
+
+        if ($requirementId) {
+            $requirement = OperadoraRequirement::query()
+                ->where('cliente_id', $record->getKey())
+                ->find($requirementId);
+
+            if ($requirement) {
+                return "Requisito en revisión: {$requirement->name}. Ábrelo en el bloque Expediente Operadora para aprobarlo o pedir corrección.";
+            }
+        }
+
+        return 'Hay requisitos de operadora pendientes de revisión. Revisa el bloque Expediente Operadora.';
     }
 }
