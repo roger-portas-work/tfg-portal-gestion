@@ -79,6 +79,10 @@
 
             <flux:spacer />
 
+            <a href="{{ route('dashboard') }}" class="portal-mobile-brand" wire:navigate aria-label="Idron Lex & Consulting">
+                <img src="{{ asset('images/logo-idronlex.png') }}" alt="Idron Lex & Consulting" />
+            </a>
+
             <flux:dropdown position="top" align="end">
                 <flux:profile
                     :initials="auth()->user()->initials()"
