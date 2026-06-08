@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clientes\Pages;
 
 use App\Filament\Resources\Clientes\ClienteResource;
+use App\Models\Cliente;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -57,7 +58,8 @@ class EditCliente extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->visible(fn (Cliente $record): bool => $record->canBeDeletedSafely()),
         ];
     }
 }

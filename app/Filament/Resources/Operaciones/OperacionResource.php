@@ -6,22 +6,38 @@ use App\Filament\Resources\Clientes\ClienteResource;
 use App\Filament\Resources\Operaciones\Pages\ListOperaciones;
 use App\Filament\Resources\Operaciones\Pages\ViewOperacion;
 use App\Filament\Resources\Operaciones\RelationManagers\OperacionTramitesRelationManager;
+use App\Filament\Resources\Operaciones\Schemas\OperacionForm;
 use App\Models\Cliente;
 use App\Models\Dron;
 use App\Models\Operacion;
+use App\Models\OperacionTramite;
 use App\Models\OperadoraRequirement;
 use App\Models\Piloto;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class OperacionResource extends Resource
 {
@@ -46,16 +62,23 @@ class OperacionResource extends Resource
         return Carbon::today(config('app.timezone'))->subDays(2)->toDateString();
     }
 
+    protected static function todayDate(): string
+    {
+        return Carbon::today(config('app.timezone'))->toDateString();
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return OperacionForm::configure($schema);
+    }
+
     public static function buildOperationsTable(Table $table, bool $onlyUpcoming = false, ?string $heading = null): Table
     {
         $activeFrom = static::activeOperationsFrom();
 
         return $table
             ->modifyQueryUsing(function (Builder $query) use ($onlyUpcoming, $activeFrom): void {
-                $query->withCount([
-                    'tramites',
-                    'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery->where('status', \App\Models\OperacionTramite::STATUS_APPROVED),
-                ]);
+                $query->withTramiteWorkflowCounts();
 
                 if ($onlyUpcoming) {
                     $query
@@ -80,6 +103,12 @@ class OperacionResource extends Resource
                     ->badge()
                     ->color(fn (Operacion $record): string => $record->statusColor())
                     ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
+
+                TextColumn::make('workflow_priority')
+                    ->label('Prioridad')
+                    ->badge()
+                    ->state(fn (Operacion $record): string => $record->workflowPriorityLabel())
+                    ->color(fn (Operacion $record): string => $record->workflowPriorityColor()),
 
                 TextColumn::make('documentation_status')
                     ->label('Documentacion')
@@ -107,6 +136,15 @@ class OperacionResource extends Resource
                 TextColumn::make('piloto_name')
                     ->label('Piloto')
                     ->state(fn (Operacion $record): string => $record->piloto?->fullName() ?: 'Sin piloto')
+                    ->searchable(query: function (Builder $query, string $search): void {
+                        $query->whereHas('piloto', function (Builder $pilotoQuery) use ($search): void {
+                            $pilotoQuery
+                                ->where('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('second_last_name', 'like', "%{$search}%")
+                                ->orWhere('dni_nie', 'like', "%{$search}%");
+                        });
+                    })
                     ->toggleable(),
 
                 TextColumn::make('dron_label')
@@ -119,6 +157,15 @@ class OperacionResource extends Resource
                         }
 
                         return $label ?: 'Sin dron';
+                    })
+                    ->searchable(query: function (Builder $query, string $search): void {
+                        $query->whereHas('dron', function (Builder $dronQuery) use ($search): void {
+                            $dronQuery
+                                ->where('manufacturer_name', 'like', "%{$search}%")
+                                ->orWhere('model', 'like', "%{$search}%")
+                                ->orWhere('registration_number', 'like', "%{$search}%")
+                                ->orWhere('drone_serial_number', 'like', "%{$search}%");
+                        });
                     })
                     ->toggleable(),
 
@@ -150,10 +197,52 @@ class OperacionResource extends Resource
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->filters(static::tableFilters())
             ->defaultSort('operation_date')
             ->recordActions([
+                Action::make('confirmarOperacion')
+                    ->label(fn (Operacion $record): string => $record->isConfirmed() ? 'Actualizar' : 'Confirmar')
+                    ->icon('heroicon-m-check-circle')
+                    ->color('success')
+                    ->visible(fn (Operacion $record): bool => $record->isPending() || $record->isConfirmed())
+                    ->fillForm(fn (Operacion $record): array => [
+                        'operation_cost' => $record->operation_cost,
+                        'operational_conditions' => $record->operational_conditions,
+                    ])
+                    ->form(static::confirmationForm())
+                    ->action(function (Operacion $record, array $data): void {
+                        $record->update([
+                            'status' => Operacion::STATUS_CONFIRMED,
+                            'operation_cost' => $data['operation_cost'],
+                            'operational_conditions' => $data['operational_conditions'],
+                        ]);
+                    })
+                    ->successNotificationTitle('Operacion confirmada'),
+
                 ViewAction::make()
                     ->label('Gestionar'),
+
+                EditAction::make()
+                    ->label('Editar')
+                    ->mutateDataUsing(fn (array $data): array => OperacionForm::mutateData($data)),
+
+                Action::make('rechazarOperacion')
+                    ->label('Rechazar')
+                    ->icon('heroicon-m-x-circle')
+                    ->color('danger')
+                    ->visible(fn (Operacion $record): bool => $record->isPending())
+                    ->requiresConfirmation()
+                    ->action(function (Operacion $record): void {
+                        $record->update([
+                            'status' => Operacion::STATUS_REJECTED,
+                            'operation_cost' => null,
+                            'operational_conditions' => null,
+                        ]);
+                    })
+                    ->successNotificationTitle('Operacion rechazada'),
+
+                DeleteAction::make()
+                    ->visible(fn (Operacion $record): bool => $record->isPending()),
             ])
             ->recordAction('view');
     }
@@ -167,15 +256,354 @@ class OperacionResource extends Resource
                 'piloto',
                 'dron',
             ])
-            ->withCount([
-                'tramites',
-                'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery->where('status', \App\Models\OperacionTramite::STATUS_APPROVED),
-            ]);
+            ->withTramiteWorkflowCounts();
     }
 
     public static function table(Table $table): Table
     {
         return static::buildOperationsTable($table, onlyUpcoming: false, heading: 'Todas las operaciones');
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    public static function confirmationForm(): array
+    {
+        return [
+            TextInput::make('operation_cost')
+                ->label('Coste de operacion')
+                ->numeric()
+                ->required()
+                ->minValue(0)
+                ->suffix('EUR'),
+            Textarea::make('operational_conditions')
+                ->label('Condiciones operativas')
+                ->required()
+                ->rows(5),
+        ];
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected static function tableFilters(): array
+    {
+        return [
+            Filter::make('assignment')
+                ->label('Cliente, piloto y dron')
+                ->form([
+                    Select::make('cliente_id')
+                        ->label('Cliente')
+                        ->options(fn (): array => static::clienteFilterOptions())
+                        ->searchable()
+                        ->native(false)
+                        ->live()
+                        ->afterStateUpdated(function (Set $set): void {
+                            $set('piloto_id', null);
+                            $set('dron_id', null);
+                        }),
+
+                    Select::make('piloto_id')
+                        ->label('Piloto')
+                        ->options(fn (Get $get): array => static::pilotoFilterOptions($get('cliente_id')))
+                        ->searchable()
+                        ->native(false),
+
+                    Select::make('dron_id')
+                        ->label('Dron')
+                        ->options(fn (Get $get): array => static::dronFilterOptions($get('cliente_id')))
+                        ->searchable()
+                        ->native(false),
+                ])
+                ->query(function (Builder $query, array $data): Builder {
+                    return $query
+                        ->when(
+                            filled($data['cliente_id'] ?? null),
+                            fn (Builder $query): Builder => $query->where('cliente_id', $data['cliente_id'])
+                        )
+                        ->when(
+                            filled($data['piloto_id'] ?? null),
+                            fn (Builder $query): Builder => $query->where('piloto_id', $data['piloto_id'])
+                        )
+                        ->when(
+                            filled($data['dron_id'] ?? null),
+                            fn (Builder $query): Builder => $query->where('dron_id', $data['dron_id'])
+                        );
+                }),
+
+            Filter::make('operation_range')
+                ->label('Fecha operacion')
+                ->form([
+                    Fieldset::make('Fecha operacion')
+                        ->schema([
+                            DatePicker::make('operation_from')
+                                ->label('Desde')
+                                ->displayFormat('d/m/Y')
+                                ->native(false)
+                                ->closeOnDateSelection(),
+                            DatePicker::make('operation_until')
+                                ->label('Hasta')
+                                ->displayFormat('d/m/Y')
+                                ->native(false)
+                                ->closeOnDateSelection(),
+                        ])
+                        ->columns(1),
+                ])
+                ->query(function (Builder $query, array $data): Builder {
+                    return $query
+                        ->when(
+                            filled($data['operation_from'] ?? null),
+                            fn (Builder $query): Builder => $query->whereDate('operation_date', '>=', $data['operation_from'])
+                        )
+                        ->when(
+                            filled($data['operation_until'] ?? null),
+                            fn (Builder $query): Builder => $query->whereDate('operation_date', '<=', $data['operation_until'])
+                        );
+                }),
+
+        ];
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function clienteFilterOptions(): array
+    {
+        return Cliente::query()
+            ->orderBy('name')
+            ->orderBy('last_name')
+            ->get()
+            ->mapWithKeys(fn (Cliente $cliente): array => [
+                $cliente->getKey() => $cliente->fullName() ?: 'Cliente #'.$cliente->getKey(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function pilotoFilterOptions(mixed $clienteId = null): array
+    {
+        return Piloto::query()
+            ->when(filled($clienteId), fn (Builder $query): Builder => $query->where('cliente_id', $clienteId))
+            ->with('cliente')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->mapWithKeys(fn (Piloto $piloto): array => [
+                $piloto->getKey() => $piloto->displayNameWithIdentification(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    protected static function dronFilterOptions(mixed $clienteId = null): array
+    {
+        return Dron::query()
+            ->when(filled($clienteId), fn (Builder $query): Builder => $query->where('cliente_id', $clienteId))
+            ->with('cliente')
+            ->orderBy('manufacturer_name')
+            ->orderBy('model')
+            ->get()
+            ->mapWithKeys(fn (Dron $dron): array => [
+                $dron->getKey() => $dron->displayNameWithSerial(),
+            ])
+            ->all();
+    }
+
+    public static function applyPriorityTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->whereDate('operation_date', '>=', static::todayDate())
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('status')
+                    ->orWhere('status', Operacion::STATUS_PENDING)
+                    ->orWhere(function (Builder $query): void {
+                        static::applyConfirmedIssuesConditions($query);
+                    });
+            })
+            ->orderBy('operation_date')
+            ->orderBy('id');
+    }
+
+    public static function applyPendingTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->whereDate('operation_date', '>=', static::todayDate())
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('status')
+                    ->orWhere('status', Operacion::STATUS_PENDING);
+            })
+            ->orderBy('operation_date')
+            ->orderBy('id');
+    }
+
+    public static function applyTodayTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->whereDate('operation_date', static::todayDate())
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('status')
+                    ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
+            })
+            ->orderBy('estimated_filming_schedule')
+            ->orderBy('id');
+    }
+
+    public static function applyConfirmedIssuesTabQuery(Builder $query): Builder
+    {
+        return static::applyConfirmedIssuesConditions($query)
+            ->whereDate('operation_date', '>=', static::todayDate())
+            ->orderBy('operation_date')
+            ->orderBy('id');
+    }
+
+    public static function applyUpcomingTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->whereDate('operation_date', '>=', static::todayDate())
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('status')
+                    ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
+            })
+            ->orderBy('operation_date')
+            ->orderBy('id');
+    }
+
+    public static function applyRejectedTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->where('status', Operacion::STATUS_REJECTED)
+            ->whereDate('operation_date', '>=', static::todayDate())
+            ->orderBy('operation_date')
+            ->orderBy('id');
+    }
+
+    public static function applyPastTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->whereDate('operation_date', '<', static::todayDate())
+            ->orderByDesc('operation_date')
+            ->orderByDesc('id');
+    }
+
+    protected static function applyConfirmedIssuesConditions(Builder $query): Builder
+    {
+        return $query
+            ->where('status', Operacion::STATUS_CONFIRMED)
+            ->where(function (Builder $query): void {
+                $query
+                    ->doesntHave('tramites')
+                    ->orWhereHas('tramites', fn (Builder $tramitesQuery): Builder => $tramitesQuery
+                        ->where('status', '!=', OperacionTramite::STATUS_APPROVED));
+            });
+    }
+
+    protected static function downloadStoredDocument(?string $path, string $fileName, string $missingBody)
+    {
+        if (blank($path) || ! Storage::disk('public')->exists($path)) {
+            Notification::make()
+                ->title('Archivo no encontrado')
+                ->body($missingBody)
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        return response()->download(
+            Storage::disk('public')->path($path),
+            $fileName
+        );
+    }
+
+    protected static function downloadPilotDocument(Operacion $record, string $field)
+    {
+        return static::downloadStoredDocument(
+            $record->piloto?->{$field},
+            static::pilotDocumentFileName($record, $field),
+            'El documento del piloto ya no existe en el almacenamiento.'
+        );
+    }
+
+    protected static function pilotDocumentFileName(Operacion $record, string $field): string
+    {
+        $clienteName = Str::slug($record->cliente?->fullName() ?: 'cliente');
+        $pilotName = Str::slug($record->piloto?->fullName() ?: 'piloto');
+        $documentKey = match ($field) {
+            'radiofonista_certificate_path' => 'radiofonista',
+            'dni_front_path' => 'dni-frontal',
+            'dni_back_path' => 'dni-trasero',
+            'theoretical_certificate_path' => 'certificado-teorico',
+            'practical_certificate_path' => 'certificado-practico',
+            default => 'documento',
+        };
+        $extension = pathinfo($record->piloto?->{$field} ?? 'pdf', PATHINFO_EXTENSION) ?: 'pdf';
+
+        return "piloto-{$clienteName}-{$pilotName}-{$documentKey}.{$extension}";
+    }
+
+    protected static function downloadDroneInsuranceDocument(Operacion $record)
+    {
+        return static::downloadStoredDocument(
+            $record->dron?->insurance_coverage_policy_path,
+            static::droneInsuranceFileName($record),
+            'El PDF del seguro ya no existe en el almacenamiento.'
+        );
+    }
+
+    protected static function droneInsuranceFileName(Operacion $record): string
+    {
+        if (filled($record->dron?->insurance_coverage_policy_original_name)) {
+            return $record->dron->insurance_coverage_policy_original_name;
+        }
+
+        $clienteName = Str::slug($record->cliente?->fullName() ?: 'cliente');
+        $dronName = Str::slug($record->dron?->displayName() ?: 'dron');
+        $extension = pathinfo($record->dron?->insurance_coverage_policy_path ?? 'pdf', PATHINFO_EXTENSION) ?: 'pdf';
+
+        return "dron-{$clienteName}-{$dronName}-seguro.{$extension}";
+    }
+
+    protected static function operadoraRequirementDocument(Operacion $record): ?OperadoraRequirement
+    {
+        $requirements = $record->cliente?->operadoraRequirements;
+
+        if (! $requirements) {
+            return null;
+        }
+
+        return $requirements
+            ->filter(fn (OperadoraRequirement $requirement): bool => filled($requirement->file_path))
+            ->sortByDesc(fn (OperadoraRequirement $requirement): bool => $requirement->is_system_default)
+            ->first();
+    }
+
+    protected static function downloadOperadoraRequirementDocument(Operacion $record)
+    {
+        $requirement = static::operadoraRequirementDocument($record);
+
+        return static::downloadStoredDocument(
+            $requirement?->file_path,
+            static::operadoraRequirementFileName($record, $requirement),
+            'La entrega de operadora ya no existe en el almacenamiento.'
+        );
+    }
+
+    protected static function operadoraRequirementFileName(Operacion $record, ?OperadoraRequirement $requirement): string
+    {
+        $clienteName = Str::slug($record->cliente?->fullName() ?: 'cliente');
+        $requirementName = Str::slug($requirement?->name ?: 'requisito');
+        $date = $requirement?->submitted_at?->format('Y-m-d') ?? now()->format('Y-m-d');
+        $extension = pathinfo($requirement?->original_file_name ?? $requirement?->file_path ?? 'pdf', PATHINFO_EXTENSION) ?: 'pdf';
+
+        return "operadora-{$clienteName}-{$requirementName}-{$date}.{$extension}";
     }
 
     public static function infolist(Schema $schema): Schema
@@ -196,6 +624,7 @@ class OperacionResource extends Resource
                                 'documentacion-completa' => 'success',
                                 'operacion-hoy', 'tramites-7-dias', 'tramite-7-dias' => 'warning',
                                 'pendiente-confirmar' => 'warning',
+                                'operacion-rechazada' => 'gray',
                                 'sin-tramites', 'tramites-vencidos' => 'danger',
                                 default => 'info',
                             }),
@@ -378,6 +807,14 @@ class OperacionResource extends Resource
 
                 Section::make('Operadora')
                     ->description('Datos del certificado operador y estado general del expediente.')
+                    ->headerActions([
+                        Action::make('downloadOperadoraCertificate')
+                            ->label('Certificado operador')
+                            ->icon('heroicon-m-document-arrow-down')
+                            ->color('gray')
+                            ->visible(fn (Operacion $record): bool => static::operadoraRequirementDocument($record) !== null)
+                            ->action(fn (Operacion $record) => static::downloadOperadoraRequirementDocument($record)),
+                    ])
                     ->schema([
                         TextEntry::make('operadora_full_name')
                             ->label('Titular del certificado')
@@ -417,6 +854,42 @@ class OperacionResource extends Resource
 
                 Section::make('Piloto vinculado')
                     ->description('Informacion completa del piloto asignado a esta operacion.')
+                    ->headerActions([
+                        Action::make('downloadPilotDniFront')
+                            ->label('DNI frontal')
+                            ->icon('heroicon-m-identification')
+                            ->color('gray')
+                            ->visible(fn (Operacion $record): bool => filled($record->piloto?->dni_front_path))
+                            ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'dni_front_path')),
+
+                        Action::make('downloadPilotDniBack')
+                            ->label('DNI trasero')
+                            ->icon('heroicon-m-identification')
+                            ->color('gray')
+                            ->visible(fn (Operacion $record): bool => filled($record->piloto?->dni_back_path))
+                            ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'dni_back_path')),
+
+                        Action::make('downloadPilotRadiofonista')
+                            ->label('Radiofonista')
+                            ->icon('heroicon-m-arrow-down-tray')
+                            ->color('info')
+                            ->visible(fn (Operacion $record): bool => filled($record->piloto?->radiofonista_certificate_path))
+                            ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'radiofonista_certificate_path')),
+
+                        Action::make('downloadPilotTheory')
+                            ->label('Teorico')
+                            ->icon('heroicon-m-document-arrow-down')
+                            ->color('success')
+                            ->visible(fn (Operacion $record): bool => filled($record->piloto?->theoretical_certificate_path))
+                            ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'theoretical_certificate_path')),
+
+                        Action::make('downloadPilotPractical')
+                            ->label('Practico')
+                            ->icon('heroicon-m-document-arrow-down')
+                            ->color('warning')
+                            ->visible(fn (Operacion $record): bool => filled($record->piloto?->practical_certificate_path))
+                            ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'practical_certificate_path')),
+                    ])
                     ->schema([
                         TextEntry::make('piloto_full_name')
                             ->label('Piloto')
@@ -475,6 +948,14 @@ class OperacionResource extends Resource
 
                 Section::make('Dron vinculado')
                     ->description('Datos tecnicos y de seguro del dron asociado a la operacion.')
+                    ->headerActions([
+                        Action::make('downloadDroneInsurance')
+                            ->label('Descargar seguro')
+                            ->icon('heroicon-m-document-arrow-down')
+                            ->color('gray')
+                            ->visible(fn (Operacion $record): bool => filled($record->dron?->insurance_coverage_policy_path))
+                            ->action(fn (Operacion $record) => static::downloadDroneInsuranceDocument($record)),
+                    ])
                     ->schema([
                         TextEntry::make('dron_label')
                             ->label('Dron')
@@ -584,6 +1065,7 @@ class OperacionResource extends Resource
             'tramites-pendientes' => 'Hay trámites pendientes de tramitar.',
             'operacion-hoy' => 'Esta operación está programada para hoy. Revisa horario, piloto, dron y trámites antes de cerrarla.',
             'pendiente-confirmar' => 'Esta operación está pendiente de decisión. Revisa los datos y cambia el estado cuando el gestor la cierre con el cliente.',
+            'operacion-rechazada' => 'Esta operación está rechazada. Revisa el historial solo si necesitas recuperar contexto.',
             'documentacion-completa' => 'La documentación de esta operación aparece completa.',
             default => 'Revisa esta operación desde el dashboard del gestor.',
         };

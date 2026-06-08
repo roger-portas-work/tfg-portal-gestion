@@ -52,6 +52,10 @@ class GestorPriorityStatsWidget extends Widget
                 ->where('status', '!=', OperacionTramite::STATUS_APPROVED))
             ->count();
 
+        $overdueTramites = $this->pendingTramitesQuery()
+            ->whereDate('deadline_date', '<', $today)
+            ->count();
+
         $dueSoonTramites = $this->pendingTramitesQuery()
             ->whereBetween('deadline_date', [$today, $dueUntil])
             ->count();
@@ -98,7 +102,14 @@ class GestorPriorityStatsWidget extends Widget
                     'url' => '#operaciones-confirmadas-vista',
                 ],
                 [
-                    'label' => 'Fecha límite tramitación vence en 7 días',
+                    'label' => 'Tramites vencidos',
+                    'value' => $overdueTramites,
+                    'description' => 'Fecha limite anterior a hoy',
+                    'tone' => $overdueTramites > 0 ? 'danger' : 'success',
+                    'url' => '#tramites-vencidos',
+                ],
+                [
+                    'label' => 'Fecha limite tramitacion vence en 7 dias',
                     'value' => $dueSoonTramites,
                     'description' => 'Desde hoy hacia adelante',
                     'tone' => $dueSoonTramites > 0 ? 'warning' : 'success',

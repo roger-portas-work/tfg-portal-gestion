@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class OperacionTramite extends Model
 {
@@ -82,5 +83,59 @@ class OperacionTramite extends Model
             self::STATUS_PROCESSED => 'warning',
             default => 'gray',
         };
+    }
+
+    public function daysUntilDeadline(): ?int
+    {
+        if (! $this->deadline_date) {
+            return null;
+        }
+
+        $timezone = config('app.timezone');
+        $deadline = $this->deadline_date instanceof \DateTimeInterface
+            ? Carbon::instance($this->deadline_date)->startOfDay()
+            : Carbon::parse($this->deadline_date, $timezone)->startOfDay();
+
+        return (int) Carbon::today($timezone)->diffInDays($deadline, false);
+    }
+
+    public function deadlineCountdownLabel(): string
+    {
+        $days = $this->daysUntilDeadline();
+
+        if ($days === null) {
+            return 'Sin fecha limite';
+        }
+
+        if ($days < 0) {
+            $elapsedDays = abs($days);
+
+            return 'Vencido hace '.$elapsedDays.' '.($elapsedDays === 1 ? 'dia' : 'dias');
+        }
+
+        if ($days === 0) {
+            return 'Vence hoy';
+        }
+
+        return ($days === 1 ? 'Falta ' : 'Faltan ').$days.' '.($days === 1 ? 'dia' : 'dias');
+    }
+
+    public function deadlineCountdownColor(): string
+    {
+        $days = $this->daysUntilDeadline();
+
+        if ($days === null) {
+            return 'gray';
+        }
+
+        if ($days <= 7) {
+            return 'danger';
+        }
+
+        if ($days <= 29) {
+            return 'warning';
+        }
+
+        return 'success';
     }
 }

@@ -1,11 +1,10 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'cliente'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
     Route::livewire('drones', 'pages::drones.index')->name('drones.index');
     Route::livewire('pilotos', 'pages::pilotos.index')->name('pilotos.index');

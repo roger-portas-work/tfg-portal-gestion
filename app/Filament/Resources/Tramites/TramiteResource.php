@@ -47,20 +47,13 @@ class TramiteResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $today = Carbon::today(config('app.timezone'))->toDateString();
-        $dueUntil = Carbon::today(config('app.timezone'))->addDays(7)->toDateString();
-
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
                 ->with([
                     'operacion.cliente',
                     'operacion.piloto',
                     'operacion.dron',
-                ])
-                ->orderByRaw(static::priorityOrderSql($today, $dueUntil))
-                ->orderByRaw('deadline_date is null')
-                ->orderBy('deadline_date')
-                ->orderBy('id'))
+                ]))
             ->heading('Seguimiento de tramites')
             ->columns([
                 TextColumn::make('title')
@@ -83,6 +76,12 @@ class TramiteResource extends Resource
                     ->date('d/m/Y')
                     ->sortable()
                     ->placeholder('Sin definir'),
+
+                TextColumn::make('deadline_countdown')
+                    ->label('Dias restantes')
+                    ->badge()
+                    ->state(fn (OperacionTramite $record): string => $record->deadlineCountdownLabel())
+                    ->color(fn (OperacionTramite $record): string => $record->deadlineCountdownColor()),
 
                 TextColumn::make('processed_at')
                     ->label('Fecha tramitacion')
@@ -118,19 +117,6 @@ class TramiteResource extends Resource
                     ->state(fn (OperacionTramite $record): string => (string) count($record->attachments ?? [])),
             ])
             ->filters([
-                SelectFilter::make('vista')
-                    ->label('Vista')
-                    ->options([
-                        'overdue' => 'Vencidos',
-                        'due_soon' => 'Vencen en 7 dias',
-                        'pending' => 'Pendientes de tramitar',
-                        'processed' => 'Tramitados pendientes',
-                        'denied' => 'Denegados',
-                        'approved' => 'Aprobados',
-                        'without_deadline' => 'Sin fecha limite',
-                    ])
-                    ->query(fn (Builder $query, array $data): Builder => static::applyVistaFilter($query, $data)),
-
                 SelectFilter::make('status')
                     ->label('Estado tramite')
                     ->options(OperacionTramite::statusOptions()),
@@ -204,55 +190,40 @@ class TramiteResource extends Resource
             ->recordAction('abrirOperacion');
     }
 
-    protected static function applyVistaFilter(Builder $query, array $data): Builder
+    public static function applyPendingTabQuery(Builder $query): Builder
     {
-        $value = $data['value'] ?? null;
-        $today = Carbon::today(config('app.timezone'))->toDateString();
-        $dueUntil = Carbon::today(config('app.timezone'))->addDays(7)->toDateString();
-
-        return match ($value) {
-            'overdue' => $query
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
-                ->whereDate('deadline_date', '<', $today),
-            'due_soon' => $query
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
-                ->whereBetween('deadline_date', [$today, $dueUntil]),
-            'pending' => $query
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED),
-            'processed' => $query->where('status', OperacionTramite::STATUS_PROCESSED),
-            'denied' => $query->where('status', OperacionTramite::STATUS_DENIED),
-            'approved' => $query->where('status', OperacionTramite::STATUS_APPROVED),
-            'without_deadline' => $query
-                ->whereNull('deadline_date')
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED),
-            default => $query,
-        };
+        return $query
+            ->where('status', OperacionTramite::STATUS_PENDING)
+            ->whereNull('processed_at')
+            ->whereNotNull('deadline_date')
+            ->orderBy('deadline_date')
+            ->orderBy('id');
     }
 
-    protected static function priorityOrderSql(string $today, string $dueUntil): string
+    public static function applyOverdueTabQuery(Builder $query): Builder
     {
-        $approvedStatus = static::quoteSqlLiteral(OperacionTramite::STATUS_APPROVED);
-        $deniedStatus = static::quoteSqlLiteral(OperacionTramite::STATUS_DENIED);
-        $processedStatus = static::quoteSqlLiteral(OperacionTramite::STATUS_PROCESSED);
-        $approvedFinalStatus = static::quoteSqlLiteral(OperacionTramite::STATUS_APPROVED);
-        $today = static::quoteSqlLiteral($today);
-        $dueUntil = static::quoteSqlLiteral($dueUntil);
+        return $query
+            ->whereNull('processed_at')
+            ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
+            ->whereDate('deadline_date', '<', Carbon::today(config('app.timezone'))->toDateString())
+            ->orderBy('deadline_date')
+            ->orderBy('id');
+    }
 
-        return <<<SQL
-            case
-                when processed_at is null and status != {$approvedStatus} and deadline_date < {$today} then 0
-                when processed_at is null and status != {$approvedStatus} and deadline_date between {$today} and {$dueUntil} then 1
-                when processed_at is null and status != {$approvedStatus} then 2
-                when status = {$deniedStatus} then 3
-                when status = {$processedStatus} then 4
-                when status = {$approvedFinalStatus} then 5
-                else 6
-            end
-        SQL;
+    public static function applyProcessedTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->where('status', OperacionTramite::STATUS_PROCESSED)
+            ->whereNotNull('processed_at')
+            ->orderBy('processed_at')
+            ->orderBy('id');
+    }
+
+    public static function applyHistoryTabQuery(Builder $query): Builder
+    {
+        return $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     protected static function operationDescription(OperacionTramite $record): ?string
@@ -283,11 +254,6 @@ class TramiteResource extends Resource
             'focus' => 'tramite',
             'tramite' => $record->getKey(),
         ]);
-    }
-
-    protected static function quoteSqlLiteral(string $value): string
-    {
-        return "'".str_replace("'", "''", $value)."'";
     }
 
     public static function getPages(): array

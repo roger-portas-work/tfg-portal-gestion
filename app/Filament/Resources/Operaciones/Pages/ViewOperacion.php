@@ -4,10 +4,9 @@ namespace App\Filament\Resources\Operaciones\Pages;
 
 use App\Filament\Resources\Clientes\ClienteResource;
 use App\Filament\Resources\Operaciones\OperacionResource;
+use App\Filament\Resources\Operaciones\Schemas\OperacionForm;
 use App\Models\Operacion;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
@@ -36,6 +35,18 @@ class ViewOperacion extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('editarOperacion')
+                ->label('Editar operacion')
+                ->icon('heroicon-m-pencil-square')
+                ->color('gray')
+                ->fillForm(fn (): array => $this->record->attributesToArray())
+                ->form(OperacionForm::components())
+                ->action(function (array $data): void {
+                    $this->record->update(OperacionForm::mutateData($data));
+                    $this->record->refresh();
+                })
+                ->successNotificationTitle('Operacion actualizada'),
+
             Action::make('confirmarOperacion')
                 ->label(fn (): string => $this->record->isConfirmed() ? 'Actualizar confirmacion' : 'Confirmar operacion')
                 ->color('success')
@@ -44,18 +55,7 @@ class ViewOperacion extends ViewRecord
                     'operation_cost' => $this->record->operation_cost,
                     'operational_conditions' => $this->record->operational_conditions,
                 ])
-                ->form([
-                    TextInput::make('operation_cost')
-                        ->label('Coste de operacion')
-                        ->numeric()
-                        ->required()
-                        ->minValue(0)
-                        ->suffix('EUR'),
-                    Textarea::make('operational_conditions')
-                        ->label('Condiciones operativas')
-                        ->required()
-                        ->rows(5),
-                ])
+                ->form(OperacionResource::confirmationForm())
                 ->action(function (array $data): void {
                     $this->record->update([
                         'status' => Operacion::STATUS_CONFIRMED,

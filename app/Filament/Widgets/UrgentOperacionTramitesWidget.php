@@ -25,48 +25,54 @@ class UrgentOperacionTramitesWidget extends Widget
         $today = Carbon::today(config('app.timezone'))->toDateString();
         $dueUntil = Carbon::today(config('app.timezone'))->addDays(7)->toDateString();
 
-        $tramites = OperacionTramite::query()
-            ->with('operacion.cliente')
-            ->whereNull('processed_at')
-            ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
-            ->whereBetween('deadline_date', [$today, $dueUntil])
-            ->whereHas('operacion', fn (Builder $query) => $query
-                ->where('status', Operacion::STATUS_CONFIRMED))
+        $overdueTramites = $this->pendingConfirmedTramitesQuery()
+            ->whereDate('deadline_date', '<', $today)
             ->orderBy('deadline_date')
             ->limit(8)
             ->get()
-            ->map(fn (OperacionTramite $tramite): array => [
-                'title' => $tramite->title,
-                'operation' => $tramite->operacion?->reference ?: 'Sin operación',
-                'cliente' => $tramite->operacion?->cliente?->fullName() ?: 'Sin cliente',
-                'deadline' => $this->formatDate($tramite->deadline_date),
-                'description' => $this->deadlineDescription($tramite, $today),
-                'operation_date' => $this->formatDate($tramite->operacion?->operation_date, null),
-                'url' => OperacionResource::getUrl('view', [
-                    'record' => $tramite->operacion_id,
-                    'focus' => 'tramite-7-dias',
-                    'tramite' => $tramite->id,
-                ]),
-            ]);
+            ->map(fn (OperacionTramite $tramite): array => $this->formatTramite($tramite, 'tramites-vencidos'));
+
+        $dueSoonTramites = $this->pendingConfirmedTramitesQuery()
+            ->whereBetween('deadline_date', [$today, $dueUntil])
+            ->orderBy('deadline_date')
+            ->limit(8)
+            ->get()
+            ->map(fn (OperacionTramite $tramite): array => $this->formatTramite($tramite, 'tramite-7-dias'));
 
         return [
-            'tramites' => $tramites,
+            'overdueTramites' => $overdueTramites,
+            'dueSoonTramites' => $dueSoonTramites,
         ];
     }
 
-    protected function deadlineDescription(OperacionTramite $record, string $today): string
+    protected function pendingConfirmedTramitesQuery(): Builder
     {
-        if (! $record->deadline_date) {
-            return 'Sin fecha límite';
-        }
+        return OperacionTramite::query()
+            ->with('operacion.cliente')
+            ->whereNull('processed_at')
+            ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
+            ->whereHas('operacion', fn (Builder $query) => $query
+                ->where('status', Operacion::STATUS_CONFIRMED));
+    }
 
-        $days = Carbon::parse($today)->diffInDays($record->deadline_date, false);
-
-        if ((int) $days === 0) {
-            return 'Vence hoy';
-        }
-
-        return 'Faltan '.(int) $days.' días';
+    /**
+     * @return array<string, mixed>
+     */
+    protected function formatTramite(OperacionTramite $tramite, string $focus): array
+    {
+        return [
+            'title' => $tramite->title,
+            'operation' => $tramite->operacion?->reference ?: 'Sin operacion',
+            'cliente' => $tramite->operacion?->cliente?->fullName() ?: 'Sin cliente',
+            'deadline' => $this->formatDate($tramite->deadline_date),
+            'description' => $tramite->deadlineCountdownLabel(),
+            'operation_date' => $this->formatDate($tramite->operacion?->operation_date, null),
+            'url' => OperacionResource::getUrl('view', [
+                'record' => $tramite->operacion_id,
+                'focus' => $focus,
+                'tramite' => $tramite->id,
+            ]),
+        ];
     }
 
     protected function formatDate(mixed $value, ?string $fallback = 'Sin fecha'): ?string

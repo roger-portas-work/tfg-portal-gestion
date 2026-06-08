@@ -47,3 +47,29 @@ function something()
 {
     // ..
 }
+
+function clienteUser(array $attributes = []): \App\Models\User
+{
+    $user = \App\Models\User::factory()->create([
+        ...$attributes,
+        'role' => \App\Models\User::ROLE_CLIENTE,
+    ]);
+
+    \App\Models\Cliente::create([
+        'user_id' => $user->id,
+        'name' => $user->name,
+        'last_name' => 'Cliente',
+        'email' => $user->email,
+        'personal_email' => $user->email,
+        'phone' => '600000000',
+        'dni' => '00000000T',
+        'address' => 'Calle Test 1',
+        'country' => 'Espana',
+        'city' => 'Barcelona',
+        'province' => 'Barcelona',
+        'postal_code' => '08001',
+        'birth_date' => '1990-01-01',
+    ]);
+
+    return $user;
+}

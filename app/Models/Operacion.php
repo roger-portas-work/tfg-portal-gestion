@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Casts;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
 #[Fillable([
     'cliente_id',
@@ -48,6 +51,17 @@ class Operacion extends Model
 {
     protected $table = 'operaciones';
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $operacion): void {
+            $messages = $operacion->assignmentValidationMessages();
+
+            if ($messages !== []) {
+                throw ValidationException::withMessages($messages);
+            }
+        });
+    }
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_REJECTED = 'rejected';
@@ -64,6 +78,68 @@ class Operacion extends Model
             self::STATUS_REJECTED => 'Rechazada',
             self::STATUS_CONFIRMED => 'Confirmada',
         ];
+    }
+
+    public function assignmentsBelongToCliente(): bool
+    {
+        return $this->assignmentValidationMessages() === [];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function assignmentValidationMessages(): array
+    {
+        if (blank($this->cliente_id)) {
+            return [];
+        }
+
+        $messages = [];
+
+        if (
+            filled($this->piloto_id)
+            && ! Piloto::query()
+                ->whereKey($this->piloto_id)
+                ->where('cliente_id', $this->cliente_id)
+                ->exists()
+        ) {
+            $messages['piloto_id'] = 'El piloto seleccionado no pertenece al cliente de la operacion.';
+        }
+
+        if (
+            filled($this->dron_id)
+            && ! Dron::query()
+                ->whereKey($this->dron_id)
+                ->where('cliente_id', $this->cliente_id)
+                ->exists()
+        ) {
+            $messages['dron_id'] = 'El dron seleccionado no pertenece al cliente de la operacion.';
+        }
+
+        return $messages;
+    }
+
+    public function scopeWithTramiteWorkflowCounts(Builder $query): Builder
+    {
+        $today = Carbon::today(config('app.timezone'))->toDateString();
+        $dueUntil = Carbon::today(config('app.timezone'))->addDays(7)->toDateString();
+
+        return $query->withCount([
+            'tramites',
+            'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
+                ->where('status', OperacionTramite::STATUS_APPROVED),
+            'tramites as pending_to_process_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
+                ->whereNull('processed_at')
+                ->where('status', '!=', OperacionTramite::STATUS_APPROVED),
+            'tramites as overdue_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
+                ->whereNull('processed_at')
+                ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
+                ->whereDate('deadline_date', '<', $today),
+            'tramites as due_soon_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
+                ->whereNull('processed_at')
+                ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
+                ->whereBetween('deadline_date', [$today, $dueUntil]),
+        ]);
     }
 
     public function cliente(): BelongsTo
@@ -143,5 +219,113 @@ class Operacion extends Model
         return $this->documentationIsFullyApproved()
             ? 'success'
             : 'danger';
+    }
+
+    public function workflowPriorityLabel(): string
+    {
+        if ($this->isRejected()) {
+            return 'Rechazada';
+        }
+
+        if ($this->isPending()) {
+            return 'Pendiente decision';
+        }
+
+        if (! $this->isConfirmed()) {
+            return 'Sin prioridad';
+        }
+
+        $tramitesCount = (int) ($this->tramites_count ?? 0);
+        $approvedCount = (int) ($this->approved_tramites_count ?? 0);
+        $pendingCount = (int) ($this->pending_to_process_tramites_count ?? 0);
+        $overdueCount = (int) ($this->overdue_tramites_count ?? 0);
+        $dueSoonCount = (int) ($this->due_soon_tramites_count ?? 0);
+
+        if ($tramitesCount === 0) {
+            return 'Sin tramites';
+        }
+
+        if ($overdueCount > 0) {
+            return $overdueCount.' vencidos';
+        }
+
+        if ($dueSoonCount > 0) {
+            return $dueSoonCount.' vencen en 7 dias';
+        }
+
+        if ($pendingCount > 0) {
+            return $pendingCount.' pendientes';
+        }
+
+        if ($approvedCount < $tramitesCount) {
+            return 'Falta cerrar';
+        }
+
+        return 'Documentacion completa';
+    }
+
+    public function workflowPriorityColor(): string
+    {
+        if ($this->isRejected()) {
+            return 'gray';
+        }
+
+        if ($this->isPending()) {
+            return 'warning';
+        }
+
+        if (! $this->isConfirmed()) {
+            return 'gray';
+        }
+
+        if ((int) ($this->tramites_count ?? 0) === 0 || (int) ($this->overdue_tramites_count ?? 0) > 0) {
+            return 'danger';
+        }
+
+        if ((int) ($this->due_soon_tramites_count ?? 0) > 0) {
+            return 'warning';
+        }
+
+        if (
+            (int) ($this->pending_to_process_tramites_count ?? 0) > 0
+            || (int) ($this->approved_tramites_count ?? 0) < (int) ($this->tramites_count ?? 0)
+        ) {
+            return 'info';
+        }
+
+        return 'success';
+    }
+
+    public function workflowFocus(): string
+    {
+        if ($this->isRejected()) {
+            return 'operacion-rechazada';
+        }
+
+        if ($this->isPending()) {
+            return 'pendiente-confirmar';
+        }
+
+        if ((int) ($this->tramites_count ?? 0) === 0) {
+            return 'sin-tramites';
+        }
+
+        if ((int) ($this->overdue_tramites_count ?? 0) > 0) {
+            return 'tramites-vencidos';
+        }
+
+        if ((int) ($this->due_soon_tramites_count ?? 0) > 0) {
+            return 'tramites-7-dias';
+        }
+
+        if ((int) ($this->pending_to_process_tramites_count ?? 0) > 0) {
+            return 'tramites-pendientes';
+        }
+
+        if ((int) ($this->approved_tramites_count ?? 0) < (int) ($this->tramites_count ?? 0)) {
+            return 'tramites-pendientes';
+        }
+
+        return 'documentacion-completa';
     }
 }

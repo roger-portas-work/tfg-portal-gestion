@@ -188,7 +188,8 @@ class ClientesTable
                     ->hiddenLabel()
                     ->icon('heroicon-m-pencil-square')
                     ->extraAttributes(['class' => 'hidden']),
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->visible(fn (Cliente $record): bool => $record->canBeDeletedSafely()),
             ])
             ->recordAction('edit');
     }

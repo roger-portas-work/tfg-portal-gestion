@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 
 #[Fillable([
     'name',
@@ -43,9 +44,11 @@ class Cliente extends Model
     protected static function booted(): void
     {
         static::deleting(function (self $cliente): void {
-            // En este MVP cada cliente tiene un unico usuario de acceso.
-            // Si el gestor elimina el cliente, eliminamos tambien ese acceso.
-            $cliente->user?->delete();
+            if (! $cliente->canBeDeletedSafely()) {
+                throw ValidationException::withMessages([
+                    'cliente' => $cliente->deletionBlockedMessage(),
+                ]);
+            }
         });
     }
 
@@ -134,6 +137,56 @@ class Cliente extends Model
     {
         $this->ensureOperadoraProfile();
         $this->ensureDefaultOperadoraRequirement();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function deletionBlockers(): array
+    {
+        $blockers = [];
+
+        if ($this->user()->exists()) {
+            $blockers[] = 'usuario de acceso';
+        }
+
+        if ($this->operaciones()->exists()) {
+            $blockers[] = 'operaciones';
+        }
+
+        if ($this->drones()->exists()) {
+            $blockers[] = 'drones';
+        }
+
+        if ($this->pilotos()->exists()) {
+            $blockers[] = 'pilotos';
+        }
+
+        if ($this->operadoraRequirements()->exists()) {
+            $blockers[] = 'requisitos de operadora';
+        }
+
+        if ($this->operadoraProfile()->exists()) {
+            $blockers[] = 'expediente de operadora';
+        }
+
+        return $blockers;
+    }
+
+    public function canBeDeletedSafely(): bool
+    {
+        return $this->deletionBlockers() === [];
+    }
+
+    public function deletionBlockedMessage(): string
+    {
+        $blockers = $this->deletionBlockers();
+
+        if ($blockers === []) {
+            return 'Este cliente no tiene datos de negocio asociados.';
+        }
+
+        return 'No se puede eliminar este cliente porque conserva '.implode(', ', $blockers).'. Revisa el expediente antes de archivarlo o borrarlo manualmente.';
     }
 
     /**

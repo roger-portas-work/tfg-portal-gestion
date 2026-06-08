@@ -335,6 +335,12 @@ class OperacionTramitesRelationManager extends RelationManager
                     ->date('d/m/Y')
                     ->placeholder('Sin definir'),
 
+                TextColumn::make('deadline_countdown')
+                    ->label('Dias restantes')
+                    ->badge()
+                    ->state(fn (OperacionTramite $record): string => $record->deadlineCountdownLabel())
+                    ->color(fn (OperacionTramite $record): string => $record->deadlineCountdownColor()),
+
                 TextColumn::make('processed_at')
                     ->label('Fecha de tramitación')
                     ->date('d/m/Y')
