@@ -6,7 +6,6 @@ use App\Models\Cliente;
 use App\Models\OperadoraRequirement;
 use App\Models\User;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -46,15 +45,6 @@ class ClienteForm
                                     ->label('Apellido')
                                     ->required()
                                     ->maxLength(255),
-
-                                // Este campo prepara la futura diferencia entre
-                                // cliente fisico y juridico sin complicar todavia la logica.
-                                Select::make('client_type')
-                                    ->label('Tipo de cliente')
-                                    ->options(Cliente::typeOptions())
-                                    ->required()
-                                    ->default(Cliente::TYPE_FISICO)
-                                    ->native(false),
 
                                 TextInput::make('email')
                                     ->label('Email')
@@ -132,6 +122,11 @@ class ClienteForm
 
                                 TextInput::make('dni')
                                     ->label('DNI / NIE')
+                                    ->dehydrateStateUsing(fn (?string $state): ?string => Cliente::normalizeIdentification($state))
+                                    ->rule(fn (?Cliente $record) => Rule::unique(Cliente::class, 'dni')->ignore($record?->id))
+                                    ->validationMessages([
+                                        'unique' => 'Ya existe otro cliente con este DNI o NIE.',
+                                    ])
                                     ->maxLength(30),
 
                                 TextInput::make('birth_date')

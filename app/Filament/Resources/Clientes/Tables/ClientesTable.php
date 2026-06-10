@@ -9,7 +9,6 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -159,14 +158,6 @@ class ClientesTable
                     ->color(fn (Cliente $record): string => static::operationsSummary($record)['color'])
                     ->description(fn (Cliente $record): ?string => static::operationsSummary($record)['description']),
 
-                TextColumn::make('client_type')
-                    ->label('Tipo')
-                    ->badge()
-                    ->formatStateUsing(fn (string $state): string => Cliente::typeOptions()[$state] ?? $state)
-                    ->color(fn (string $state): string => $state === Cliente::TYPE_JURIDICO ? 'info' : 'gray')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable()
@@ -176,11 +167,6 @@ class ClientesTable
                     ->label('Telefono')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                SelectFilter::make('client_type')
-                    ->label('Tipo')
-                    ->options(Cliente::typeOptions()),
             ])
             ->recordActions([
                 EditAction::make()

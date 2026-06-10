@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 #[Fillable([
     'cliente_id',
@@ -42,6 +44,19 @@ class Piloto extends Model
     public const THEORY_A2 = 'a2';
 
     public const THEORY_STS = 'sts';
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $piloto): void {
+            $piloto->dni_nie = self::normalizeIdentification($piloto->dni_nie);
+
+            if (filled($piloto->dni_nie) && filled($piloto->cliente_id) && $piloto->dniNieIsAlreadyUsedByCliente()) {
+                throw ValidationException::withMessages([
+                    'dni_nie' => 'Ya existe otro piloto con este DNI o NIE en este cliente.',
+                ]);
+            }
+        });
+    }
 
     /**
      * @return array<string, string>
@@ -91,6 +106,26 @@ class Piloto extends Model
             : 'Sin definir';
 
         return $name.' - DNI/NIE: '.$identification;
+    }
+
+    public static function normalizeIdentification(?string $value): ?string
+    {
+        $value = Str::upper(trim((string) $value));
+
+        return $value === '' ? null : $value;
+    }
+
+    public function dniNieIsAlreadyUsedByCliente(): bool
+    {
+        $query = static::query()
+            ->where('cliente_id', $this->cliente_id)
+            ->whereRaw('UPPER(TRIM(dni_nie)) = ?', [$this->dni_nie]);
+
+        if ($this->exists) {
+            $query->whereKeyNot($this->getKey());
+        }
+
+        return $query->exists();
     }
 
     public function requiresPracticalCertificate(): bool

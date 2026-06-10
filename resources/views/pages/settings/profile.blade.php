@@ -90,7 +90,7 @@ new #[Title('Profile settings')] class extends Component {
         $validated = $this->validate($this->clienteRules($user->id));
 
         // Guardamos primero la ficha del cliente y calculamos a partir de ella
-        // si ya esta completa segun el tipo fisico o juridico.
+        // si ya esta completa.
         $this->cliente->fill($validated);
         $this->cliente->profile_completed = $this->cliente->profileIsComplete([
             ...$this->cliente->attributesToArray(),

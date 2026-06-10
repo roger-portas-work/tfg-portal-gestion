@@ -7,7 +7,6 @@ use App\Filament\Resources\Operaciones\Pages\ListOperaciones;
 use App\Filament\Resources\Operaciones\Pages\ViewOperacion;
 use App\Filament\Resources\Operaciones\RelationManagers\OperacionTramitesRelationManager;
 use App\Filament\Resources\Operaciones\Schemas\OperacionForm;
-use App\Models\Cliente;
 use App\Models\Dron;
 use App\Models\Operacion;
 use App\Models\OperacionTramite;
@@ -755,11 +754,6 @@ class OperacionResource extends Resource
                             ->url(fn (Operacion $record): ?string => $record->cliente ? ClienteResource::getUrl('edit', ['record' => $record->cliente_id]) : null)
                             ->weight('bold')
                             ->placeholder('Sin definir'),
-
-                        TextEntry::make('cliente.client_type')
-                            ->label('Tipo')
-                            ->formatStateUsing(fn (?string $state): string => Cliente::typeOptions()[$state] ?? 'Sin definir')
-                            ->badge(),
 
                         TextEntry::make('cliente.email')
                             ->label('Email de acceso')

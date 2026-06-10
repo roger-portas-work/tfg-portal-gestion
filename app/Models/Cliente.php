@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 #[Fillable([
@@ -18,7 +19,6 @@ use Illuminate\Validation\ValidationException;
     'email',
     'personal_email',
     'phone',
-    'client_type',
     'profile_completed',
     'user_id',
     'dni',
@@ -43,6 +43,16 @@ class Cliente extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (self $cliente): void {
+            $cliente->dni = self::normalizeIdentification($cliente->dni);
+
+            if (filled($cliente->dni) && $cliente->dniIsAlreadyUsed()) {
+                throw ValidationException::withMessages([
+                    'dni' => 'Ya existe otro cliente con este DNI o NIE.',
+                ]);
+            }
+        });
+
         static::deleting(function (self $cliente): void {
             if (! $cliente->canBeDeletedSafely()) {
                 throw ValidationException::withMessages([
@@ -50,23 +60,6 @@ class Cliente extends Model
                 ]);
             }
         });
-    }
-
-    // Centralizamos los tipos para reutilizarlos en formularios,
-    // tablas y futuras reglas sin repetir textos por el proyecto.
-    public const TYPE_FISICO = 'fisico';
-
-    public const TYPE_JURIDICO = 'juridico';
-
-    /**
-     * @return array<string, string>
-     */
-    public static function typeOptions(): array
-    {
-        return [
-            self::TYPE_FISICO => 'Fisico',
-            self::TYPE_JURIDICO => 'Juridico',
-        ];
     }
 
     /**
@@ -190,7 +183,7 @@ class Cliente extends Model
     }
 
     /**
-     * Campos minimos que el cliente debe completar segun su tipo.
+     * Campos minimos que el cliente debe completar.
      *
      * @return array<int, string>
      */
@@ -242,6 +235,25 @@ class Cliente extends Model
             $this->last_name,
             $this->second_last_name,
         ])));
+    }
+
+    public static function normalizeIdentification(?string $value): ?string
+    {
+        $value = Str::upper(trim((string) $value));
+
+        return $value === '' ? null : $value;
+    }
+
+    public function dniIsAlreadyUsed(): bool
+    {
+        $query = static::withTrashed()
+            ->whereRaw('UPPER(TRIM(dni)) = ?', [$this->dni]);
+
+        if ($this->exists) {
+            $query->whereKeyNot($this->getKey());
+        }
+
+        return $query->exists();
     }
 
     public function isUnblocked(): bool

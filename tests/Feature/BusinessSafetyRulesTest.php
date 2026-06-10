@@ -21,7 +21,7 @@ function safetyCliente(string $email): Cliente
         'email' => $email,
         'personal_email' => $email,
         'phone' => '600000000',
-        'dni' => '00000000T',
+        'dni' => str_pad((string) (abs(crc32($email)) % 100000000), 8, '0', STR_PAD_LEFT).'T',
         'address' => 'Calle Test 1',
         'country' => 'Espana',
         'city' => 'Barcelona',
@@ -120,4 +120,83 @@ test('operacion requires piloto and dron to belong to its cliente', function () 
     } catch (ValidationException $exception) {
         expect($exception->errors())->toHaveKeys(['piloto_id', 'dron_id']);
     }
+});
+
+test('cliente dni must be unique between clientes', function () {
+    $cliente = safetyCliente('cliente-dni-unico@example.com');
+    $user = User::factory()->create([
+        'email' => 'cliente-dni-duplicado@example.com',
+        'role' => User::ROLE_CLIENTE,
+    ]);
+
+    try {
+        Cliente::create([
+            'user_id' => $user->id,
+            'name' => 'Cliente',
+            'last_name' => 'Duplicado',
+            'email' => $user->email,
+            'personal_email' => $user->email,
+            'phone' => '600000002',
+            'dni' => ' '.strtolower($cliente->dni).' ',
+            'address' => 'Calle Test 2',
+            'country' => 'Espana',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'postal_code' => '08002',
+            'birth_date' => '1991-01-01',
+        ]);
+
+        $this->fail('A cliente should not accept a duplicated DNI/NIE.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKey('dni');
+    }
+});
+
+test('piloto dni must be unique only inside the same cliente', function () {
+    $cliente = safetyCliente('cliente-piloto-dni@example.com');
+    $otherCliente = safetyCliente('otro-cliente-piloto-dni@example.com');
+
+    $piloto = safetyPiloto($cliente);
+
+    try {
+        Piloto::create([
+            'cliente_id' => $cliente->id,
+            'first_name' => 'Piloto',
+            'last_name' => 'Duplicado',
+            'dni_nie' => ' '.strtolower($piloto->dni_nie).' ',
+            'birth_date' => '1990-01-01',
+            'pilot_identification_number' => 'ESP-RP-002',
+            'maximum_pilot_certification' => 'STS',
+            'address' => 'Calle Piloto 2',
+            'country' => 'Espana',
+            'city' => 'Barcelona',
+            'province' => 'Barcelona',
+            'postal_code' => '08002',
+            'phone' => '600000002',
+            'theoretical_certificate_level' => Piloto::THEORY_STS,
+        ]);
+
+        $this->fail('A cliente should not have two pilotos with the same DNI/NIE.');
+    } catch (ValidationException $exception) {
+        expect($exception->errors())->toHaveKey('dni_nie');
+    }
+
+    $foreignPiloto = Piloto::create([
+        'cliente_id' => $otherCliente->id,
+        'first_name' => 'Piloto',
+        'last_name' => 'Otro cliente',
+        'dni_nie' => strtolower($piloto->dni_nie),
+        'birth_date' => '1990-01-01',
+        'pilot_identification_number' => 'ESP-RP-003',
+        'maximum_pilot_certification' => 'STS',
+        'address' => 'Calle Piloto 3',
+        'country' => 'Espana',
+        'city' => 'Barcelona',
+        'province' => 'Barcelona',
+        'postal_code' => '08003',
+        'phone' => '600000003',
+        'theoretical_certificate_level' => Piloto::THEORY_STS,
+    ]);
+
+    expect($foreignPiloto->dni_nie)->toBe($piloto->dni_nie);
 });
