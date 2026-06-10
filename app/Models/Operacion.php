@@ -80,6 +80,27 @@ class Operacion extends Model
         ];
     }
 
+    public static function activeForGestorFromDate(): string
+    {
+        return Carbon::today(config('app.timezone'))->subDays(2)->toDateString();
+    }
+
+    public function scopeNotRejectedForGestor(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query
+                ->whereNull('status')
+                ->orWhere('status', '!=', self::STATUS_REJECTED);
+        });
+    }
+
+    public function scopeActiveForGestor(Builder $query, ?string $from = null): Builder
+    {
+        return $query
+            ->whereDate('operation_date', '>=', $from ?? self::activeForGestorFromDate())
+            ->notRejectedForGestor();
+    }
+
     public function assignmentsBelongToCliente(): bool
     {
         return $this->assignmentValidationMessages() === [];
@@ -129,16 +150,11 @@ class Operacion extends Model
             'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
                 ->where('status', OperacionTramite::STATUS_APPROVED),
             'tramites as pending_to_process_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED),
+                ->unprocessedNotApprovedForGestor(),
             'tramites as overdue_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
-                ->whereDate('deadline_date', '<', $today),
+                ->overdueForGestor($today),
             'tramites as due_soon_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
-                ->whereNull('processed_at')
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
-                ->whereBetween('deadline_date', [$today, $dueUntil]),
+                ->dueSoonForGestor($today, $dueUntil),
         ]);
     }
 

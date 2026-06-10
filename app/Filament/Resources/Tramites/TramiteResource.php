@@ -193,9 +193,7 @@ class TramiteResource extends Resource
     public static function applyPendingTabQuery(Builder $query): Builder
     {
         return $query
-            ->where('status', OperacionTramite::STATUS_PENDING)
-            ->whereNull('processed_at')
-            ->whereNotNull('deadline_date')
+            ->pendingWithDeadlineForGestor()
             ->orderBy('deadline_date')
             ->orderBy('id');
     }
@@ -203,9 +201,7 @@ class TramiteResource extends Resource
     public static function applyOverdueTabQuery(Builder $query): Builder
     {
         return $query
-            ->whereNull('processed_at')
-            ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
-            ->whereDate('deadline_date', '<', Carbon::today(config('app.timezone'))->toDateString())
+            ->overdueForGestor()
             ->orderBy('deadline_date')
             ->orderBy('id');
     }

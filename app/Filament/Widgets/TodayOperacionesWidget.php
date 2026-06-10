@@ -32,11 +32,7 @@ class TodayOperacionesWidget extends Widget
         )
             ->with(['cliente', 'piloto', 'dron'])
             ->whereDate('operation_date', $today)
-            ->where(function (Builder $query): void {
-                $query
-                    ->whereNull('status')
-                    ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
-            })
+            ->notRejectedForGestor()
             ->orderByRaw($this->priorityOrderSql())
             ->orderBy('estimated_filming_schedule')
             ->orderBy('id')

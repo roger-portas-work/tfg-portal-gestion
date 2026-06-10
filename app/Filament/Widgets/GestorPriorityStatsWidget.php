@@ -30,11 +30,7 @@ class GestorPriorityStatsWidget extends Widget
 
         $operationsToday = Operacion::query()
             ->whereDate('operation_date', $today)
-            ->where(function (Builder $query): void {
-                $query
-                    ->whereNull('status')
-                    ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
-            })
+            ->notRejectedForGestor()
             ->count();
 
         $confirmedUpcoming = DashboardOperationWindow::applyToQuery(Operacion::query())
@@ -48,16 +44,15 @@ class GestorPriorityStatsWidget extends Widget
 
         $confirmedWithPendingTramites = DashboardOperationWindow::applyToQuery(Operacion::query())
             ->where('status', Operacion::STATUS_CONFIRMED)
-            ->whereHas('tramites', fn (Builder $query): Builder => $query
-                ->where('status', '!=', OperacionTramite::STATUS_APPROVED))
+            ->whereHas('tramites', fn (Builder $query): Builder => $query->notApprovedForGestor())
             ->count();
 
-        $overdueTramites = $this->pendingTramitesQuery()
-            ->whereDate('deadline_date', '<', $today)
+        $overdueTramites = $this->confirmedTramitesQuery()
+            ->overdueForGestor($today)
             ->count();
 
-        $dueSoonTramites = $this->pendingTramitesQuery()
-            ->whereBetween('deadline_date', [$today, $dueUntil])
+        $dueSoonTramites = $this->confirmedTramitesQuery()
+            ->dueSoonForGestor($today, $dueUntil)
             ->count();
 
         $pendingOperations = DashboardOperationWindow::applyToQuery(Operacion::query())
@@ -166,11 +161,9 @@ class GestorPriorityStatsWidget extends Widget
         return 'success';
     }
 
-    protected function pendingTramitesQuery(): Builder
+    protected function confirmedTramitesQuery(): Builder
     {
         return OperacionTramite::query()
-            ->whereNull('processed_at')
-            ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
             ->whereHas('operacion', fn (Builder $query) => $query
                 ->where('status', Operacion::STATUS_CONFIRMED));
     }

@@ -25,15 +25,15 @@ class UrgentOperacionTramitesWidget extends Widget
         $today = Carbon::today(config('app.timezone'))->toDateString();
         $dueUntil = Carbon::today(config('app.timezone'))->addDays(7)->toDateString();
 
-        $overdueTramites = $this->pendingConfirmedTramitesQuery()
-            ->whereDate('deadline_date', '<', $today)
+        $overdueTramites = $this->confirmedTramitesQuery()
+            ->overdueForGestor($today)
             ->orderBy('deadline_date')
             ->limit(8)
             ->get()
             ->map(fn (OperacionTramite $tramite): array => $this->formatTramite($tramite, 'tramites-vencidos'));
 
-        $dueSoonTramites = $this->pendingConfirmedTramitesQuery()
-            ->whereBetween('deadline_date', [$today, $dueUntil])
+        $dueSoonTramites = $this->confirmedTramitesQuery()
+            ->dueSoonForGestor($today, $dueUntil)
             ->orderBy('deadline_date')
             ->limit(8)
             ->get()
@@ -45,12 +45,10 @@ class UrgentOperacionTramitesWidget extends Widget
         ];
     }
 
-    protected function pendingConfirmedTramitesQuery(): Builder
+    protected function confirmedTramitesQuery(): Builder
     {
         return OperacionTramite::query()
             ->with('operacion.cliente')
-            ->whereNull('processed_at')
-            ->where('status', '!=', OperacionTramite::STATUS_APPROVED)
             ->whereHas('operacion', fn (Builder $query) => $query
                 ->where('status', Operacion::STATUS_CONFIRMED));
     }

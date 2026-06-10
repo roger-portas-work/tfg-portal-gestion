@@ -58,7 +58,7 @@ class OperacionResource extends Resource
 
     protected static function activeOperationsFrom(): string
     {
-        return Carbon::today(config('app.timezone'))->subDays(2)->toDateString();
+        return Operacion::activeForGestorFromDate();
     }
 
     protected static function todayDate(): string
@@ -80,13 +80,7 @@ class OperacionResource extends Resource
                 $query->withTramiteWorkflowCounts();
 
                 if ($onlyUpcoming) {
-                    $query
-                        ->whereDate('operation_date', '>=', $activeFrom)
-                        ->where(function (Builder $query): void {
-                            $query
-                                ->whereNull('status')
-                                ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
-                        });
+                    $query->activeForGestor($activeFrom);
                 }
             })
             ->heading($heading)
@@ -445,11 +439,7 @@ class OperacionResource extends Resource
     {
         return $query
             ->whereDate('operation_date', static::todayDate())
-            ->where(function (Builder $query): void {
-                $query
-                    ->whereNull('status')
-                    ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
-            })
+            ->notRejectedForGestor()
             ->orderBy('estimated_filming_schedule')
             ->orderBy('id');
     }
@@ -466,11 +456,7 @@ class OperacionResource extends Resource
     {
         return $query
             ->whereDate('operation_date', '>=', static::todayDate())
-            ->where(function (Builder $query): void {
-                $query
-                    ->whereNull('status')
-                    ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
-            })
+            ->notRejectedForGestor()
             ->orderBy('operation_date')
             ->orderBy('id');
     }
@@ -499,8 +485,7 @@ class OperacionResource extends Resource
             ->where(function (Builder $query): void {
                 $query
                     ->doesntHave('tramites')
-                    ->orWhereHas('tramites', fn (Builder $tramitesQuery): Builder => $tramitesQuery
-                        ->where('status', '!=', OperacionTramite::STATUS_APPROVED));
+                    ->orWhereHas('tramites', fn (Builder $tramitesQuery): Builder => $tramitesQuery->notApprovedForGestor());
             });
     }
 

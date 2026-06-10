@@ -3,15 +3,14 @@
 namespace App\Filament\Resources\Clientes\Tables;
 
 use App\Models\Cliente;
-use App\Models\Operacion;
 use App\Models\OperadoraRequirement;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 
 class ClientesTable
 {
@@ -90,20 +89,32 @@ class ClientesTable
         ];
     }
 
+    public static function applyProfileIncompleteFilter(Builder $query): Builder
+    {
+        return $query->where('profile_completed', false);
+    }
+
+    public static function applyOperadoraPendingFilter(Builder $query): Builder
+    {
+        return $query->whereHas('operadoraRequirements', fn (Builder $query): Builder => $query
+            ->whereIn('status', [
+                OperadoraRequirement::STATUS_PENDING,
+                OperadoraRequirement::STATUS_IN_REVIEW,
+                OperadoraRequirement::STATUS_NEEDS_CHANGES,
+            ]));
+    }
+
+    public static function applyActiveOperationsFilter(Builder $query): Builder
+    {
+        return $query->whereHas('operaciones', fn (Builder $query): Builder => $query->activeForGestor());
+    }
+
     public static function configure(Table $table): Table
     {
-        $activeOperationsFrom = Carbon::today(config('app.timezone'))->subDays(2)->toDateString();
-
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->withCount([
                 'operaciones as operaciones_total_count',
-                'operaciones as operaciones_active_count' => fn (Builder $query) => $query
-                    ->whereDate('operation_date', '>=', $activeOperationsFrom)
-                    ->where(function (Builder $query): void {
-                        $query
-                            ->whereNull('status')
-                            ->orWhere('status', '!=', Operacion::STATUS_REJECTED);
-                    }),
+                'operaciones as operaciones_active_count' => fn (Builder $query) => $query->activeForGestor(),
                 'operadoraRequirements',
                 'operadoraRequirements as operadora_required_count' => fn (Builder $query) => $query
                     ->where('is_required', true),
@@ -167,6 +178,19 @@ class ClientesTable
                     ->label('Telefono')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                Filter::make('profile_incomplete')
+                    ->label('Ficha incompleta')
+                    ->query(fn (Builder $query): Builder => static::applyProfileIncompleteFilter($query)),
+
+                Filter::make('operadora_pending')
+                    ->label('Operadora pendiente')
+                    ->query(fn (Builder $query): Builder => static::applyOperadoraPendingFilter($query)),
+
+                Filter::make('active_operations')
+                    ->label('Con operacion activa')
+                    ->query(fn (Builder $query): Builder => static::applyActiveOperationsFilter($query)),
             ])
             ->recordActions([
                 EditAction::make()

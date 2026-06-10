@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
@@ -63,6 +64,43 @@ class OperacionTramite extends Model
             'FPL' => 'FPL',
             'Briefing operacion' => 'Briefing operacion',
         ];
+    }
+
+    public function scopeUnprocessedNotApprovedForGestor(Builder $query): Builder
+    {
+        return $query
+            ->whereNull('processed_at')
+            ->notApprovedForGestor();
+    }
+
+    public function scopeNotApprovedForGestor(Builder $query): Builder
+    {
+        return $query->where('status', '!=', self::STATUS_APPROVED);
+    }
+
+    public function scopePendingWithDeadlineForGestor(Builder $query): Builder
+    {
+        return $query
+            ->where('status', self::STATUS_PENDING)
+            ->whereNull('processed_at')
+            ->whereNotNull('deadline_date');
+    }
+
+    public function scopeOverdueForGestor(Builder $query, ?string $today = null): Builder
+    {
+        return $query
+            ->unprocessedNotApprovedForGestor()
+            ->whereDate('deadline_date', '<', $today ?? Carbon::today(config('app.timezone'))->toDateString());
+    }
+
+    public function scopeDueSoonForGestor(Builder $query, ?string $today = null, ?string $dueUntil = null): Builder
+    {
+        $today ??= Carbon::today(config('app.timezone'))->toDateString();
+        $dueUntil ??= Carbon::today(config('app.timezone'))->addDays(7)->toDateString();
+
+        return $query
+            ->unprocessedNotApprovedForGestor()
+            ->whereBetween('deadline_date', [$today, $dueUntil]);
     }
 
     public function operacion(): BelongsTo
