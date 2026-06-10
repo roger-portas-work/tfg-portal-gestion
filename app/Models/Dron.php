@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 #[Fillable([
     'cliente_id',
@@ -146,6 +147,91 @@ class Dron extends Model
             self::AESA_STATUS_MANAGER => 'warning',
             default => 'gray',
         };
+    }
+
+    public function insuranceIsExpired(): bool
+    {
+        if (! $this->insurance_valid_until) {
+            return false;
+        }
+
+        return Carbon::parse($this->insurance_valid_until)->startOfDay()
+            ->lt(Carbon::today(config('app.timezone')));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function missingOperationalFields(): array
+    {
+        $missing = [];
+
+        if (blank($this->drone_serial_number)) {
+            $missing[] = 'numero de serie';
+        }
+
+        if (! $this->registration_not_applicable && blank($this->registration_number)) {
+            $missing[] = 'matricula';
+        }
+
+        if (! $this->remote_id_not_applicable && blank($this->remote_id_number)) {
+            $missing[] = 'ID remoto';
+        }
+
+        if (! $this->payload_not_applicable && blank($this->payload)) {
+            $missing[] = 'carga de pago';
+        }
+
+        if (! $this->vhf_not_applicable && blank($this->vhf_equipment)) {
+            $missing[] = 'equipo VHF';
+        }
+
+        if (! $this->emergency_not_applicable && blank($this->emergency_equipment)) {
+            $missing[] = 'equipo de emergencia';
+        }
+
+        if (blank($this->insurance_policy_number)) {
+            $missing[] = 'numero de poliza';
+        }
+
+        if (blank($this->insurance_company_name)) {
+            $missing[] = 'aseguradora';
+        }
+
+        if (blank($this->insurance_valid_until)) {
+            $missing[] = 'fecha de validez del seguro';
+        } elseif ($this->insuranceIsExpired()) {
+            $missing[] = 'seguro caducado';
+        }
+
+        if (blank($this->insurance_coverage_policy_path)) {
+            $missing[] = 'PDF de la poliza';
+        }
+
+        if (blank($this->aesa_registration_status)) {
+            $missing[] = 'estado AESA';
+        }
+
+        return $missing;
+    }
+
+    public function isOperationallyComplete(): bool
+    {
+        return $this->missingOperationalFields() === [];
+    }
+
+    public function operationalStatusLabel(): string
+    {
+        return $this->isOperationallyComplete() ? 'Completo' : 'Incompleto';
+    }
+
+    public function operationalStatusColor(): string
+    {
+        if ($this->isOperationallyComplete()) {
+            return 'success';
+        }
+
+        return $this->insuranceIsExpired() ? 'danger' : 'warning';
     }
 
     /**

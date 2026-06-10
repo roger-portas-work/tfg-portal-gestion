@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Validation\ValidationException;
 
 class OperadoraRequirement extends Model
 {
@@ -43,6 +44,17 @@ class OperadoraRequirement extends Model
     public const STATUS_APPROVED = 'approved';
 
     public const STATUS_NEEDS_CHANGES = 'needs_changes';
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $requirement): void {
+            if ($requirement->status === self::STATUS_NEEDS_CHANGES && blank($requirement->review_notes)) {
+                throw ValidationException::withMessages([
+                    'review_notes' => 'Indica que debe corregir el cliente antes de pedir correccion.',
+                ]);
+            }
+        });
+    }
 
     /**
      * Cada requisito pertenece al expediente de operadora de un cliente.
@@ -85,6 +97,17 @@ class OperadoraRequirement extends Model
         return match ($this->input_type) {
             self::TYPE_TEXT => filled($this->text_value),
             default => filled($this->file_path),
+        };
+    }
+
+    public function gestorStatusColor(): string
+    {
+        return match ($this->status) {
+            self::STATUS_IN_REVIEW => 'danger',
+            self::STATUS_PENDING => 'warning',
+            self::STATUS_APPROVED => 'success',
+            self::STATUS_NEEDS_CHANGES => 'gray',
+            default => 'gray',
         };
     }
 }

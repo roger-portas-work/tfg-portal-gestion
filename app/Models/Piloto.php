@@ -97,4 +97,61 @@ class Piloto extends Model
     {
         return $this->theoretical_certificate_level === self::THEORY_STS;
     }
+
+    /**
+     * @return array<int, string>
+     */
+    public function missingOperationalFields(): array
+    {
+        $missing = [];
+
+        if (blank($this->dni_nie)) {
+            $missing[] = 'DNI/NIE';
+        }
+
+        if (blank($this->pilot_identification_number)) {
+            $missing[] = 'identificacion de piloto';
+        }
+
+        if (blank($this->theoretical_certificate_level)) {
+            $missing[] = 'nivel teorico';
+        }
+
+        if (blank($this->dni_front_path)) {
+            $missing[] = 'DNI frontal';
+        }
+
+        if (blank($this->dni_back_path)) {
+            $missing[] = 'DNI trasero';
+        }
+
+        if (blank($this->theoretical_certificate_path)) {
+            $missing[] = 'certificado teorico';
+        }
+
+        if ($this->requiresPracticalCertificate() && blank($this->practical_certificate_path)) {
+            $missing[] = 'certificado practico';
+        }
+
+        if ($this->has_radiofonista_certificate && blank($this->radiofonista_certificate_path)) {
+            $missing[] = 'certificado radiofonista';
+        }
+
+        return $missing;
+    }
+
+    public function isOperationallyComplete(): bool
+    {
+        return $this->missingOperationalFields() === [];
+    }
+
+    public function operationalStatusLabel(): string
+    {
+        return $this->isOperationallyComplete() ? 'Completo' : 'Incompleto';
+    }
+
+    public function operationalStatusColor(): string
+    {
+        return $this->isOperationallyComplete() ? 'success' : 'warning';
+    }
 }

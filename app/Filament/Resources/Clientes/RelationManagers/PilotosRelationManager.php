@@ -7,12 +7,14 @@ use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -66,6 +68,28 @@ class PilotosRelationManager extends RelationManager
             Storage::disk('public')->path($path),
             $this->buildDownloadFileName($record, $field)
         );
+    }
+
+    protected function documentsDirectory(): string
+    {
+        return 'pilotos/cliente-'.$this->getOwnerRecord()->getKey().'/documentos';
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function normalizePilotoData(array $data): array
+    {
+        if (! (bool) ($data['has_radiofonista_certificate'] ?? false)) {
+            $data['radiofonista_certificate_path'] = null;
+        }
+
+        if (($data['theoretical_certificate_level'] ?? null) !== Piloto::THEORY_STS) {
+            $data['practical_certificate_path'] = null;
+        }
+
+        return $data;
     }
 
     public function form(Schema $schema): Schema
@@ -155,13 +179,67 @@ class PilotosRelationManager extends RelationManager
                             ->boolean()
                             ->inline()
                             ->inlineLabel(false)
+                            ->live()
                             ->required(),
 
                         Select::make('theoretical_certificate_level')
                             ->label('Certificado de conocimientos teoricos')
                             ->options(Piloto::theoreticalCertificateOptions())
                             ->required()
+                            ->live()
                             ->native(false),
+
+                        FileUpload::make('dni_front_path')
+                            ->label('DNI frontal en PDF')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->disk('public')
+                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->downloadable()
+                            ->maxSize(10240)
+                            ->openable()
+                            ->required(),
+
+                        FileUpload::make('dni_back_path')
+                            ->label('DNI trasero en PDF')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->disk('public')
+                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->downloadable()
+                            ->maxSize(10240)
+                            ->openable()
+                            ->required(),
+
+                        FileUpload::make('theoretical_certificate_path')
+                            ->label('Certificado teorico en PDF')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->disk('public')
+                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->downloadable()
+                            ->maxSize(10240)
+                            ->openable()
+                            ->required(),
+
+                        FileUpload::make('practical_certificate_path')
+                            ->label('Certificado practico en PDF')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->disk('public')
+                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->downloadable()
+                            ->maxSize(10240)
+                            ->openable()
+                            ->visible(fn (Get $get): bool => $get('theoretical_certificate_level') === Piloto::THEORY_STS)
+                            ->required(fn (Get $get): bool => $get('theoretical_certificate_level') === Piloto::THEORY_STS),
+
+                        FileUpload::make('radiofonista_certificate_path')
+                            ->label('PDF del certificado de radiofonista')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->disk('public')
+                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->downloadable()
+                            ->maxSize(10240)
+                            ->openable()
+                            ->visible(fn (Get $get): bool => (bool) $get('has_radiofonista_certificate'))
+                            ->required(fn (Get $get): bool => (bool) $get('has_radiofonista_certificate')),
                     ])
                     ->columns(2),
             ]);
@@ -183,6 +261,15 @@ class PilotosRelationManager extends RelationManager
                     })
                     ->weight('semibold')
                     ->description(fn (Piloto $record): string => 'DNI/NIE: '.$record->dni_nie),
+
+                TextColumn::make('operational_status')
+                    ->label('Expediente')
+                    ->badge()
+                    ->state(fn (Piloto $record): string => $record->operationalStatusLabel())
+                    ->color(fn (Piloto $record): string => $record->operationalStatusColor())
+                    ->description(fn (Piloto $record): ?string => $record->isOperationallyComplete()
+                        ? null
+                        : 'Falta: '.implode(', ', array_slice($record->missingOperationalFields(), 0, 3))),
 
                 TextColumn::make('theoretical_certificate_level')
                     ->label('Nivel teorico')
@@ -220,7 +307,8 @@ class PilotosRelationManager extends RelationManager
             ->defaultSort('created_at', 'desc')
             ->headerActions([
                 CreateAction::make()
-                    ->label('Anadir piloto'),
+                    ->label('Anadir piloto')
+                    ->mutateDataUsing(fn (array $data): array => $this->normalizePilotoData($data)),
             ])
             ->recordActions([
                 Action::make('downloadDniFront')
@@ -269,7 +357,8 @@ class PilotosRelationManager extends RelationManager
                     ->action(fn (Piloto $record) => $this->downloadDocument($record, 'practical_certificate_path')),
 
                 EditAction::make()
-                    ->label('Editar'),
+                    ->label('Editar')
+                    ->mutateDataUsing(fn (array $data): array => $this->normalizePilotoData($data)),
 
                 DeleteAction::make()
                     ->visible(fn (Piloto $record): bool => ! $record->operaciones()->exists()),

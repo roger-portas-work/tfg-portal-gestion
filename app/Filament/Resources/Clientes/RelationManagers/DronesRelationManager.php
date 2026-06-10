@@ -7,6 +7,7 @@ use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -87,6 +88,7 @@ class DronesRelationManager extends RelationManager
 
                         TextInput::make('drone_serial_number')
                             ->label('Numero de serie del dron')
+                            ->required()
                             ->maxLength(255),
 
                         TextInput::make('controller_serial_number')
@@ -96,6 +98,7 @@ class DronesRelationManager extends RelationManager
 
                         TextInput::make('registration_number')
                             ->label('Matricula')
+                            ->required(fn ($get): bool => ! (bool) $get('registration_not_applicable'))
                             ->maxLength(255),
 
                         Toggle::make('registration_not_applicable')
@@ -137,6 +140,8 @@ class DronesRelationManager extends RelationManager
 
                         Textarea::make('payload')
                             ->label('Carga de pago (Camera, microfono, objetos, dispositivos)')
+                            ->required(fn ($get): bool => ! (bool) $get('payload_not_applicable'))
+                            ->maxLength(1000)
                             ->rows(3),
 
                         Toggle::make('payload_not_applicable')
@@ -146,6 +151,7 @@ class DronesRelationManager extends RelationManager
 
                         TextInput::make('vhf_equipment')
                             ->label('Equipo de comunicaciones VHF')
+                            ->required(fn ($get): bool => ! (bool) $get('vhf_not_applicable'))
                             ->maxLength(255),
 
                         Toggle::make('vhf_not_applicable')
@@ -155,6 +161,7 @@ class DronesRelationManager extends RelationManager
 
                         TextInput::make('emergency_equipment')
                             ->label('Equipo de emergencia')
+                            ->required(fn ($get): bool => ! (bool) $get('emergency_not_applicable'))
                             ->maxLength(255),
 
                         Toggle::make('emergency_not_applicable')
@@ -181,9 +188,22 @@ class DronesRelationManager extends RelationManager
                             ->required()
                             ->maxLength(255),
 
+                        FileUpload::make('insurance_coverage_policy_path')
+                            ->label('PDF de la poliza')
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->disk('public')
+                            ->directory(fn (): string => 'drones/cliente-'.$this->getOwnerRecord()->getKey().'/seguros')
+                            ->downloadable()
+                            ->maxSize(10240)
+                            ->openable()
+                            ->required()
+                            ->storeFileNamesIn('insurance_coverage_policy_original_name')
+                            ->columnSpanFull(),
+
                         Select::make('aesa_registration_status')
                             ->label('Registro AESA')
                             ->options(Dron::aesaRegistrationOptions())
+                            ->required()
                             ->native(false),
                     ])
                     ->columns(2),
@@ -206,6 +226,15 @@ class DronesRelationManager extends RelationManager
                     })
                     ->weight('semibold')
                     ->description(fn (Dron $record): string => 'Matricula: '.$record->registrationLabel()),
+
+                TextColumn::make('operational_status')
+                    ->label('Expediente')
+                    ->badge()
+                    ->state(fn (Dron $record): string => $record->operationalStatusLabel())
+                    ->color(fn (Dron $record): string => $record->operationalStatusColor())
+                    ->description(fn (Dron $record): ?string => $record->isOperationallyComplete()
+                        ? null
+                        : 'Falta: '.implode(', ', array_slice($record->missingOperationalFields(), 0, 3))),
 
                 TextColumn::make('uas_class')
                     ->label('Clase')

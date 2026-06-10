@@ -15,12 +15,14 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class OperadoraRequirementsRelationManager extends RelationManager
 {
@@ -175,17 +177,17 @@ class OperadoraRequirementsRelationManager extends RelationManager
 
                         [$background, $border, $badge, $title, $message] = match ($record->status) {
                             OperadoraRequirement::STATUS_PENDING => [
-                                '#fff1f2',
-                                '#fda4af',
-                                '#e11d48',
-                                '#9f1239',
-                                'Todavia no hay entrega del cliente para este requisito.',
-                            ],
-                            OperadoraRequirement::STATUS_IN_REVIEW => [
                                 '#fffbeb',
                                 '#fcd34d',
                                 '#d97706',
                                 '#92400e',
+                                'Todavia no hay entrega del cliente para este requisito.',
+                            ],
+                            OperadoraRequirement::STATUS_IN_REVIEW => [
+                                '#fff1f2',
+                                '#fda4af',
+                                '#e11d48',
+                                '#9f1239',
                                 $record->input_type === OperadoraRequirement::TYPE_TEXT
                                     ? 'El cliente ha enviado el texto y el requisito esta pendiente de revision.'
                                     : 'El cliente ha subido un archivo y el requisito esta pendiente de revision.',
@@ -263,6 +265,12 @@ class OperadoraRequirementsRelationManager extends RelationManager
                 Textarea::make('review_notes')
                     ->label('Indicaciones de revision para el cliente')
                     ->helperText('Escribe aqui las observaciones del gestor. Si pides correccion, este texto debe ayudar al cliente a saber que debe cambiar.')
+                    ->required(fn (Get $get, ?OperadoraRequirement $record): bool => $record?->status === OperadoraRequirement::STATUS_NEEDS_CHANGES
+                        || ($record?->status === OperadoraRequirement::STATUS_IN_REVIEW
+                            && $get('review_decision') === OperadoraRequirement::STATUS_NEEDS_CHANGES))
+                    ->validationMessages([
+                        'required' => 'Explica que debe corregir el cliente antes de pedir correccion.',
+                    ])
                     ->rows(4)
                     ->visible(fn (?OperadoraRequirement $record): bool => $record !== null)
                     ->columnSpanFull(),
@@ -285,13 +293,7 @@ class OperadoraRequirementsRelationManager extends RelationManager
                 TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        OperadoraRequirement::STATUS_PENDING => 'danger',
-                        OperadoraRequirement::STATUS_IN_REVIEW => 'warning',
-                        OperadoraRequirement::STATUS_APPROVED => 'success',
-                        OperadoraRequirement::STATUS_NEEDS_CHANGES => 'gray',
-                        default => 'gray',
-                    })
+                    ->color(fn (OperadoraRequirement $record): string => $record->gestorStatusColor())
                     ->icon(fn (string $state): string => match ($state) {
                         OperadoraRequirement::STATUS_PENDING => 'heroicon-m-clock',
                         OperadoraRequirement::STATUS_IN_REVIEW => 'heroicon-m-eye',
@@ -338,10 +340,10 @@ class OperadoraRequirementsRelationManager extends RelationManager
             ->defaultSort('id', 'desc')
             ->recordClasses(function (OperadoraRequirement $record): string {
                 $classes = match ($record->status) {
-                    OperadoraRequirement::STATUS_IN_REVIEW => 'border-s-4 border-amber-400 bg-amber-50/40 dark:bg-amber-500/5',
+                    OperadoraRequirement::STATUS_IN_REVIEW => 'border-s-4 border-rose-400 bg-rose-50/40 dark:bg-rose-500/5',
                     OperadoraRequirement::STATUS_APPROVED => 'border-s-4 border-emerald-400 bg-emerald-50/40 dark:bg-emerald-500/5',
                     OperadoraRequirement::STATUS_NEEDS_CHANGES => 'border-s-4 border-slate-400 bg-slate-50/70 dark:bg-slate-500/5',
-                    default => 'border-s-4 border-rose-300 bg-rose-50/40 dark:bg-rose-500/5',
+                    default => 'border-s-4 border-amber-300 bg-amber-50/40 dark:bg-amber-500/5',
                 };
 
                 if ($this->requestedRequirementId() === (string) $record->getKey()) {
@@ -373,11 +375,20 @@ class OperadoraRequirementsRelationManager extends RelationManager
                     ->extraAttributes(['class' => 'hidden'])
                     ->mutateDataUsing(function (array $data, OperadoraRequirement $record): array {
                         $decision = $data['review_decision'] ?? null;
+                        $data['review_notes'] = filled($data['review_notes'] ?? null)
+                            ? trim((string) $data['review_notes'])
+                            : null;
 
                         if ($record->status === OperadoraRequirement::STATUS_IN_REVIEW && in_array($decision, [
                             OperadoraRequirement::STATUS_APPROVED,
                             OperadoraRequirement::STATUS_NEEDS_CHANGES,
                         ], true)) {
+                            if ($decision === OperadoraRequirement::STATUS_NEEDS_CHANGES && blank($data['review_notes'])) {
+                                throw ValidationException::withMessages([
+                                    'review_notes' => 'Explica que debe corregir el cliente antes de pedir correccion.',
+                                ]);
+                            }
+
                             $data['status'] = $decision;
                             $data['reviewed_at'] = now();
                         } else {
