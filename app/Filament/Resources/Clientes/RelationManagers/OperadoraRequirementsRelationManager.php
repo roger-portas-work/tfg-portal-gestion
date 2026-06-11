@@ -46,7 +46,7 @@ class OperadoraRequirementsRelationManager extends RelationManager
 
     protected function downloadRequirementFile(OperadoraRequirement $record)
     {
-        if (blank($record->file_path) || ! Storage::disk('public')->exists($record->file_path)) {
+        if (blank($record->file_path) || ! Storage::disk('local')->exists($record->file_path)) {
             Notification::make()
                 ->title('Archivo no encontrado')
                 ->body('La entrega del cliente ya no existe en el almacenamiento.')
@@ -57,7 +57,7 @@ class OperadoraRequirementsRelationManager extends RelationManager
         }
 
         return response()->download(
-            Storage::disk('public')->path($record->file_path),
+            Storage::disk('local')->path($record->file_path),
             $this->buildDownloadFileName($record)
         );
     }

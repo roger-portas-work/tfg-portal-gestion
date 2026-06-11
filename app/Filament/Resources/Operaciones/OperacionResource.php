@@ -448,7 +448,7 @@ class OperacionResource extends Resource
 
     protected static function downloadStoredDocument(?string $path, string $fileName, string $missingBody)
     {
-        if (blank($path) || ! Storage::disk('public')->exists($path)) {
+        if (blank($path) || ! Storage::disk('local')->exists($path)) {
             Notification::make()
                 ->title('Archivo no encontrado')
                 ->body($missingBody)
@@ -459,7 +459,7 @@ class OperacionResource extends Resource
         }
 
         return response()->download(
-            Storage::disk('public')->path($path),
+            Storage::disk('local')->path($path),
             $fileName
         );
     }

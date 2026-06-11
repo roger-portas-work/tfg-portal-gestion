@@ -311,7 +311,7 @@ new #[Title('Mis drones')] class extends Component {
         $dron = $this->cliente?->drones()->findOrFail($dronId);
 
         if (filled($dron?->insurance_coverage_policy_path)) {
-            Storage::disk('public')->delete($dron->insurance_coverage_policy_path);
+            Storage::disk('local')->delete($dron->insurance_coverage_policy_path);
         }
 
         $dron?->delete();
@@ -325,7 +325,7 @@ new #[Title('Mis drones')] class extends Component {
 
         abort_unless($dron && filled($dron->insurance_coverage_policy_path), 404);
 
-        return Storage::disk('public')->download(
+        return Storage::disk('local')->download(
             $dron->insurance_coverage_policy_path,
             $dron->insurance_coverage_policy_original_name ?: basename($dron->insurance_coverage_policy_path)
         );
@@ -334,7 +334,7 @@ new #[Title('Mis drones')] class extends Component {
     protected function storeCoveragePolicy(Dron $dron, $uploadedFile): string
     {
         if (filled($dron->insurance_coverage_policy_path)) {
-            Storage::disk('public')->delete($dron->insurance_coverage_policy_path);
+            Storage::disk('local')->delete($dron->insurance_coverage_policy_path);
         }
 
         $folder = sprintf(
@@ -346,7 +346,7 @@ new #[Title('Mis drones')] class extends Component {
 
         $fileName = now()->format('YmdHis').'-poliza-cobertura.'.$uploadedFile->getClientOriginalExtension();
 
-        return $uploadedFile->storeAs($folder, $fileName, 'public');
+        return $uploadedFile->storeAs($folder, $fileName, 'local');
     }
 
     protected function resetForm(): void

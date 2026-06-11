@@ -85,7 +85,7 @@ class OperacionTramitesRelationManager extends RelationManager
 
     protected function downloadAttachments(OperacionTramite $record)
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk('local');
         $originalNames = $record->attachment_file_names ?? [];
         $attachments = collect($record->attachments ?? [])
             ->filter()
@@ -318,11 +318,9 @@ class OperacionTramitesRelationManager extends RelationManager
                         FileUpload::make('attachments')
                             ->label('PDFs del tramite')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => $this->buildDirectory())
-                            ->downloadable()
                             ->multiple()
-                            ->openable()
                             ->storeFileNamesIn('attachment_file_names')
                             ->columnSpanFull(),
                     ]),

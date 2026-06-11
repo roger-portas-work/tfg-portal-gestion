@@ -4,7 +4,6 @@ use App\Models\Operacion;
 use App\Models\OperacionTramite;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -181,7 +180,7 @@ new #[Title('Tramites aprobados')] class extends Component {
     }
 
     /**
-     * @return array<int, array{name: string, url: string}>
+     * @return array<int, array{name: string, view_url: string, download_url: string}>
      */
     protected function attachmentLinks(OperacionTramite $tramite): array
     {
@@ -189,10 +188,20 @@ new #[Title('Tramites aprobados')] class extends Component {
         $names = array_values((array) ($tramite->attachment_file_names ?? []));
 
         return collect($attachments)
-            ->map(function (string $path, int $index) use ($names): array {
+            ->map(function (string $path, int $index) use ($tramite, $names): array {
+                $parameters = [
+                    'operacion' => $this->operacion,
+                    'tramite' => $tramite,
+                    'attachment' => $index,
+                ];
+
                 return [
                     'name' => $names[$index] ?? basename($path),
-                    'url' => Storage::disk('public')->url($path),
+                    'view_url' => route('operaciones.tramites.documentos.show', $parameters),
+                    'download_url' => route('operaciones.tramites.documentos.show', [
+                        ...$parameters,
+                        'download' => true,
+                    ]),
                 ];
             })
             ->all();
@@ -408,10 +417,10 @@ new #[Title('Tramites aprobados')] class extends Component {
                                                 <strong>{{ $attachment['name'] }}</strong>
 
                                                 <div class="portal-tramites-file__actions">
-                                                    <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener noreferrer" class="portal-tramites-file-action portal-tramites-file-action--ghost">
+                                                    <a href="{{ $attachment['view_url'] }}" target="_blank" rel="noopener noreferrer" class="portal-tramites-file-action portal-tramites-file-action--ghost">
                                                         Ver PDF
                                                     </a>
-                                                    <a href="{{ $attachment['url'] }}" download class="portal-tramites-file-action portal-tramites-file-action--primary">
+                                                    <a href="{{ $attachment['download_url'] }}" class="portal-tramites-file-action portal-tramites-file-action--primary">
                                                         Descargar
                                                     </a>
                                                 </div>

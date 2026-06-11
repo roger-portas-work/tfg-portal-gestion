@@ -48,7 +48,7 @@ class DronesRelationManager extends RelationManager
 
     protected function downloadCoveragePolicy(Dron $record)
     {
-        if (blank($record->insurance_coverage_policy_path) || ! Storage::disk('public')->exists($record->insurance_coverage_policy_path)) {
+        if (blank($record->insurance_coverage_policy_path) || ! Storage::disk('local')->exists($record->insurance_coverage_policy_path)) {
             Notification::make()
                 ->title('Archivo no encontrado')
                 ->body('El PDF del seguro ya no existe en el almacenamiento.')
@@ -59,7 +59,7 @@ class DronesRelationManager extends RelationManager
         }
 
         return response()->download(
-            Storage::disk('public')->path($record->insurance_coverage_policy_path),
+            Storage::disk('local')->path($record->insurance_coverage_policy_path),
             $this->buildCoveragePolicyFileName($record)
         );
     }
@@ -191,11 +191,9 @@ class DronesRelationManager extends RelationManager
                         FileUpload::make('insurance_coverage_policy_path')
                             ->label('PDF de la poliza')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => 'drones/cliente-'.$this->getOwnerRecord()->getKey().'/seguros')
-                            ->downloadable()
                             ->maxSize(10240)
-                            ->openable()
                             ->required()
                             ->storeFileNamesIn('insurance_coverage_policy_original_name')
                             ->columnSpanFull(),

@@ -405,7 +405,7 @@ class DemoOperationsSeeder extends Seeder
                 'file_path' => $storedPath,
                 'original_file_name' => 'certificado-operador.pdf',
                 'mime_type' => 'application/pdf',
-                'file_size' => strlen(Storage::disk('public')->get($storedPath)),
+                'file_size' => strlen(Storage::disk('local')->get($storedPath)),
                 'submitted_at' => now()->subDays(15),
                 'reviewed_at' => now()->subDays(14),
             ],
@@ -414,7 +414,7 @@ class DemoOperationsSeeder extends Seeder
 
     protected function storePdf(string $path, string $title): string
     {
-        Storage::disk('public')->put($path, $this->pdfContent($title));
+        Storage::disk('local')->put($path, $this->pdfContent($title));
 
         return $path;
     }

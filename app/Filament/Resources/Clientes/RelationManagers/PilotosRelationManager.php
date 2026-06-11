@@ -54,7 +54,7 @@ class PilotosRelationManager extends RelationManager
     {
         $path = $record->{$field};
 
-        if (blank($path) || ! Storage::disk('public')->exists($path)) {
+        if (blank($path) || ! Storage::disk('local')->exists($path)) {
             Notification::make()
                 ->title('Archivo no encontrado')
                 ->body('El documento ya no existe en el almacenamiento.')
@@ -65,7 +65,7 @@ class PilotosRelationManager extends RelationManager
         }
 
         return response()->download(
-            Storage::disk('public')->path($path),
+            Storage::disk('local')->path($path),
             $this->buildDownloadFileName($record, $field)
         );
     }
@@ -192,52 +192,42 @@ class PilotosRelationManager extends RelationManager
                         FileUpload::make('dni_front_path')
                             ->label('DNI frontal en PDF')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => $this->documentsDirectory())
-                            ->downloadable()
                             ->maxSize(10240)
-                            ->openable()
                             ->required(),
 
                         FileUpload::make('dni_back_path')
                             ->label('DNI trasero en PDF')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => $this->documentsDirectory())
-                            ->downloadable()
                             ->maxSize(10240)
-                            ->openable()
                             ->required(),
 
                         FileUpload::make('theoretical_certificate_path')
                             ->label('Certificado teorico en PDF')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => $this->documentsDirectory())
-                            ->downloadable()
                             ->maxSize(10240)
-                            ->openable()
                             ->required(),
 
                         FileUpload::make('practical_certificate_path')
                             ->label('Certificado practico en PDF')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => $this->documentsDirectory())
-                            ->downloadable()
                             ->maxSize(10240)
-                            ->openable()
                             ->visible(fn (Get $get): bool => $get('theoretical_certificate_level') === Piloto::THEORY_STS)
                             ->required(fn (Get $get): bool => $get('theoretical_certificate_level') === Piloto::THEORY_STS),
 
                         FileUpload::make('radiofonista_certificate_path')
                             ->label('PDF del certificado de radiofonista')
                             ->acceptedFileTypes(['application/pdf'])
-                            ->disk('public')
+                            ->disk('local')
                             ->directory(fn (): string => $this->documentsDirectory())
-                            ->downloadable()
                             ->maxSize(10240)
-                            ->openable()
                             ->visible(fn (Get $get): bool => (bool) $get('has_radiofonista_certificate'))
                             ->required(fn (Get $get): bool => (bool) $get('has_radiofonista_certificate')),
                     ])

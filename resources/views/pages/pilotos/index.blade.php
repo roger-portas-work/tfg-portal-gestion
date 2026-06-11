@@ -274,7 +274,7 @@ new #[Title('Mis pilotos')] class extends Component {
 
         abort_unless(filled($path), 404);
 
-        return Storage::disk('public')->download($path);
+        return Storage::disk('local')->download($path);
     }
 
     public function currentPiloto(): ?Piloto
@@ -322,13 +322,13 @@ new #[Title('Mis pilotos')] class extends Component {
 
         $fileName = now()->format('YmdHis').'-'.$documentKey.'.'.$uploadedFile->getClientOriginalExtension();
 
-        return $uploadedFile->storeAs($folder, $fileName, 'public');
+        return $uploadedFile->storeAs($folder, $fileName, 'local');
     }
 
     protected function deleteStoredDocument(Piloto $piloto, string $field): void
     {
         if (filled($piloto->{$field})) {
-            Storage::disk('public')->delete($piloto->{$field});
+            Storage::disk('local')->delete($piloto->{$field});
         }
     }
 

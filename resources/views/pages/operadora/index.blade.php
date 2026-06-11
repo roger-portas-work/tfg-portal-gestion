@@ -239,11 +239,11 @@ new #[Title('Operadora')] class extends Component {
         $requirementFolder = sprintf('operadora/cliente-%d/%s', $this->cliente->id, Str::slug($requirement->name ?: 'requisito'));
 
         if (filled($requirement->file_path)) {
-            Storage::disk('public')->delete($requirement->file_path);
+            Storage::disk('local')->delete($requirement->file_path);
         }
 
         $storedFileName = now()->format('YmdHis').'-'.Str::slug(pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME));
-        $path = $uploadedFile->storeAs($requirementFolder, $storedFileName.'.'.$uploadedFile->getClientOriginalExtension(), 'public');
+        $path = $uploadedFile->storeAs($requirementFolder, $storedFileName.'.'.$uploadedFile->getClientOriginalExtension(), 'local');
 
         $requirement->update([
             'file_path' => $path,
@@ -281,7 +281,7 @@ new #[Title('Operadora')] class extends Component {
 
         abort_unless(filled($requirement->file_path), 404);
 
-        return Storage::disk('public')->download($requirement->file_path);
+        return Storage::disk('local')->download($requirement->file_path);
     }
 
     public function requirementStatusLabel(OperadoraRequirement $requirement): string
