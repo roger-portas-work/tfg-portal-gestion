@@ -149,6 +149,10 @@ class Operacion extends Model
             'tramites',
             'tramites as approved_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
                 ->where('status', OperacionTramite::STATUS_APPROVED),
+            'tramites as denied_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
+                ->where('status', OperacionTramite::STATUS_DENIED),
+            'tramites as processed_for_gestor_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
+                ->whereNotNull('processed_at'),
             'tramites as pending_to_process_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
                 ->unprocessedNotApprovedForGestor(),
             'tramites as overdue_tramites_count' => fn (Builder $tramitesQuery) => $tramitesQuery
@@ -207,7 +211,7 @@ class Operacion extends Model
         return $this->status === self::STATUS_CONFIRMED;
     }
 
-    public function documentationIsFullyApproved(): bool
+    public function tramitesAreFullyApproved(): bool
     {
         $tramitesCount = (int) ($this->tramites_count ?? 0);
         $approvedCount = (int) ($this->approved_tramites_count ?? 0);
@@ -215,29 +219,55 @@ class Operacion extends Model
         return $this->isConfirmed() && $tramitesCount > 0 && $approvedCount === $tramitesCount;
     }
 
-    public function documentationStatusLabel(): string
+    public function tramitesStatusLabel(): string
     {
         if (! $this->isConfirmed()) {
-            return 'No aplica';
+            return 'No aplican';
         }
 
-        return $this->documentationIsFullyApproved()
-            ? 'Documentacion aprobada'
-            : 'Falta documentacion';
+        return $this->gestorFollowUpLabel();
     }
 
-    public function documentationStatusColor(): string
+    public function tramitesStatusColor(): string
     {
         if (! $this->isConfirmed()) {
             return 'gray';
         }
 
-        return $this->documentationIsFullyApproved()
-            ? 'success'
-            : 'danger';
+        return $this->gestorFollowUpColor();
+    }
+
+    public function documentationIsFullyApproved(): bool
+    {
+        return $this->tramitesAreFullyApproved();
+    }
+
+    public function documentationStatusLabel(): string
+    {
+        return $this->tramitesStatusLabel();
+    }
+
+    public function documentationStatusColor(): string
+    {
+        return $this->tramitesStatusColor();
     }
 
     public function workflowPriorityLabel(): string
+    {
+        return $this->gestorFollowUpLabel();
+    }
+
+    public function workflowPriorityColor(): string
+    {
+        return $this->gestorFollowUpColor();
+    }
+
+    public function workflowFocus(): string
+    {
+        return $this->gestorFollowUpFocus();
+    }
+
+    public function gestorFollowUpLabel(): string
     {
         if ($this->isRejected()) {
             return 'Rechazada';
@@ -253,6 +283,8 @@ class Operacion extends Model
 
         $tramitesCount = (int) ($this->tramites_count ?? 0);
         $approvedCount = (int) ($this->approved_tramites_count ?? 0);
+        $deniedCount = (int) ($this->denied_tramites_count ?? 0);
+        $processedCount = (int) ($this->processed_for_gestor_tramites_count ?? 0);
         $pendingCount = (int) ($this->pending_to_process_tramites_count ?? 0);
         $overdueCount = (int) ($this->overdue_tramites_count ?? 0);
         $dueSoonCount = (int) ($this->due_soon_tramites_count ?? 0);
@@ -270,17 +302,25 @@ class Operacion extends Model
         }
 
         if ($pendingCount > 0) {
-            return $pendingCount.' pendientes';
+            return $pendingCount.' pendientes de tramitar';
         }
 
-        if ($approvedCount < $tramitesCount) {
-            return 'Falta cerrar';
+        if ($deniedCount > 0) {
+            return $deniedCount.' '.($deniedCount === 1 ? 'denegado' : 'denegados');
         }
 
-        return 'Documentacion completa';
+        if ($approvedCount === $tramitesCount) {
+            return 'Tramites aprobados';
+        }
+
+        if ($processedCount === $tramitesCount) {
+            return 'Tramites procesados';
+        }
+
+        return 'Tramites pendientes';
     }
 
-    public function workflowPriorityColor(): string
+    public function gestorFollowUpColor(): string
     {
         if ($this->isRejected()) {
             return 'gray';
@@ -302,17 +342,22 @@ class Operacion extends Model
             return 'warning';
         }
 
-        if (
-            (int) ($this->pending_to_process_tramites_count ?? 0) > 0
-            || (int) ($this->approved_tramites_count ?? 0) < (int) ($this->tramites_count ?? 0)
-        ) {
+        if ((int) ($this->pending_to_process_tramites_count ?? 0) > 0) {
             return 'info';
         }
 
-        return 'success';
+        if ((int) ($this->denied_tramites_count ?? 0) > 0) {
+            return 'danger';
+        }
+
+        if ((int) ($this->approved_tramites_count ?? 0) === (int) ($this->tramites_count ?? 0)) {
+            return 'success';
+        }
+
+        return 'info';
     }
 
-    public function workflowFocus(): string
+    public function gestorFollowUpFocus(): string
     {
         if ($this->isRejected()) {
             return 'operacion-rechazada';
@@ -338,10 +383,45 @@ class Operacion extends Model
             return 'tramites-pendientes';
         }
 
-        if ((int) ($this->approved_tramites_count ?? 0) < (int) ($this->tramites_count ?? 0)) {
-            return 'tramites-pendientes';
+        if ((int) ($this->denied_tramites_count ?? 0) > 0) {
+            return 'tramites-denegados';
         }
 
-        return 'documentacion-completa';
+        if ((int) ($this->approved_tramites_count ?? 0) === (int) ($this->tramites_count ?? 0)) {
+            return 'tramites-aprobados';
+        }
+
+        if ((int) ($this->processed_for_gestor_tramites_count ?? 0) === (int) ($this->tramites_count ?? 0)) {
+            return 'tramites-procesados';
+        }
+
+        return 'tramites-pendientes';
+    }
+
+    public function gestorFollowUpDescription(): string
+    {
+        if ($this->isRejected()) {
+            return 'Operacion rechazada';
+        }
+
+        if ($this->isPending()) {
+            return 'Revisar y confirmar con el cliente';
+        }
+
+        if (! $this->isConfirmed()) {
+            return 'Sin seguimiento operativo';
+        }
+
+        $tramitesCount = (int) ($this->tramites_count ?? 0);
+
+        if ($tramitesCount === 0) {
+            return 'Crea los tramites necesarios para esta operacion';
+        }
+
+        return 'Total '.$tramitesCount
+            .' - Tramitados '.(int) ($this->processed_for_gestor_tramites_count ?? 0)
+            .' - Aprobados '.(int) ($this->approved_tramites_count ?? 0)
+            .' - Denegados '.(int) ($this->denied_tramites_count ?? 0)
+            .' - Pendientes de tramitar '.(int) ($this->pending_to_process_tramites_count ?? 0);
     }
 }

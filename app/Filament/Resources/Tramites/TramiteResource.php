@@ -73,15 +73,18 @@ class TramiteResource extends Resource
 
                 TextColumn::make('deadline_date')
                     ->label('Fecha limite')
+                    ->state(fn (OperacionTramite $record): mixed => $record->isProcessedForGestor() ? null : $record->deadline_date)
                     ->date('d/m/Y')
                     ->sortable()
-                    ->placeholder('Sin definir'),
+                    ->placeholder(fn (OperacionTramite $record): string => $record->isProcessedForGestor() ? 'No aplica' : 'Sin definir')
+                    ->hidden(fn ($livewire): bool => $livewire instanceof ListTramites && $livewire->activeTab === 'tramitados'),
 
                 TextColumn::make('deadline_countdown')
                     ->label('Dias restantes')
                     ->badge()
                     ->state(fn (OperacionTramite $record): string => $record->deadlineCountdownLabel())
-                    ->color(fn (OperacionTramite $record): string => $record->deadlineCountdownColor()),
+                    ->color(fn (OperacionTramite $record): string => $record->deadlineCountdownColor())
+                    ->hidden(fn ($livewire): bool => $livewire instanceof ListTramites && $livewire->activeTab === 'tramitados'),
 
                 TextColumn::make('processed_at')
                     ->label('Fecha tramitacion')
@@ -143,11 +146,15 @@ class TramiteResource extends Resource
                         return $query
                             ->when(
                                 filled($data['deadline_from'] ?? null),
-                                fn (Builder $query): Builder => $query->whereDate('deadline_date', '>=', $data['deadline_from'])
+                                fn (Builder $query): Builder => $query
+                                    ->whereNull('processed_at')
+                                    ->whereDate('deadline_date', '>=', $data['deadline_from'])
                             )
                             ->when(
                                 filled($data['deadline_until'] ?? null),
-                                fn (Builder $query): Builder => $query->whereDate('deadline_date', '<=', $data['deadline_until'])
+                                fn (Builder $query): Builder => $query
+                                    ->whereNull('processed_at')
+                                    ->whereDate('deadline_date', '<=', $data['deadline_until'])
                             );
                     }),
 
@@ -187,7 +194,7 @@ class TramiteResource extends Resource
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->url(fn (OperacionTramite $record): ?string => static::operationUrl($record)),
             ])
-            ->recordAction('abrirOperacion');
+            ->recordUrl(fn (OperacionTramite $record): ?string => static::operationUrl($record));
     }
 
     public static function applyPendingTabQuery(Builder $query): Builder
@@ -206,13 +213,17 @@ class TramiteResource extends Resource
             ->orderBy('id');
     }
 
-    public static function applyProcessedTabQuery(Builder $query): Builder
+    public static function applyTramitadosTabQuery(Builder $query): Builder
     {
         return $query
-            ->where('status', OperacionTramite::STATUS_PROCESSED)
             ->whereNotNull('processed_at')
-            ->orderBy('processed_at')
-            ->orderBy('id');
+            ->orderByDesc('processed_at')
+            ->orderByDesc('id');
+    }
+
+    public static function applyProcessedTabQuery(Builder $query): Builder
+    {
+        return static::applyTramitadosTabQuery($query);
     }
 
     public static function applyHistoryTabQuery(Builder $query): Builder

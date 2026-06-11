@@ -39,7 +39,7 @@
                             @endif
                         </div>
                         <div>
-                            <div class="idrx-meta-label">Trámites</div>
+                            <div class="idrx-meta-label">Seguimiento</div>
                             <div class="idrx-meta-value">{{ $operacion['description'] }}</div>
                         </div>
                         <div>

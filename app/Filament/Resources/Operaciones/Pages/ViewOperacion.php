@@ -10,10 +10,19 @@ use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
+use Livewire\Attributes\On;
 
 class ViewOperacion extends ViewRecord
 {
     protected static string $resource = OperacionResource::class;
+
+    #[On('operacion-tramites-updated')]
+    public function refreshOperationWorkflowState(): void
+    {
+        $this->record = OperacionResource::getEloquentQuery()
+            ->whereKey($this->getRecord()->getKey())
+            ->firstOrFail();
+    }
 
     public function getTitle(): string | Htmlable
     {
@@ -73,6 +82,10 @@ class ViewOperacion extends ViewRecord
                 ->color('danger')
                 ->visible(fn (): bool => $this->record->isPending())
                 ->requiresConfirmation()
+                ->modalHeading('Rechazar operacion')
+                ->modalDescription('La operacion pasara a rechazada y se eliminaran el coste y las condiciones operativas.')
+                ->modalSubmitActionLabel('Rechazar operacion')
+                ->modalCancelActionLabel('Cancelar')
                 ->action(function (): void {
                     $this->record->update([
                         'status' => Operacion::STATUS_REJECTED,

@@ -19,7 +19,7 @@ class ListTramites extends ListRecords
 
     public function getSubheading(): string | Htmlable | null
     {
-        return 'Cola global separada por trabajo pendiente, seguimiento de tramites procesados e historial.';
+        return 'Cola global separada por trabajo pendiente, tramites ya tramitados e historial.';
     }
 
     /**
@@ -34,8 +34,8 @@ class ListTramites extends ListRecords
             'pendientes' => Tab::make('Tramites pendientes')
                 ->modifyQueryUsing(fn (Builder $query): Builder => TramiteResource::applyPendingTabQuery($query)),
 
-            'procesados' => Tab::make('Tramites procesados')
-                ->modifyQueryUsing(fn (Builder $query): Builder => TramiteResource::applyProcessedTabQuery($query)),
+            'tramitados' => Tab::make('Tramites tramitados')
+                ->modifyQueryUsing(fn (Builder $query): Builder => TramiteResource::applyTramitadosTabQuery($query)),
 
             'todos' => Tab::make('Todos los tramites')
                 ->modifyQueryUsing(fn (Builder $query): Builder => TramiteResource::applyHistoryTabQuery($query)),

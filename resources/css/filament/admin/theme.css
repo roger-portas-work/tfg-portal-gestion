@@ -348,6 +348,126 @@
     color: #c2410c;
 }
 
+.fi-resource-view-record-page.fi-resource-operaciones .fi-header-heading {
+    color: #0f172a;
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.18;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .fi-in-entry {
+    gap: .28rem;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .fi-in-entry-label {
+    color: #64748b;
+    font-size: .68rem;
+    font-weight: 750;
+    letter-spacing: .045em;
+    line-height: 1.25;
+    text-transform: uppercase;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .fi-in-entry-content .fi-in-text:not(.fi-in-text-has-badges) {
+    color: #111827;
+    font-size: .9rem;
+    font-weight: 650;
+    line-height: 1.42;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .fi-in-entry-content .fi-in-placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .idrx-operation-title-entry .fi-in-entry-content .fi-in-text {
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .idrx-operation-state-entry .fi-badge {
+    min-height: 1.7rem;
+    padding-inline: .65rem;
+    font-weight: 750;
+}
+
+.fi-resource-view-record-page.fi-resource-operaciones .fi-section-header-after-ctn {
+    align-items: center;
+    gap: .35rem;
+}
+
+.fi-layout-sidebar-toggle-btn,
+.fi-sidebar-open-collapse-sidebar-btn,
+.fi-sidebar-close-collapse-sidebar-btn {
+    border: 1px solid #fed7aa !important;
+    border-radius: 10px !important;
+    background: #fff7ed !important;
+    color: #c2410c !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+.fi-layout-sidebar-toggle-btn:hover,
+.fi-sidebar-open-collapse-sidebar-btn:hover,
+.fi-sidebar-close-collapse-sidebar-btn:hover {
+    border-color: #fb923c !important;
+    background: #ffedd5 !important;
+    color: #9a3412 !important;
+}
+
+@media (min-width: 1024px) {
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-main {
+        padding-inline: 1rem;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-ta-table th,
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-ta-table td {
+        padding: .75rem .6rem;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-ta-text {
+        font-size: .9rem;
+        line-height: 1.28;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-ta-text-description {
+        font-size: .8rem;
+        line-height: 1.25;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-ta-header-cell-label {
+        font-size: .9rem;
+        line-height: 1.25;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones .fi-badge {
+        min-height: 1.45rem;
+        padding: .16rem .48rem;
+        font-size: .76rem;
+        line-height: 1.15;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones tbody tr > td:last-child {
+        width: 1%;
+        white-space: nowrap;
+        padding-left: .4rem;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones tbody .fi-ta-actions {
+        flex-wrap: nowrap;
+        gap: .35rem;
+        justify-content: flex-end;
+        min-width: max-content;
+    }
+
+    .fi-resource-list-records-page.fi-resource-operaciones tbody .fi-ta-actions .fi-btn,
+    .fi-resource-list-records-page.fi-resource-operaciones tbody .fi-ta-actions .fi-link {
+        min-height: 1.9rem;
+        padding: .22rem .5rem;
+        font-size: .8rem;
+        line-height: 1.15;
+    }
+}
+
 .idrx-tone-danger,
 .idrx-card-danger {
     border-color: #fecaca;
@@ -473,11 +593,18 @@
         color: #f9fafb;
     }
 
+    .fi-resource-view-record-page.fi-resource-operaciones .fi-header-heading,
+    .fi-resource-view-record-page.fi-resource-operaciones .fi-in-entry-content .fi-in-text:not(.fi-in-text-has-badges),
+    .fi-resource-view-record-page.fi-resource-operaciones .idrx-operation-title-entry .fi-in-entry-content .fi-in-text {
+        color: #f9fafb;
+    }
+
     .idrx-widget-description,
     .idrx-filter-description,
     .idrx-card-subtitle,
     .idrx-meta-label,
     .idrx-muted-row,
+    .fi-resource-view-record-page.fi-resource-operaciones .fi-in-entry-label,
     .idrx-empty {
         color: #9ca3af;
     }

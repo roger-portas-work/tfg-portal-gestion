@@ -39,7 +39,7 @@ class OperacionesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['piloto', 'dron'])->withCount('tramites'))
+            ->modifyQueryUsing(fn ($query) => $query->with(['piloto', 'dron'])->withTramiteWorkflowCounts())
             ->columns([
                 TextColumn::make('reference')
                     ->label('Operacion')
@@ -51,6 +51,19 @@ class OperacionesRelationManager extends RelationManager
                     ->badge()
                     ->color(fn (Operacion $record): string => $record->statusColor())
                     ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
+
+                TextColumn::make('gestor_follow_up')
+                    ->label('Seguimiento')
+                    ->badge()
+                    ->state(fn (Operacion $record): string => $record->gestorFollowUpLabel())
+                    ->color(fn (Operacion $record): string => $record->gestorFollowUpColor()),
+
+                TextColumn::make('tramites_count')
+                    ->label('N. tramites')
+                    ->badge()
+                    ->color('gray')
+                    ->state(fn (Operacion $record): string => (string) ($record->tramites_count ?? 0))
+                    ->alignCenter(),
 
                 TextColumn::make('operation_date')
                     ->label('Fecha')
@@ -93,13 +106,6 @@ class OperacionesRelationManager extends RelationManager
                     ->state(fn (Operacion $record): string => filled($record->operation_cost)
                         ? number_format((float) $record->operation_cost, 2, ',', '.').' EUR'
                         : 'Sin definir')
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                TextColumn::make('tramites_count')
-                    ->label('Tramites')
-                    ->badge()
-                    ->color('gray')
-                    ->state(fn (Operacion $record): string => (string) ($record->tramites_count ?? 0))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('altitude')

@@ -34,9 +34,6 @@ class ListOperaciones extends ListRecords
             'proximas' => Tab::make('Proximas')
                 ->modifyQueryUsing(fn (Builder $query): Builder => OperacionResource::applyUpcomingTabQuery($query)),
 
-            'rechazadas' => Tab::make('Rechazadas')
-                ->modifyQueryUsing(fn (Builder $query): Builder => OperacionResource::applyRejectedTabQuery($query)),
-
             'pasadas' => Tab::make('Pasadas')
                 ->modifyQueryUsing(fn (Builder $query): Builder => OperacionResource::applyPastTabQuery($query)),
         ];

@@ -90,7 +90,9 @@ class OperacionResource extends Resource
                     ->label('Operacion')
                     ->searchable()
                     ->sortable()
-                    ->description(fn (Operacion $record): ?string => $record->estimated_filming_schedule ?: null),
+                    ->description(fn (Operacion $record): ?string => $record->estimated_filming_schedule ?: null)
+                    ->limit(42)
+                    ->tooltip(fn (Operacion $record): string => $record->reference ?: 'Sin referencia'),
 
                 TextColumn::make('status')
                     ->label('Estado')
@@ -98,17 +100,18 @@ class OperacionResource extends Resource
                     ->color(fn (Operacion $record): string => $record->statusColor())
                     ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
 
-                TextColumn::make('workflow_priority')
-                    ->label('Prioridad')
+                TextColumn::make('gestor_follow_up')
+                    ->label('Seguimiento')
                     ->badge()
-                    ->state(fn (Operacion $record): string => $record->workflowPriorityLabel())
-                    ->color(fn (Operacion $record): string => $record->workflowPriorityColor()),
+                    ->state(fn (Operacion $record): string => $record->gestorFollowUpLabel())
+                    ->color(fn (Operacion $record): string => $record->gestorFollowUpColor()),
 
-                TextColumn::make('documentation_status')
-                    ->label('Documentacion')
+                TextColumn::make('tramites_count')
+                    ->label('N. tram.')
                     ->badge()
-                    ->state(fn (Operacion $record): string => $record->documentationStatusLabel())
-                    ->color(fn (Operacion $record): string => $record->documentationStatusColor()),
+                    ->color('gray')
+                    ->state(fn (Operacion $record): string => (string) ($record->tramites_count ?? 0))
+                    ->alignCenter(),
 
                 TextColumn::make('operation_date')
                     ->label('Fecha')
@@ -125,50 +128,9 @@ class OperacionResource extends Resource
                                 ->orWhere('last_name', 'like', "%{$search}%")
                                 ->orWhere('second_last_name', 'like', "%{$search}%");
                         });
-                    }),
-
-                TextColumn::make('piloto_name')
-                    ->label('Piloto')
-                    ->state(fn (Operacion $record): string => $record->piloto?->fullName() ?: 'Sin piloto')
-                    ->searchable(query: function (Builder $query, string $search): void {
-                        $query->whereHas('piloto', function (Builder $pilotoQuery) use ($search): void {
-                            $pilotoQuery
-                                ->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('second_last_name', 'like', "%{$search}%")
-                                ->orWhere('dni_nie', 'like', "%{$search}%");
-                        });
                     })
-                    ->toggleable(),
-
-                TextColumn::make('dron_label')
-                    ->label('Dron')
-                    ->state(function (Operacion $record): string {
-                        $label = trim(($record->dron?->manufacturer_name ?? '').' '.($record->dron?->model ?? ''));
-
-                        if ($record->dron && (filled($record->dron->registration_number) || $record->dron->registration_not_applicable)) {
-                            $label .= ' - '.$record->dron->registrationLabel();
-                        }
-
-                        return $label ?: 'Sin dron';
-                    })
-                    ->searchable(query: function (Builder $query, string $search): void {
-                        $query->whereHas('dron', function (Builder $dronQuery) use ($search): void {
-                            $dronQuery
-                                ->where('manufacturer_name', 'like', "%{$search}%")
-                                ->orWhere('model', 'like', "%{$search}%")
-                                ->orWhere('registration_number', 'like', "%{$search}%")
-                                ->orWhere('drone_serial_number', 'like', "%{$search}%");
-                        });
-                    })
-                    ->toggleable(),
-
-                TextColumn::make('tramites_count')
-                    ->label('Tramites')
-                    ->badge()
-                    ->color('gray')
-                    ->state(fn (Operacion $record): string => (string) ($record->tramites_count ?? 0))
-                    ->toggleable(),
+                    ->limit(28)
+                    ->tooltip(fn (Operacion $record): string => $record->cliente?->fullName() ?: 'Sin cliente'),
 
                 TextColumn::make('operation_cost')
                     ->label('Coste')
@@ -226,6 +188,10 @@ class OperacionResource extends Resource
                     ->color('danger')
                     ->visible(fn (Operacion $record): bool => $record->isPending())
                     ->requiresConfirmation()
+                    ->modalHeading('Rechazar operacion')
+                    ->modalDescription('La operacion pasara a rechazada y se eliminaran el coste y las condiciones operativas.')
+                    ->modalSubmitActionLabel('Rechazar operacion')
+                    ->modalCancelActionLabel('Cancelar')
                     ->action(function (Operacion $record): void {
                         $record->update([
                             'status' => Operacion::STATUS_REJECTED,
@@ -457,16 +423,6 @@ class OperacionResource extends Resource
     {
         return $query
             ->whereDate('operation_date', '>=', static::todayDate())
-            ->notRejectedForGestor()
-            ->orderBy('operation_date')
-            ->orderBy('id');
-    }
-
-    public static function applyRejectedTabQuery(Builder $query): Builder
-    {
-        return $query
-            ->where('status', Operacion::STATUS_REJECTED)
-            ->whereDate('operation_date', '>=', static::todayDate())
             ->orderBy('operation_date')
             ->orderBy('id');
     }
@@ -602,15 +558,16 @@ class OperacionResource extends Resource
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('dashboard_focus')
-                            ->label('Prioridad')
+                            ->label('Seguimiento')
                             ->state(fn (Operacion $record): string => static::dashboardFocusMessage($record))
                             ->badge()
                             ->color(fn (): string => match (request()->query('focus')) {
-                                'documentacion-completa' => 'success',
+                                'tramites-aprobados', 'documentacion-completa' => 'success',
+                                'tramites-denegados', 'sin-tramites', 'tramites-vencidos' => 'danger',
+                                'tramites-procesados' => 'info',
                                 'operacion-hoy', 'tramites-7-dias', 'tramite-7-dias' => 'warning',
                                 'pendiente-confirmar' => 'warning',
                                 'operacion-rechazada' => 'gray',
-                                'sin-tramites', 'tramites-vencidos' => 'danger',
                                 default => 'info',
                             }),
                     ]),
@@ -621,19 +578,25 @@ class OperacionResource extends Resource
                     ->schema([
                         TextEntry::make('reference')
                             ->label('Operacion')
-                            ->weight('bold'),
+                            ->weight('bold')
+                            ->size('lg')
+                            ->extraEntryWrapperAttributes(['class' => 'idrx-operation-title-entry']),
 
                         TextEntry::make('status')
                             ->label('Estado')
                             ->badge()
+                            ->size('md')
                             ->color(fn (Operacion $record): string => $record->statusColor())
-                            ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente'),
+                            ->formatStateUsing(fn (?string $state): string => Operacion::statusOptions()[$state] ?? 'Pendiente')
+                            ->extraEntryWrapperAttributes(['class' => 'idrx-operation-state-entry']),
 
-                        TextEntry::make('documentation_status')
-                            ->label('Documentacion')
+                        TextEntry::make('gestor_follow_up')
+                            ->label('Seguimiento')
                             ->badge()
-                            ->state(fn (Operacion $record): string => $record->documentationStatusLabel())
-                            ->color(fn (Operacion $record): string => $record->documentationStatusColor()),
+                            ->size('md')
+                            ->state(fn (Operacion $record): string => $record->gestorFollowUpLabel())
+                            ->color(fn (Operacion $record): string => $record->gestorFollowUpColor())
+                            ->extraEntryWrapperAttributes(['class' => 'idrx-operation-state-entry']),
 
                         TextEntry::make('operation_date')
                             ->label('Fecha de la operacion')
@@ -838,6 +801,8 @@ class OperacionResource extends Resource
                         Action::make('downloadPilotDniFront')
                             ->label('DNI frontal')
                             ->icon('heroicon-m-identification')
+                            ->iconButton()
+                            ->tooltip('Descargar DNI frontal')
                             ->color('gray')
                             ->visible(fn (Operacion $record): bool => filled($record->piloto?->dni_front_path))
                             ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'dni_front_path')),
@@ -845,6 +810,8 @@ class OperacionResource extends Resource
                         Action::make('downloadPilotDniBack')
                             ->label('DNI trasero')
                             ->icon('heroicon-m-identification')
+                            ->iconButton()
+                            ->tooltip('Descargar DNI trasero')
                             ->color('gray')
                             ->visible(fn (Operacion $record): bool => filled($record->piloto?->dni_back_path))
                             ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'dni_back_path')),
@@ -852,6 +819,8 @@ class OperacionResource extends Resource
                         Action::make('downloadPilotRadiofonista')
                             ->label('Radiofonista')
                             ->icon('heroicon-m-arrow-down-tray')
+                            ->iconButton()
+                            ->tooltip('Descargar radiofonista')
                             ->color('info')
                             ->visible(fn (Operacion $record): bool => filled($record->piloto?->radiofonista_certificate_path))
                             ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'radiofonista_certificate_path')),
@@ -859,6 +828,8 @@ class OperacionResource extends Resource
                         Action::make('downloadPilotTheory')
                             ->label('Teorico')
                             ->icon('heroicon-m-document-arrow-down')
+                            ->iconButton()
+                            ->tooltip('Descargar teorico')
                             ->color('success')
                             ->visible(fn (Operacion $record): bool => filled($record->piloto?->theoretical_certificate_path))
                             ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'theoretical_certificate_path')),
@@ -866,6 +837,8 @@ class OperacionResource extends Resource
                         Action::make('downloadPilotPractical')
                             ->label('Practico')
                             ->icon('heroicon-m-document-arrow-down')
+                            ->iconButton()
+                            ->tooltip('Descargar practico')
                             ->color('warning')
                             ->visible(fn (Operacion $record): bool => filled($record->piloto?->practical_certificate_path))
                             ->action(fn (Operacion $record) => static::downloadPilotDocument($record, 'practical_certificate_path')),
@@ -1043,10 +1016,12 @@ class OperacionResource extends Resource
             'tramites-vencidos' => 'Hay trámites vencidos sin fecha de tramitación. Revisa el bloque Trámites de operación.',
             'tramites-7-dias', 'tramite-7-dias' => 'Hay trámites con fecha límite dentro de los próximos 7 días.',
             'tramites-pendientes' => 'Hay trámites pendientes de tramitar.',
+            'tramites-denegados' => 'Hay trámites denegados. Revisa el bloque Trámites de operación para decidir el siguiente paso.',
+            'tramites-procesados' => 'Todos los trámites aparecen tramitados, pero todavía no constan todos como aprobados.',
             'operacion-hoy' => 'Esta operación está programada para hoy. Revisa horario, piloto, dron y trámites antes de cerrarla.',
             'pendiente-confirmar' => 'Esta operación está pendiente de decisión. Revisa los datos y cambia el estado cuando el gestor la cierre con el cliente.',
             'operacion-rechazada' => 'Esta operación está rechazada. Revisa el historial solo si necesitas recuperar contexto.',
-            'documentacion-completa' => 'La documentación de esta operación aparece completa.',
+            'tramites-aprobados', 'documentacion-completa' => 'Los trámites de esta operación aparecen aprobados.',
             default => 'Revisa esta operación desde el dashboard del gestor.',
         };
     }

@@ -79,7 +79,7 @@ class GestorPriorityStatsWidget extends Widget
                     'label' => 'Hoy',
                     'value' => $operationsToday,
                     'description' => 'Operaciones con fecha de hoy',
-                    'tone' => $operationsToday > 0 ? 'warning' : 'neutral',
+                    'tone' => 'neutral',
                     'url' => '#operaciones-hoy',
                 ],
                 [
@@ -134,7 +134,7 @@ class GestorPriorityStatsWidget extends Widget
         string $fallback
     ): string {
         if ($withoutTramites > 0 && $withPendingTramites > 0) {
-            return "{$withoutTramites} sin tramites - {$withPendingTramites} con tramites pendientes de aprobar";
+            return "{$withoutTramites} sin tramites - {$withPendingTramites} con seguimiento pendiente";
         }
 
         if ($withoutTramites > 0) {
@@ -142,7 +142,7 @@ class GestorPriorityStatsWidget extends Widget
         }
 
         if ($withPendingTramites > 0) {
-            return "{$withPendingTramites} con tramites pendientes de aprobar";
+            return "{$withPendingTramites} con seguimiento pendiente";
         }
 
         return $fallback;

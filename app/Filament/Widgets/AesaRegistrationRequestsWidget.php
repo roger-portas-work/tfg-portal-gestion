@@ -9,6 +9,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class AesaRegistrationRequestsWidget extends TableWidget
 {
@@ -69,7 +70,9 @@ class AesaRegistrationRequestsWidget extends TableWidget
 
                 TextColumn::make('updated_at')
                     ->label('Solicitado')
-                    ->since()
+                    ->formatStateUsing(fn (mixed $state): string => filled($state)
+                        ? Carbon::parse($state)->locale('es')->diffForHumans()
+                        : 'Sin fecha')
                     ->description(fn (Dron $record): ?string => $record->updated_at?->format('d/m/Y H:i')),
             ])
             ->emptyStateHeading('No hay solicitudes pendientes de registro AESA')
@@ -81,11 +84,16 @@ class AesaRegistrationRequestsWidget extends TableWidget
                     ->button()
                     ->size('sm')
                     ->requiresConfirmation()
+                    ->modalHeading('Marcar dron como registrado en AESA')
+                    ->modalDescription('El dron pasara a figurar como registrado en AESA y la solicitud dejara de aparecer en el dashboard.')
+                    ->modalSubmitActionLabel('Marcar como registrado')
+                    ->modalCancelActionLabel('Cancelar')
                     ->action(function (Dron $record): void {
                         $record->update([
                             'aesa_registration_status' => Dron::AESA_STATUS_YES,
                         ]);
-                    }),
+                    })
+                    ->successNotificationTitle('Dron marcado como registrado en AESA'),
             ]);
     }
 }

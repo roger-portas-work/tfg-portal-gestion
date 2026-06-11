@@ -11,6 +11,15 @@ class OperacionTramite extends Model
 {
     public const STATUS_PENDING = 'pending';
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $tramite): void {
+            if (filled($tramite->processed_at)) {
+                $tramite->deadline_date = null;
+            }
+        });
+    }
+
     protected $fillable = [
         'operacion_id',
         'title',
@@ -123,8 +132,17 @@ class OperacionTramite extends Model
         };
     }
 
+    public function isProcessedForGestor(): bool
+    {
+        return filled($this->processed_at);
+    }
+
     public function daysUntilDeadline(): ?int
     {
+        if ($this->isProcessedForGestor()) {
+            return null;
+        }
+
         if (! $this->deadline_date) {
             return null;
         }
@@ -139,6 +157,10 @@ class OperacionTramite extends Model
 
     public function deadlineCountdownLabel(): string
     {
+        if ($this->isProcessedForGestor()) {
+            return 'Tramitado';
+        }
+
         $days = $this->daysUntilDeadline();
 
         if ($days === null) {
@@ -160,6 +182,10 @@ class OperacionTramite extends Model
 
     public function deadlineCountdownColor(): string
     {
+        if ($this->isProcessedForGestor()) {
+            return 'success';
+        }
+
         $days = $this->daysUntilDeadline();
 
         if ($days === null) {

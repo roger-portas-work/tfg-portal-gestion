@@ -9,7 +9,7 @@ class DashboardOperationWindow
 {
     public const QUERY_KEY = 'operations_window';
 
-    public const DEFAULT = '1m';
+    public const DEFAULT = '7d';
 
     /**
      * @return array<string, array{label: string, description: string, days?: int, months?: int}>

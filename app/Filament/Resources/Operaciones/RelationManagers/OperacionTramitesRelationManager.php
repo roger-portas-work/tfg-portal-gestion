@@ -21,6 +21,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -67,6 +68,11 @@ class OperacionTramitesRelationManager extends RelationManager
             ->body('Uno o varios PDFs ya no existen en el almacenamiento.')
             ->danger()
             ->send();
+    }
+
+    protected function notifyOperationWorkflowUpdated(): void
+    {
+        $this->dispatch('operacion-tramites-updated');
     }
 
     protected function buildArchiveName(OperacionTramite $record): string
@@ -147,8 +153,10 @@ class OperacionTramitesRelationManager extends RelationManager
         $data['title'] = trim((string) ($data['title'] ?? ''));
         $data['attachments'] = array_values(array_filter((array) ($data['attachments'] ?? [])));
         $data['attachment_file_names'] = array_values(array_filter((array) ($data['attachment_file_names'] ?? [])));
-        $data['deadline_date'] = filled($data['deadline_date'] ?? null) ? $data['deadline_date'] : null;
         $data['processed_at'] = filled($data['processed_at'] ?? null) ? $data['processed_at'] : null;
+        $data['deadline_date'] = filled($data['processed_at'])
+            ? null
+            : (filled($data['deadline_date'] ?? null) ? $data['deadline_date'] : null);
         $data['status'] = $this->normalizeTramiteStatus($data['status'] ?? null, $data['processed_at']);
 
         return $data;
@@ -238,6 +246,7 @@ class OperacionTramitesRelationManager extends RelationManager
                             ->displayFormat('d/m/Y')
                             ->native(false)
                             ->closeOnDateSelection()
+                            ->hidden(fn (Get $get): bool => filled($get('processed_at')))
                             ->hintAction(
                                 Action::make('clearDeadlineDate')
                                     ->label('Sin definir')
@@ -257,9 +266,14 @@ class OperacionTramitesRelationManager extends RelationManager
                             ->closeOnDateSelection()
                             ->live()
                             ->afterStateUpdated(function (Set $set, mixed $state): void {
-                                $set('status', filled($state)
-                                    ? OperacionTramite::STATUS_PROCESSED
-                                    : OperacionTramite::STATUS_PENDING);
+                                if (filled($state)) {
+                                    $set('deadline_date', null);
+                                    $set('status', OperacionTramite::STATUS_PROCESSED);
+
+                                    return;
+                                }
+
+                                $set('status', OperacionTramite::STATUS_PENDING);
                             })
                             ->hintAction(
                                 Action::make('clearProcessedAt')
@@ -332,8 +346,9 @@ class OperacionTramitesRelationManager extends RelationManager
 
                 TextColumn::make('deadline_date')
                     ->label('Fecha límite para tramitar')
+                    ->state(fn (OperacionTramite $record): mixed => $record->isProcessedForGestor() ? null : $record->deadline_date)
                     ->date('d/m/Y')
-                    ->placeholder('Sin definir'),
+                    ->placeholder(fn (OperacionTramite $record): string => $record->isProcessedForGestor() ? 'No aplica' : 'Sin definir'),
 
                 TextColumn::make('deadline_countdown')
                     ->label('Dias restantes')
@@ -361,7 +376,10 @@ class OperacionTramitesRelationManager extends RelationManager
                     ->limit(50)
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('deadline_date')
+            ->defaultSort(fn (Builder $query): Builder => $query
+                ->orderByRaw('case when processed_at is null then 0 else 1 end')
+                ->orderBy('deadline_date')
+                ->orderBy('id'))
             ->recordClasses(function (OperacionTramite $record): string {
                 if ($this->requestedTramiteId() === (string) $record->getKey()) {
                     return 'idrx-highlighted-table-row';
@@ -379,6 +397,9 @@ class OperacionTramitesRelationManager extends RelationManager
                         $this->getOwnerRecord()->tramites()->save($tramite);
 
                         return $tramite;
+                    })
+                    ->after(function (): void {
+                        $this->notifyOperationWorkflowUpdated();
                     }),
             ])
             ->recordActions([
@@ -398,9 +419,15 @@ class OperacionTramitesRelationManager extends RelationManager
                         $record->save();
 
                         return $record;
+                    })
+                    ->after(function (): void {
+                        $this->notifyOperationWorkflowUpdated();
                     }),
 
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->after(function (): void {
+                        $this->notifyOperationWorkflowUpdated();
+                    }),
             ])
             ->recordAction('edit');
     }

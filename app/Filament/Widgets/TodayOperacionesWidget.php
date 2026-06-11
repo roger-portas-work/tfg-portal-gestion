@@ -48,10 +48,13 @@ class TodayOperacionesWidget extends Widget
     protected function withTramiteMetrics(Builder $query, string $today, string $dueUntil): Builder
     {
         $approvedStatus = OperacionTramite::STATUS_APPROVED;
+        $deniedStatus = OperacionTramite::STATUS_DENIED;
         $metrics = OperacionTramite::query()
             ->select('operacion_id')
             ->selectRaw('count(*) as tramites_count')
             ->selectRaw('sum(case when status = ? then 1 else 0 end) as approved_tramites_count', [$approvedStatus])
+            ->selectRaw('sum(case when status = ? then 1 else 0 end) as denied_tramites_count', [$deniedStatus])
+            ->selectRaw('sum(case when processed_at is not null then 1 else 0 end) as processed_for_gestor_tramites_count')
             ->selectRaw('sum(case when processed_at is null and status != ? then 1 else 0 end) as pending_to_process_tramites_count', [$approvedStatus])
             ->selectRaw('sum(case when processed_at is null and status != ? and deadline_date < ? then 1 else 0 end) as overdue_tramites_count', [$approvedStatus, $today])
             ->selectRaw('sum(case when processed_at is null and status != ? and deadline_date between ? and ? then 1 else 0 end) as due_soon_tramites_count', [$approvedStatus, $today, $dueUntil])
@@ -63,6 +66,8 @@ class TodayOperacionesWidget extends Widget
             ->select('operaciones.*')
             ->selectRaw('coalesce(tramite_metrics.tramites_count, 0) as tramites_count')
             ->selectRaw('coalesce(tramite_metrics.approved_tramites_count, 0) as approved_tramites_count')
+            ->selectRaw('coalesce(tramite_metrics.denied_tramites_count, 0) as denied_tramites_count')
+            ->selectRaw('coalesce(tramite_metrics.processed_for_gestor_tramites_count, 0) as processed_for_gestor_tramites_count')
             ->selectRaw('coalesce(tramite_metrics.pending_to_process_tramites_count, 0) as pending_to_process_tramites_count')
             ->selectRaw('coalesce(tramite_metrics.overdue_tramites_count, 0) as overdue_tramites_count')
             ->selectRaw('coalesce(tramite_metrics.due_soon_tramites_count, 0) as due_soon_tramites_count')
@@ -79,9 +84,9 @@ class TodayOperacionesWidget extends Widget
             'location' => collect([$record->city, $record->province])->filter()->implode(' - '),
             'operation_date' => $this->formatDate($record->operation_date),
             'schedule' => $record->estimated_filming_schedule,
-            'state' => $isPending ? 'Pendiente de confirmar' : $this->tramitesState($record),
-            'tone' => $isPending ? 'warning' : $this->tramitesTone($record),
-            'description' => $isPending ? 'Revisar y confirmar con el cliente' : $this->tramitesDescription($record),
+            'state' => $record->gestorFollowUpLabel(),
+            'tone' => $record->gestorFollowUpColor(),
+            'description' => $record->gestorFollowUpDescription(),
             'next_deadline' => $record->next_deadline_date
                 ? $this->formatDate($record->next_deadline_date)
                 : null,
@@ -89,7 +94,7 @@ class TodayOperacionesWidget extends Widget
             'drone' => $record->dron?->displayName(),
             'url' => OperacionResource::getUrl('view', [
                 'record' => $record,
-                'focus' => $isPending ? 'pendiente-confirmar' : 'operacion-hoy',
+                'focus' => $isPending ? 'pendiente-confirmar' : $record->gestorFollowUpFocus(),
             ]),
         ];
     }
@@ -105,8 +110,10 @@ class TodayOperacionesWidget extends Widget
                 when coalesce(tramite_metrics.overdue_tramites_count, 0) > 0 then 2
                 when coalesce(tramite_metrics.due_soon_tramites_count, 0) > 0 then 3
                 when coalesce(tramite_metrics.pending_to_process_tramites_count, 0) > 0 then 4
-                when coalesce(tramite_metrics.approved_tramites_count, 0) < coalesce(tramite_metrics.tramites_count, 0) then 5
-                else 6
+                when coalesce(tramite_metrics.denied_tramites_count, 0) > 0 then 5
+                when coalesce(tramite_metrics.processed_for_gestor_tramites_count, 0) = coalesce(tramite_metrics.tramites_count, 0)
+                    and coalesce(tramite_metrics.approved_tramites_count, 0) < coalesce(tramite_metrics.tramites_count, 0) then 6
+                else 7
             end
         SQL;
     }
@@ -127,62 +134,5 @@ class TodayOperacionesWidget extends Widget
         }
 
         return Carbon::parse($value)->format('d/m/Y');
-    }
-
-    protected function tramitesState(Operacion $record): string
-    {
-        if ((int) ($record->tramites_count ?? 0) === 0) {
-            return 'Sin trámites';
-        }
-
-        if ((int) ($record->overdue_tramites_count ?? 0) > 0) {
-            return $record->overdue_tramites_count.' vencidos';
-        }
-
-        if ((int) ($record->due_soon_tramites_count ?? 0) > 0) {
-            return $record->due_soon_tramites_count.' vencen en 7 días';
-        }
-
-        if ((int) ($record->pending_to_process_tramites_count ?? 0) > 0) {
-            return $record->pending_to_process_tramites_count.' pendientes';
-        }
-
-        if ((int) ($record->approved_tramites_count ?? 0) < (int) ($record->tramites_count ?? 0)) {
-            return 'Falta cerrar';
-        }
-
-        return 'Completa';
-    }
-
-    protected function tramitesTone(Operacion $record): string
-    {
-        if ((int) ($record->tramites_count ?? 0) === 0) {
-            return 'danger';
-        }
-
-        if ((int) ($record->overdue_tramites_count ?? 0) > 0) {
-            return 'danger';
-        }
-
-        if ((int) ($record->due_soon_tramites_count ?? 0) > 0) {
-            return 'warning';
-        }
-
-        if ((int) ($record->pending_to_process_tramites_count ?? 0) > 0) {
-            return 'info';
-        }
-
-        if ((int) ($record->approved_tramites_count ?? 0) < (int) ($record->tramites_count ?? 0)) {
-            return 'info';
-        }
-
-        return 'success';
-    }
-
-    protected function tramitesDescription(Operacion $record): string
-    {
-        return 'Total '.(int) ($record->tramites_count ?? 0)
-            .' - Aprobados '.(int) ($record->approved_tramites_count ?? 0)
-            .' - Pendientes de tramitar '.(int) ($record->pending_to_process_tramites_count ?? 0);
     }
 }
