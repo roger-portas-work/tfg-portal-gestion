@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Piloto;
+use App\Support\DocumentStorage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -313,14 +314,20 @@ new #[Title('Mis pilotos')] class extends Component {
     {
         $this->deleteStoredDocument($piloto, $field);
 
-        $folder = sprintf(
-            'pilotos/cliente-%d/piloto-%d-%s',
-            $piloto->cliente_id,
-            $piloto->id,
-            Str::slug($piloto->fullName() ?: 'piloto')
+        $clienteName = $piloto->cliente?->fullName() ?: $this->cliente?->fullName() ?: 'cliente';
+        $pilotName = $piloto->fullName() ?: 'piloto';
+        $folder = DocumentStorage::folder(
+            'pilotos',
+            DocumentStorage::clienteSegment($piloto->cliente_id, $clienteName),
+            DocumentStorage::entitySegment('piloto', $piloto->id, $pilotName, 'piloto'),
+            'documentos'
         );
 
-        $fileName = now()->format('YmdHis').'-'.$documentKey.'.'.$uploadedFile->getClientOriginalExtension();
+        $fileName = DocumentStorage::pdfFileName([
+            $clienteName,
+            $pilotName,
+            $documentKey,
+        ], $uploadedFile->getClientOriginalName());
 
         return $uploadedFile->storeAs($folder, $fileName, 'local');
     }

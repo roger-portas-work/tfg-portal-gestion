@@ -1,10 +1,10 @@
 <?php
 
 use App\Models\Dron;
+use App\Support\DocumentStorage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -337,14 +337,20 @@ new #[Title('Mis drones')] class extends Component {
             Storage::disk('local')->delete($dron->insurance_coverage_policy_path);
         }
 
-        $folder = sprintf(
-            'drones/cliente-%d/dron-%d-%s',
-            $dron->cliente_id,
-            $dron->id,
-            Str::slug(trim(($dron->manufacturer_name ?? '').' '.($dron->model ?? '')) ?: 'dron')
+        $clienteName = $dron->cliente?->fullName() ?: $this->cliente?->fullName() ?: 'cliente';
+        $dronName = $dron->displayName();
+        $folder = DocumentStorage::folder(
+            'drones',
+            DocumentStorage::clienteSegment($dron->cliente_id, $clienteName),
+            DocumentStorage::entitySegment('dron', $dron->id, $dronName, 'dron'),
+            'seguros'
         );
 
-        $fileName = now()->format('YmdHis').'-poliza-cobertura.'.$uploadedFile->getClientOriginalExtension();
+        $fileName = DocumentStorage::pdfFileName([
+            $clienteName,
+            $dronName,
+            'poliza-cobertura',
+        ], $uploadedFile->getClientOriginalName());
 
         return $uploadedFile->storeAs($folder, $fileName, 'local');
     }

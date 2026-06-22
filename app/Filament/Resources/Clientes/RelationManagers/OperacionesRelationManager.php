@@ -13,12 +13,21 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class OperacionesRelationManager extends RelationManager
 {
     protected static string $relationship = 'operaciones';
 
     protected static ?string $title = 'Operaciones';
+
+    public static function applyCurrentOperationsQuery(Builder $query): Builder
+    {
+        return $query
+            ->activeForGestor()
+            ->orderBy('operation_date')
+            ->orderBy('id');
+    }
 
     protected function formatMetric(null|int|float|string $value, string $unit): string
     {
@@ -39,7 +48,9 @@ class OperacionesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with(['piloto', 'dron'])->withTramiteWorkflowCounts())
+            ->modifyQueryUsing(fn (Builder $query): Builder => static::applyCurrentOperationsQuery(
+                $query->with(['piloto', 'dron'])->withTramiteWorkflowCounts()
+            ))
             ->columns([
                 TextColumn::make('reference')
                     ->label('Operacion')
@@ -167,7 +178,9 @@ class OperacionesRelationManager extends RelationManager
                     ->label('Condiciones operativas')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('operation_date')
+            ->emptyStateHeading('Sin operaciones vigentes')
+            ->emptyStateDescription('En esta ficha solo aparecen operaciones activas.')
             ->headerActions([
                 CreateAction::make()
                     ->label('Anadir operacion')

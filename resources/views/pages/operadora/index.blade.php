@@ -2,6 +2,7 @@
 
 use App\Models\OperadoraProfile;
 use App\Models\OperadoraRequirement;
+use App\Support\DocumentStorage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -236,20 +237,33 @@ new #[Title('Operadora')] class extends Component {
         ]);
 
         $uploadedFile = $this->pdfUploads[$requirementId];
-        $requirementFolder = sprintf('operadora/cliente-%d/%s', $this->cliente->id, Str::slug($requirement->name ?: 'requisito'));
+        $originalFileName = $uploadedFile->getClientOriginalName();
+        $mimeType = $uploadedFile->getClientMimeType();
+        $fileSize = $uploadedFile->getSize();
+        $clienteName = $this->cliente->fullName();
+        $requirementName = $requirement->name ?: 'requisito';
+        $requirementFolder = DocumentStorage::folder(
+            'operadora',
+            DocumentStorage::clienteSegment($this->cliente->id, $clienteName),
+            DocumentStorage::entitySegment('requisito', $requirement->id, $requirementName, 'requisito')
+        );
 
         if (filled($requirement->file_path)) {
             Storage::disk('local')->delete($requirement->file_path);
         }
 
-        $storedFileName = now()->format('YmdHis').'-'.Str::slug(pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME));
-        $path = $uploadedFile->storeAs($requirementFolder, $storedFileName.'.'.$uploadedFile->getClientOriginalExtension(), 'local');
+        $storedFileName = DocumentStorage::pdfFileName([
+            $clienteName,
+            'operadora',
+            $requirementName,
+        ], $originalFileName);
+        $path = $uploadedFile->storeAs($requirementFolder, $storedFileName, 'local');
 
         $requirement->update([
             'file_path' => $path,
-            'original_file_name' => $uploadedFile->getClientOriginalName(),
-            'mime_type' => $uploadedFile->getClientMimeType(),
-            'file_size' => $uploadedFile->getSize(),
+            'original_file_name' => $originalFileName,
+            'mime_type' => $mimeType,
+            'file_size' => $fileSize,
             'status' => OperadoraRequirement::STATUS_IN_REVIEW,
             'review_notes' => null,
             'reviewed_at' => null,

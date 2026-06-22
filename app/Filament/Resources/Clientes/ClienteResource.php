@@ -7,6 +7,7 @@ use App\Filament\Resources\Clientes\Pages\EditCliente;
 use App\Filament\Resources\Clientes\Pages\ListClientes;
 use App\Filament\Resources\Clientes\RelationManagers\DronesRelationManager;
 use App\Filament\Resources\Clientes\RelationManagers\OperacionesRelationManager;
+use App\Filament\Resources\Clientes\RelationManagers\OperacionTramitesRelationManager;
 use App\Filament\Resources\Clientes\RelationManagers\OperadoraRequirementsRelationManager;
 use App\Filament\Resources\Clientes\RelationManagers\PilotosRelationManager;
 use App\Filament\Resources\Clientes\Schemas\ClienteForm;
@@ -48,6 +49,7 @@ class ClienteResource extends Resource
     {
         return [
             OperadoraRequirementsRelationManager::class,
+            OperacionTramitesRelationManager::class,
             OperacionesRelationManager::class,
             PilotosRelationManager::class,
             DronesRelationManager::class,

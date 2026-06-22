@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clientes\RelationManagers;
 
 use App\Models\Piloto;
+use App\Support\DocumentStorage;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -21,6 +22,7 @@ use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class PilotosRelationManager extends RelationManager
 {
@@ -70,9 +72,44 @@ class PilotosRelationManager extends RelationManager
         );
     }
 
-    protected function documentsDirectory(): string
+    protected function documentsDirectory(Get $get): string
     {
-        return 'pilotos/cliente-'.$this->getOwnerRecord()->getKey().'/documentos';
+        $cliente = $this->getOwnerRecord();
+
+        return DocumentStorage::folder(
+            'pilotos',
+            DocumentStorage::clienteSegment($cliente->getKey(), $cliente->fullName()),
+            DocumentStorage::entitySegment('piloto', null, $this->pilotStorageLabel($get), 'piloto'),
+            'documentos'
+        );
+    }
+
+    protected function pilotFullNameFromForm(Get $get): string
+    {
+        return trim(implode(' ', array_filter([
+            $get('first_name'),
+            $get('last_name'),
+            $get('second_last_name'),
+        ]))) ?: 'piloto';
+    }
+
+    protected function pilotStorageLabel(Get $get): string
+    {
+        return trim(implode(' ', array_filter([
+            $this->pilotFullNameFromForm($get),
+            filled($get('dni_nie')) ? 'dni '.$get('dni_nie') : null,
+        ]))) ?: 'piloto';
+    }
+
+    protected function storageFileName(TemporaryUploadedFile $file, Get $get, string $documentKey): string
+    {
+        $clienteName = $this->getOwnerRecord()->fullName();
+
+        return DocumentStorage::pdfFileName([
+            $clienteName,
+            $this->pilotFullNameFromForm($get),
+            $documentKey,
+        ], $file->getClientOriginalName());
     }
 
     /**
@@ -193,7 +230,8 @@ class PilotosRelationManager extends RelationManager
                             ->label('DNI frontal en PDF')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->directory(fn (Get $get): string => $this->documentsDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->storageFileName($file, $get, 'dni-frontal'))
                             ->maxSize(10240)
                             ->required(),
 
@@ -201,7 +239,8 @@ class PilotosRelationManager extends RelationManager
                             ->label('DNI trasero en PDF')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->directory(fn (Get $get): string => $this->documentsDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->storageFileName($file, $get, 'dni-trasero'))
                             ->maxSize(10240)
                             ->required(),
 
@@ -209,7 +248,8 @@ class PilotosRelationManager extends RelationManager
                             ->label('Certificado teorico en PDF')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->directory(fn (Get $get): string => $this->documentsDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->storageFileName($file, $get, 'certificado-teorico'))
                             ->maxSize(10240)
                             ->required(),
 
@@ -217,7 +257,8 @@ class PilotosRelationManager extends RelationManager
                             ->label('Certificado practico en PDF')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->directory(fn (Get $get): string => $this->documentsDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->storageFileName($file, $get, 'certificado-practico'))
                             ->maxSize(10240)
                             ->visible(fn (Get $get): bool => $get('theoretical_certificate_level') === Piloto::THEORY_STS)
                             ->required(fn (Get $get): bool => $get('theoretical_certificate_level') === Piloto::THEORY_STS),
@@ -226,7 +267,8 @@ class PilotosRelationManager extends RelationManager
                             ->label('PDF del certificado de radiofonista')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => $this->documentsDirectory())
+                            ->directory(fn (Get $get): string => $this->documentsDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->storageFileName($file, $get, 'radiofonista'))
                             ->maxSize(10240)
                             ->visible(fn (Get $get): bool => (bool) $get('has_radiofonista_certificate'))
                             ->required(fn (Get $get): bool => (bool) $get('has_radiofonista_certificate')),

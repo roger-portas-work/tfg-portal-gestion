@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Operaciones\RelationManagers;
 
 use App\Models\Operacion;
 use App\Models\OperacionTramite;
+use App\Support\DocumentStorage;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use ZipArchive;
 
 class OperacionTramitesRelationManager extends RelationManager
@@ -49,9 +51,32 @@ class OperacionTramitesRelationManager extends RelationManager
         return false;
     }
 
-    protected function buildDirectory(): string
+    protected function buildDirectory(?Get $get = null): string
     {
-        return 'operaciones/operacion-'.$this->getOwnerRecord()->getKey().'/tramites';
+        $operacion = $this->getOwnerRecord();
+        $clienteName = $operacion->cliente?->fullName() ?: 'cliente';
+        $operationName = $operacion->reference ?: $operacion->operation_date?->format('Y-m-d') ?: 'operacion';
+        $tramiteTitle = $get ? $get('title') : null;
+
+        return DocumentStorage::folder(
+            'operaciones',
+            DocumentStorage::clienteSegment($operacion->cliente_id, $clienteName),
+            DocumentStorage::entitySegment('operacion', $operacion->getKey(), $operationName, 'operacion'),
+            DocumentStorage::entitySegment('tramite', null, $tramiteTitle, 'tramite')
+        );
+    }
+
+    protected function attachmentStorageFileName(TemporaryUploadedFile $file, Get $get): string
+    {
+        $operacion = $this->getOwnerRecord();
+        $clienteName = $operacion->cliente?->fullName() ?: 'cliente';
+        $operationName = $operacion->reference ?: $operacion->operation_date?->format('Y-m-d') ?: 'operacion';
+
+        return DocumentStorage::pdfFileName([
+            $clienteName,
+            $operationName,
+            $get('title') ?: 'tramite',
+        ], $file->getClientOriginalName());
     }
 
     protected function firstAttachmentName(OperacionTramite $record): string
@@ -319,7 +344,8 @@ class OperacionTramitesRelationManager extends RelationManager
                             ->label('PDFs del tramite')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => $this->buildDirectory())
+                            ->directory(fn (Get $get): string => $this->buildDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->attachmentStorageFileName($file, $get))
                             ->multiple()
                             ->storeFileNamesIn('attachment_file_names')
                             ->columnSpanFull(),

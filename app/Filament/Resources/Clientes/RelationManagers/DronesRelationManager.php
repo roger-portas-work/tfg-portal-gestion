@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Clientes\RelationManagers;
 
 use App\Models\Dron;
+use App\Support\DocumentStorage;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -15,12 +16,14 @@ use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class DronesRelationManager extends RelationManager
 {
@@ -62,6 +65,42 @@ class DronesRelationManager extends RelationManager
             Storage::disk('local')->path($record->insurance_coverage_policy_path),
             $this->buildCoveragePolicyFileName($record)
         );
+    }
+
+    protected function dronNameFromForm(Get $get): string
+    {
+        return trim(($get('manufacturer_name') ?? '').' '.($get('model') ?? '')) ?: 'dron';
+    }
+
+    protected function dronStorageLabel(Get $get): string
+    {
+        return trim(implode(' ', array_filter([
+            $this->dronNameFromForm($get),
+            filled($get('drone_serial_number')) ? 'serie '.$get('drone_serial_number') : null,
+        ]))) ?: 'dron';
+    }
+
+    protected function coveragePolicyDirectory(Get $get): string
+    {
+        $cliente = $this->getOwnerRecord();
+
+        return DocumentStorage::folder(
+            'drones',
+            DocumentStorage::clienteSegment($cliente->getKey(), $cliente->fullName()),
+            DocumentStorage::entitySegment('dron', null, $this->dronStorageLabel($get), 'dron'),
+            'seguros'
+        );
+    }
+
+    protected function coveragePolicyStorageFileName(TemporaryUploadedFile $file, Get $get): string
+    {
+        $clienteName = $this->getOwnerRecord()->fullName();
+
+        return DocumentStorage::pdfFileName([
+            $clienteName,
+            $this->dronNameFromForm($get),
+            'poliza-cobertura',
+        ], $file->getClientOriginalName());
     }
 
     public function form(Schema $schema): Schema
@@ -192,7 +231,8 @@ class DronesRelationManager extends RelationManager
                             ->label('PDF de la poliza')
                             ->acceptedFileTypes(['application/pdf'])
                             ->disk('local')
-                            ->directory(fn (): string => 'drones/cliente-'.$this->getOwnerRecord()->getKey().'/seguros')
+                            ->directory(fn (Get $get): string => $this->coveragePolicyDirectory($get))
+                            ->getUploadedFileNameForStorageUsing(fn (TemporaryUploadedFile $file, Get $get): string => $this->coveragePolicyStorageFileName($file, $get))
                             ->maxSize(10240)
                             ->required()
                             ->storeFileNamesIn('insurance_coverage_policy_original_name')
