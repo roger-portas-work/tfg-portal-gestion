@@ -82,7 +82,7 @@ class Operacion extends Model
 
     public static function activeForGestorFromDate(): string
     {
-        return Carbon::today(config('app.timezone'))->subDays(2)->toDateString();
+        return Carbon::today(config('app.timezone'))->toDateString();
     }
 
     public function scopeNotRejectedForGestor(Builder $query): Builder
@@ -99,6 +99,33 @@ class Operacion extends Model
         return $query
             ->whereDate('operation_date', '>=', $from ?? self::activeForGestorFromDate())
             ->notRejectedForGestor();
+    }
+
+    /**
+     * Operaciones que cuentan en el total mostrado en la lista de clientes:
+     * las ya pasadas (salvo rechazadas) y cualquiera que esté confirmada.
+     */
+    public function scopeCountableForClienteSummary(Builder $query): Builder
+    {
+        $today = Carbon::today(config('app.timezone'))->toDateString();
+
+        return $query
+            ->notRejectedForGestor()
+            ->where(function (Builder $query) use ($today): void {
+                $query
+                    ->whereDate('operation_date', '<', $today)
+                    ->orWhere('status', self::STATUS_CONFIRMED);
+            });
+    }
+
+    /**
+     * Operaciones activas para la lista de clientes: confirmadas, de hoy o futuras.
+     */
+    public function scopeActiveForClienteSummary(Builder $query): Builder
+    {
+        return $query
+            ->whereDate('operation_date', '>=', self::activeForGestorFromDate())
+            ->where('status', self::STATUS_CONFIRMED);
     }
 
     public function assignmentsBelongToCliente(): bool

@@ -92,7 +92,8 @@ class OperacionTramite extends Model
         return $query
             ->where('status', self::STATUS_PENDING)
             ->whereNull('processed_at')
-            ->whereNotNull('deadline_date');
+            ->whereNotNull('deadline_date')
+            ->whereDate('deadline_date', '>=', Carbon::today(config('app.timezone'))->toDateString());
     }
 
     public function scopeOverdueForGestor(Builder $query, ?string $today = null): Builder

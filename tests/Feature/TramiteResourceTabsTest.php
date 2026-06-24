@@ -8,7 +8,9 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
-test('tramite resource pending tab filters pending tramites with deadline ordered by deadline', function () {
+test('tramite resource pending tab excludes overdue tramites and orders by deadline', function () {
+    Carbon::setTestNow(Carbon::parse('2026-06-07', config('app.timezone')));
+
     $query = TramiteResource::applyPendingTabQuery(OperacionTramite::query())->getQuery();
 
     expect($query->wheres)->toContain([
@@ -30,6 +32,12 @@ test('tramite resource pending tab filters pending tramites with deadline ordere
     expect($query->orders)->toBe([
         ['column' => 'deadline_date', 'direction' => 'asc'],
         ['column' => 'id', 'direction' => 'asc'],
+    ])->and($query->wheres)->toContain([
+        'type' => 'Date',
+        'column' => 'deadline_date',
+        'operator' => '>=',
+        'value' => '2026-06-07',
+        'boolean' => 'and',
     ]);
 });
 

@@ -3,20 +3,62 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white antialiased dark:bg-linear-to-b dark:from-neutral-950 dark:to-neutral-900">
-        <div class="bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-            <div class="flex w-full max-w-sm flex-col gap-2">
-                <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium" wire:navigate>
-                    <span class="flex h-9 w-9 mb-1 items-center justify-center rounded-md">
-                        <x-app-logo-icon class="size-9 fill-current text-black dark:text-white" />
-                    </span>
-                    <span class="sr-only">{{ config('app.name', 'Laravel') }}</span>
-                </a>
-                <div class="flex flex-col gap-6">
-                    {{ $slot }}
-                </div>
-            </div>
-        </div>
+    <body class="idronlex-auth">
+        <main class="idronlex-auth__shell">
+            <div
+                class="idronlex-auth__logo"
+                role="img"
+                aria-label="Idronlex Lex & Consulting"
+                style="background-image: url('{{ asset('images/logo-idronlex.png') }}');"
+            ></div>
+
+            <section class="idronlex-auth__card">
+                {{ $slot }}
+            </section>
+        </main>
+
+        <style>
+            .idronlex-auth {
+                display: grid;
+                min-height: 100vh;
+                margin: 0;
+                padding: 2rem 1.25rem;
+                background: linear-gradient(145deg, #f8fbff 0%, #eef5ff 100%);
+                color: #172033;
+                place-items: center;
+            }
+
+            .idronlex-auth__shell {
+                width: min(100%, 28rem);
+            }
+
+            .idronlex-auth__logo {
+                width: 10.5rem;
+                height: 9.5rem;
+                margin: 0 auto 1.25rem;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: contain;
+            }
+
+            .idronlex-auth__card {
+                padding: 2rem;
+                border: 1px solid #dbe5f3;
+                border-radius: 1.25rem;
+                background: #fff;
+                box-shadow: 0 1.25rem 3.5rem rgba(30, 64, 175, 0.12);
+            }
+
+            @media (max-width: 40rem) {
+                .idronlex-auth {
+                    padding: 1.25rem;
+                }
+
+                .idronlex-auth__card {
+                    padding: 1.5rem;
+                }
+            }
+        </style>
         @fluxScripts
     </body>
 </html>

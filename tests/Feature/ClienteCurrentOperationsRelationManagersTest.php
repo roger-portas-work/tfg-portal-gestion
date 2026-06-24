@@ -101,7 +101,7 @@ test('cliente tramites table only includes tramites from active operations', fun
 
     $cliente = clienteCurrentOperationsRecord('cliente-tramites-vigentes@example.com');
     $inactiveOperation = clienteCurrentOperationsOperacion($cliente, '2026-06-04', 'INACTIVE');
-    $activeBoundaryOperation = clienteCurrentOperationsOperacion($cliente, '2026-06-05', 'BOUNDARY');
+    $pastOperation = clienteCurrentOperationsOperacion($cliente, '2026-06-06', 'PAST');
     $todayOperation = clienteCurrentOperationsOperacion($cliente, '2026-06-07', 'TODAY');
     $futureOperation = clienteCurrentOperationsOperacion($cliente, '2026-06-08', 'FUTURE');
     $rejectedOperation = clienteCurrentOperationsOperacion($cliente, '2026-06-08', 'REJECTED', Operacion::STATUS_REJECTED);
@@ -114,9 +114,9 @@ test('cliente tramites table only includes tramites from active operations', fun
     ]);
 
     OperacionTramite::create([
-        'operacion_id' => $activeBoundaryOperation->id,
-        'title' => 'Tramite operacion limite activa',
-        'deadline_date' => '2026-06-05',
+        'operacion_id' => $pastOperation->id,
+        'title' => 'Tramite operacion pasada',
+        'deadline_date' => '2026-06-06',
         'status' => OperacionTramite::STATUS_PENDING,
     ]);
 
@@ -145,10 +145,10 @@ test('cliente tramites table only includes tramites from active operations', fun
         $cliente->operacionTramites()->getQuery()
     )->pluck('operacion_tramites.title')->all();
 
-    expect($titles)->toContain('Tramite operacion limite activa')
-        ->and($titles)->toContain('Tramite operacion hoy')
+    expect($titles)->toContain('Tramite operacion hoy')
         ->and($titles)->toContain('Tramite operacion futura')
         ->and($titles)->not->toContain('Tramite operacion inactiva')
+        ->and($titles)->not->toContain('Tramite operacion pasada')
         ->and($titles)->not->toContain('Tramite operacion rechazada');
 });
 
@@ -157,7 +157,7 @@ test('cliente operations table uses active operations scope', function () {
 
     $cliente = clienteCurrentOperationsRecord('cliente-operaciones-vigentes@example.com');
     clienteCurrentOperationsOperacion($cliente, '2026-06-04', 'INACTIVE');
-    clienteCurrentOperationsOperacion($cliente, '2026-06-05', 'BOUNDARY');
+    clienteCurrentOperationsOperacion($cliente, '2026-06-06', 'PAST');
     clienteCurrentOperationsOperacion($cliente, '2026-06-07', 'TODAY');
     clienteCurrentOperationsOperacion($cliente, '2026-06-08', 'FUTURE');
     clienteCurrentOperationsOperacion($cliente, '2026-06-08', 'REJECTED', Operacion::STATUS_REJECTED);
@@ -167,7 +167,6 @@ test('cliente operations table uses active operations scope', function () {
     )->pluck('reference')->all();
 
     expect($references)->toBe([
-        'Operacion BOUNDARY',
         'Operacion TODAY',
         'Operacion FUTURE',
     ]);

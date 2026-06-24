@@ -106,15 +106,15 @@ class ClientesTable
 
     public static function applyActiveOperationsFilter(Builder $query): Builder
     {
-        return $query->whereHas('operaciones', fn (Builder $query): Builder => $query->activeForGestor());
+        return $query->whereHas('operaciones', fn (Builder $query): Builder => $query->activeForClienteSummary());
     }
 
     public static function configure(Table $table): Table
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->withCount([
-                'operaciones as operaciones_total_count',
-                'operaciones as operaciones_active_count' => fn (Builder $query) => $query->activeForGestor(),
+                'operaciones as operaciones_total_count' => fn (Builder $query) => $query->countableForClienteSummary(),
+                'operaciones as operaciones_active_count' => fn (Builder $query) => $query->activeForClienteSummary(),
                 'operadoraRequirements',
                 'operadoraRequirements as operadora_required_count' => fn (Builder $query) => $query
                     ->where('is_required', true),

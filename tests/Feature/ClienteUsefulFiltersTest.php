@@ -146,23 +146,42 @@ test('cliente operadora pending filter returns clientes with non closed requirem
         ->and($ids)->not->toContain($approved->id);
 });
 
-test('cliente active operations filter uses active future non rejected operations', function () {
+test('cliente active operations filter uses confirmed operations from today onwards', function () {
     Carbon::setTestNow(Carbon::parse('2026-06-10', config('app.timezone')));
 
     $active = clienteUsefulFilterRecord('cliente-operacion-activa@example.com');
-    $boundary = clienteUsefulFilterRecord('cliente-operacion-limite@example.com');
+    $pending = clienteUsefulFilterRecord('cliente-operacion-pendiente@example.com');
     $rejected = clienteUsefulFilterRecord('cliente-operacion-rechazada@example.com');
     $old = clienteUsefulFilterRecord('cliente-operacion-antigua@example.com');
 
     clienteUsefulFilterOperation($active, '2026-06-11', Operacion::STATUS_CONFIRMED, 'ACTIVE');
-    clienteUsefulFilterOperation($boundary, '2026-06-08', Operacion::STATUS_PENDING, 'BOUNDARY');
+    clienteUsefulFilterOperation($pending, '2026-06-11', Operacion::STATUS_PENDING, 'PENDING');
     clienteUsefulFilterOperation($rejected, '2026-06-11', Operacion::STATUS_REJECTED, 'REJECTED');
     clienteUsefulFilterOperation($old, '2026-06-07', Operacion::STATUS_CONFIRMED, 'OLD');
 
     $ids = ClientesTable::applyActiveOperationsFilter(Cliente::query())->pluck('id')->all();
 
     expect($ids)->toContain($active->id)
-        ->and($ids)->toContain($boundary->id)
+        ->and($ids)->not->toContain($pending->id)
         ->and($ids)->not->toContain($rejected->id)
         ->and($ids)->not->toContain($old->id);
+});
+
+test('cliente operation summary distinguishes past or confirmed operations from active operations', function () {
+    Carbon::setTestNow(Carbon::parse('2026-06-10', config('app.timezone')));
+
+    $cliente = clienteUsefulFilterRecord('cliente-resumen-operaciones@example.com');
+
+    clienteUsefulFilterOperation($cliente, '2026-06-09', Operacion::STATUS_PENDING, 'PAST-PENDING');
+    clienteUsefulFilterOperation($cliente, '2026-06-09', Operacion::STATUS_REJECTED, 'PAST-REJECTED');
+    clienteUsefulFilterOperation($cliente, '2026-06-10', Operacion::STATUS_PENDING, 'TODAY-PENDING');
+    clienteUsefulFilterOperation($cliente, '2026-06-11', Operacion::STATUS_PENDING, 'FUTURE-PENDING');
+    clienteUsefulFilterOperation($cliente, '2026-06-10', Operacion::STATUS_CONFIRMED, 'TODAY-CONFIRMED');
+    clienteUsefulFilterOperation($cliente, '2026-06-11', Operacion::STATUS_CONFIRMED, 'FUTURE-CONFIRMED');
+
+    $total = $cliente->operaciones()->countableForClienteSummary()->count();
+    $active = $cliente->operaciones()->activeForClienteSummary()->count();
+
+    expect($total)->toBe(3)
+        ->and($active)->toBe(2);
 });
